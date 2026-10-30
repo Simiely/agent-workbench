@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 工作台 · UI 重构原型</title>
+<style>
+  :root {
+    --bg: #0F1216; --panel: #171B21; --panel-2: #1D232B; --panel-3: #232A33;
+    --border: #252B34; --border-strong: #343A45;
+    --text: #E8EAED; --text-2: #9AA1AC; --text-3: #6B7280;
+    --accent: #4F8CFF; --accent-soft: rgba(79,140,255,.13);
+    --ok: #33C89A; --ok-soft: rgba(51,200,154,.12);
+    --warn: #F0A22E; --warn-soft: rgba(240,162,46,.12);
+    --danger: #F2555A; --danger-soft: rgba(242,85,90,.13);
+  }
+  :root[data-theme="light"] {
+    --bg: #F3F4F7; --panel: #FFFFFF; --panel-2: #F5F7FA; --panel-3: #E9ECF1;
+    --border: #E2E6EC; --border-strong: #CCD2DB;
+    --text: #101319; --text-2: #576070; --text-3: #8A93A1;
+    --accent: #2563EB; --accent-soft: rgba(37,99,235,.09);
+    --ok: #059669; --ok-soft: rgba(5,150,105,.10);
+    --warn: #C2740A; --warn-soft: rgba(194,116,10,.10);
+    --danger: #D92D20; --danger-soft: rgba(217,45,32,.09);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  /* 滚动条适配主题：细、暗、hover 提亮；浅色模式走同一套变量 */
+  * { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong); border-radius: 6px;
+    border: 2px solid transparent; background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-3); background-clip: padding-box; }
+  ::-webkit-scrollbar-corner { background: transparent; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 14px; line-height: 1.55; -webkit-font-smoothing: antialiased;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+
+  /* ── 顶栏 ── */
+  /* ── 顶栏：窄屏可换行，搜索框弹性收缩 ── */
+  .topbar {
+    min-height: 52px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 8px 18px; border-bottom: 1px solid var(--border); background: var(--panel);
+    position: sticky; top: 0; z-index: 20;
+  }
+  .topbar h1 { font-size: 15px; font-weight: 600; letter-spacing: .2px; white-space: nowrap; }
+  .spacer { flex: 1; }
+  .search { display: flex; align-items: center; gap: 7px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 9px; padding: 0 11px; height: 32px; flex: 1 1 150px; max-width: 250px; min-width: 120px; }
+  .search input { background: none; border: none; outline: none; color: var(--text); font-size: 13px; width: 100%; }
+  .search input::placeholder { color: var(--text-3); }
+  .btn { height: 32px; padding: 0 13px; border-radius: 8px; border: 1px solid var(--border-strong); color: var(--text-2); font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px; transition: .15s; }
+  .btn:hover { color: var(--text); border-color: var(--text-3); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+  .btn.primary:hover { filter: brightness(1.08); color: #fff; }
+
+  /* ── 左右分屏：左看板 / 右 GitHub，中缝可拖、比例记忆 ── */
+  .split { flex: 1; display: flex; min-height: 0; }
+  .pane { overflow-y: auto; padding: 16px 18px 46px; min-width: 0; }
+  #paneBoard { flex: none; width: 58%; }
+  #paneGh { flex: 1; }
+  .split-bar { flex: none; width: 10px; cursor: col-resize; display: flex; align-items: center; justify-content: center; touch-action: none; }
+  .split-bar::before { content: ''; width: 3px; height: 52px; border-radius: 3px; background: var(--border-strong); transition: background .15s, width .15s, height .15s; }
+  .split-bar:hover::before, .split-bar.drag::before { background: var(--accent); width: 5px; height: 88px; }
+
+  .kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+  .kpi {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 16px; text-align: left; transition: .15s; position: relative; min-width: 0;
+  }
+  .kpi:hover { border-color: var(--border-strong); }
+  .kpi.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .kpi .num { font-size: 22px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .kpi .lab { font-size: 11.5px; color: var(--text-3); margin-top: 1px; }
+  .kpi .hint { position: absolute; top: 12px; right: 14px; font-size: 10.5px; padding: 1px 7px; border-radius: 5px; }
+  .kpi.alert .num { color: var(--danger); }
+  .kpi.alert .hint { color: var(--danger); background: var(--danger-soft); }
+  .kpi.good .num { color: var(--ok); }
+  .kpi.good .hint { color: var(--ok); background: var(--ok-soft); }
+  .kpi.warn .num { color: var(--warn); }
+  .kpi.warn .hint { color: var(--warn); background: var(--warn-soft); }
+
+  /* ── 工具行：过滤分段器 ── */
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .seg { display: inline-flex; background: var(--panel); border: 1px solid var(--border); border-radius: 9px; padding: 3px; gap: 2px; }
+  .seg button { height: 27px; padding: 0 13px; border-radius: 7px; font-size: 12.5px; color: var(--text-2); }
+  .seg button.on { background: var(--accent); color: #fff; font-weight: 500; }
+  .toolbar .note { font-size: 11.5px; color: var(--text-3); margin-left: auto; }
+
+  /* ── 看板：列宽自适应，窄左栏自动减列 ── */
+  .board { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 12px; align-items: start; }
+  .col { background: var(--panel-2); border: 1px solid var(--border); border-radius: 13px; min-width: 0; }
+  .col-head {
+    display: flex; align-items: center; gap: 8px; padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .col-head .name { font-size: 13px; font-weight: 600; }
+  .col-head .cnt {
+    font-size: 11px; color: var(--text-2); background: var(--panel-3);
+    border-radius: 5px; padding: 1px 7px; font-variant-numeric: tabular-nums;
+  }
+  .col-head .p0dot { width: 7px; height: 7px; border-radius: 50%; background: var(--danger); }
+  .col-head .wip { margin-left: auto; font-size: 10.5px; color: var(--text-3); }
+  .col-body { padding: 10px; display: flex; flex-direction: column; gap: 8px; min-height: 60px; }
+  .col-empty { color: var(--text-3); font-size: 12px; text-align: center; padding: 22px 0; }
+
+  /* ── P5 卡面只留 4 项关键信息 ── */
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 11px;
+    padding: 11px 13px; cursor: pointer; transition: border-color .15s, transform .1s;
+    position: relative;
+  }
+  .card:hover { border-color: var(--border-strong); }
+  .card.p0 { border-left: 3px solid var(--danger); }
+  .card-title { font-size: 13.5px; font-weight: 600; line-height: 1.4; padding-right: 4px; }
+  .card-meta { display: flex; align-items: center; gap: 7px; margin-top: 6px; font-size: 11px; color: var(--text-3); flex-wrap: wrap; }
+  .prio { font-size: 10.5px; font-weight: 600; padding: 0 6px; border-radius: 4px; line-height: 17px; }
+  .prio.p0 { color: var(--danger); background: var(--danger-soft); }
+  .prio.p1 { color: var(--warn); background: var(--warn-soft); }
+  .prio.p2 { color: var(--text-2); background: var(--panel-3); }
+  .stale {
+    color: var(--warn); background: var(--warn-soft); border-radius: 4px;
+    font-size: 10.5px; padding: 0 6px; line-height: 17px;
+  }
+  /* P7 长度编码：待办进度条 */
+  .card-todo { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .todo-track { flex: 1; height: 4px; border-radius: 2px; background: var(--panel-3); overflow: hidden; }
+  .todo-fill { height: 100%; border-radius: 2px; background: var(--ok); }
+  .todo-num { font-size: 10.5px; color: var(--text-3); font-variant-numeric: tabular-nums; flex: none; }
+  .card-progress {
+    margin-top: 7px; font-size: 12px; color: var(--text-2);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .card-progress:empty { display: none; }
+  /* P2/P3 操作收进 hover，不占常驻空间 */
+  .card-actions { position: absolute; top: 9px; right: 10px; display: none; gap: 4px; }
+  .card:hover .card-actions, .card:focus-within .card-actions { display: flex; }
+  .card-actions button {
+    height: 22px; padding: 0 8px; font-size: 11px; border-radius: 6px;
+    background: var(--panel-3); color: var(--text-2); border: 1px solid var(--border-strong);
+  }
+  .card-actions button:hover { color: var(--text); }
+
+  /* ── P2 详情抽屉：次级信息按需展开 ── */
+  .mask { position: fixed; inset: 0; background: rgba(0,0,0,.45); opacity: 0; pointer-events: none; transition: .18s; z-index: 30; }
+  .mask.on { opacity: 1; pointer-events: auto; }
+  .toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(8px);
+    background: var(--panel-3); color: var(--text); border: 1px solid var(--border-strong);
+    border-radius: 9px; padding: 8px 16px; font-size: 12.5px; opacity: 0; pointer-events: none;
+    transition: .2s; z-index: 50; box-shadow: 0 8px 30px rgba(0,0,0,.35); max-width: 80vw;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .drawer {
+    position: fixed; top: 0; right: -460px; width: 440px; max-width: 94vw; height: 100%;
+    background: var(--panel); border-left: 1px solid var(--border); z-index: 31;
+    transition: right .2s ease; display: flex; flex-direction: column;
+  }
+  .drawer.on { right: 0; }
+  .drawer-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+  .drawer-head .t { font-size: 14px; font-weight: 600; flex: 1; }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 14px 18px 20px; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 11px; color: var(--text-3); margin-bottom: 4px; }
+  .field .v { font-size: 13px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 11px; white-space: pre-wrap; }
+  .todo-item { display: flex; gap: 8px; align-items: baseline; padding: 4px 0; font-size: 13px; }
+  .todo-item.done { color: var(--text-3); text-decoration: line-through; }
+  .todo-item .box { color: var(--accent); flex: none; }
+  .drawer-foot { display: flex; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border); }
+
+  /* ── GitHub 区：概览升级为可行动的 KPI ── */
+  /* ── 小标题：两栏对称；点击把本栏放到最大（另一栏收到最小），再点还原 ── */
+  .sec-title {
+    font-size: 13px; font-weight: 600; color: var(--text-2); margin: 0 0 10px;
+    display: inline-flex; align-items: center; gap: 6px; letter-spacing: .02em;
+    transition: color .15s;
+  }
+  .sec-title .mx {
+    font-size: 10px; color: var(--text-3); border: 1px solid var(--border);
+    border-radius: 4px; padding: 0 4px; line-height: 15px; transition: .15s;
+  }
+  .sec-title:hover { color: var(--text); }
+  .sec-title:hover .mx { color: var(--accent); border-color: var(--accent); }
+  .sec-title.on { color: var(--text); }
+  .sec-title.on .mx { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+  .gh-kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
+  /* min(100%,Npx)：栏宽再窄也不横向溢出（防裁切关键） */
+  .gh-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+  .repo { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+  .repo-head { display: flex; align-items: center; gap: 8px; }
+  .repo-head .nm {
+    font-weight: 600; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    text-align: left; padding: 0; transition: color .15s;
+  }
+  .repo-head .nm .cpi { opacity: 0; margin-left: 6px; font-size: 11px; color: var(--text-3); transition: opacity .15s; }
+  .repo-head .nm:hover { color: var(--accent); }
+  .repo-head .nm:hover .cpi { opacity: 1; }
+  .repo-head .ct { margin-left: auto; flex: none; font-size: 10.5px; color: var(--text-3); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; }
+  .repo-head .unsync { flex: none; font-size: 10.5px; color: var(--warn); background: var(--warn-soft); border-radius: 5px; padding: 1px 6px; }
+  .repo-head .archtag { flex: none; font-size: 10.5px; color: var(--text-3); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; }
+  .repo-sub { font-size: 11.5px; color: var(--text-3); margin-top: 3px; }
+  .entry { display: flex; gap: 8px; align-items: center; font-size: 11.5px; color: var(--text-2); padding: 5px 0; border-top: 1px solid var(--border); margin-top: 5px; }
+  .entry:first-of-type { border-top: none; }
+  .entry .t { color: var(--text-3); flex: none; font-variant-numeric: tabular-nums; }
+  .entry .v { color: var(--text); font-weight: 500; flex: none; }
+  .pill { flex: none; font-size: 10px; line-height: 15px; padding: 0 5px; border-radius: 4px; }
+  .pill.ok { color: var(--ok); background: var(--ok-soft); }
+  .pill.un { color: var(--warn); background: var(--warn-soft); }
+  .entry .c { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  @media (max-width: 1000px) {
+    /* 窄屏：分屏改上下叠 */
+    .split { flex-direction: column; }
+    .split-bar { display: none; }
+    .pane { width: auto !important; overflow: visible; }
+    body { overflow: auto; }
+    .board, .gh-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 1250px) {
+    .toolbar .note { display: none; }
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <h1>Agent 工作台</h1>
+  <span style="font-size:11px;color:var(--text-3);border:1px solid var(--border);border-radius:5px;padding:1px 7px;">重构原型</span>
+  <div class="spacer"></div>
+  <div class="search"><span style="color:var(--text-3)">⌕</span><input placeholder="搜任务、目录、进度"></div>
+  <button class="btn">✓ 已完成 3</button>
+  <button class="btn">＋ 电脑</button>
+  <button class="btn primary">＋ 新任务</button>
+</header>
+
+<div class="split" id="split">
+  <!-- 左：任务看板 -->
+  <section class="pane" id="paneBoard">
+  <button class="sec-title" id="tBoard" title="点击放大本栏，再点还原">任务看板<span class="mx">⤢</span></button>
+  <!-- P6/P1：概览先行。每张 KPI 都是一个过滤入口（点一下 = 缩小范围） -->
+  <div class="kpis" id="kpis">
+    <button class="kpi" data-filter="doing">
+      <div class="num">5</div><div class="lab">进行中</div><div class="hint">点击筛选</div>
+    </button>
+    <button class="kpi alert" data-filter="attention">
+      <div class="num">2</div><div class="lab">需要关注</div><div class="hint">P0 ×1 · 久未动 ×1</div>
+    </button>
+    <button class="kpi warn" data-filter="todo">
+      <div class="num">4</div><div class="lab">未勾待办</div><div class="hint">点击筛选</div>
+    </button>
+    <button class="kpi good" data-filter="done">
+      <div class="num">3</div><div class="lab">已完成</div><div class="hint">点击查看</div>
+    </button>
+  </div>
+
+  <div class="toolbar">
+    <div class="seg" id="statusSeg">
+      <button data-s="">全部</button>
+      <button class="on" data-s="进行中">进行中</button>
+      <button data-s="已完成">已完成</button>
+    </div>
+    <button class="btn" id="clearBtn" style="display:none">清除筛选 ×</button>
+    <span class="note">卡面只留 4 项关键信息；点击卡片看全部细节（渐进披露，2 层封顶）</span>
+  </div>
+
+  <div class="board" id="board"></div>
+  </section>
+
+  <!-- 中缝：拖动调比例 -->
+  <div class="split-bar" id="splitBar" title="拖动调整左右比例"></div>
+
+  <!-- 右：GitHub 看板 -->
+  <section class="pane" id="paneGh">
+  <button class="sec-title" id="tGh" title="点击放大本栏，再点还原">GitHub 看板<span class="mx">⤢</span></button>
+  <!-- 仓库级「是否归档」+ 记录级「是否同步」：未同步是唯一需要行动的状态 -->
+  <div class="gh-kpis">
+    <div class="kpi"><div class="num">8</div><div class="lab">仓库</div></div>
+    <div class="kpi"><div class="num">13</div><div class="lab">近 30 天版本</div></div>
+    <div class="kpi warn" id="kpiUn"><div class="num">3</div><div class="lab">未同步</div><div class="hint">点击筛选</div></div>
+    <div class="kpi"><div class="num">1</div><div class="lab">已归档仓库</div></div>
+  </div>
+  <div class="gh-grid" id="ghGrid"></div>
+  </section>
+</div>
+
+<div class="mask" id="mask"></div>
+<div class="toast" id="toast"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <span class="t" id="dTitle"></span>
+    <button class="btn" id="dClose">关闭</button>
+  </div>
+  <div class="drawer-body" id="dBody"></div>
+  <div class="drawer-foot">
+    <button class="btn primary">保存</button>
+    <button class="btn">复制交接</button>
+    <button class="btn">删除任务</button>
+  </div>
+</aside>
+
+<script>
+// ── 示例数据（与本地版 server 种子一致）──
+var NOW = Date.now();
+function dAgo(n, h) { var d = new Date(NOW - n * 86400000); d.setHours(h || 10, 20, 0, 0); return d.toISOString(); }
+var MACHINES = ['台式机-家', '笔记本', 'N100-小主机'];
+var TASKS = [
+  { id:'t1', title:'ae-tools v1.5.8 发布联调', st:'进行中', prio:'P1', mach:'台式机-家', dir:'D:\\ae-tools',
+    prog:'CHANGELOG / panel README / 测试文件三件套已同步', upd:dAgo(0,9),
+    todos:[['版本号对齐 v1.5.8',1],['测试文件更新',1],['MountainSpectrum 解耦「父层变换」与「控制点固定形状」',0],['沙箱验证后推 remote',0]],
+    hand:'解耦时先动 src/ 下的变换矩阵，控制点数组结构保持不变。' },
+  { id:'t2', title:'local-llm-playbook 部署方案评估', st:'进行中', prio:'P1', mach:'台式机-家', dir:'D:\\local-llm-playbook',
+    prog:'候选模型对比表已建，待补权重评分', upd:dAgo(1,15),
+    todos:[['Qwen3 / GLM 系列在 16GB VRAM 的实测',0],['hf-mirror 与 modelscope 下载脚本',0],['定稿「一套主方案 + 参数级切换」',0]],
+    hand:'阅读模式是逐篇处理（5000+ 字中文长文档），32K 上下文够用。' },
+  { id:'t4', title:'LoginStateSwitcher 12 槽位维护', st:'进行中', prio:'P0', mach:'台式机-家', dir:'C:\\tools\\LoginStateSwitcher',
+    prog:'MultiSwitch 切换正常，GitHub 已同步', upd:dAgo(3,20),
+    todos:[['WorkBuddy 侧新增账号的槽位登记',0],['exe 重新打包',0]], hand:'' },
+  { id:'t5', title:'本地 AI 视频三线部署', st:'进行中', prio:'P2', mach:'台式机-家', dir:'E:\\ai-video',
+    prog:'FlashVSR 升频跑通，SeedVR2 显存待调', upd:dAgo(9,14),
+    todos:[['SeedVR2 在 16GB VRAM 的分段策略',0],['MiniMax H3 生成链路验证',0],['E 盘素材目录整理',0]],
+    hand:'素材进 E:\\素材，产出统一落 E:\\产出。' },
+  { id:'t3', title:'floorplan 编辑器 v0.3 做减法', st:'进行中', prio:'P2', mach:'笔记本', dir:'D:\\home-inventory',
+    prog:'paint/fill/sample/split 已合并成多步流程', upd:dAgo(2,11),
+    todos:[['移除剩余低频工具',0],['渲染端与模块源码对齐',0],['作为子模块嵌入宿主',0]],
+    hand:'产品可用性优先，必要时调整宿主来适配模块。' },
+  { id:'t6', title:'知识库项目推 GitHub（四件套）', st:'已完成', prio:'P2', mach:'笔记本', dir:'D:\\knowledge-base',
+    prog:'README / AGENTS / DEVELOPMENT / CHANGELOG 已齐', upd:dAgo(4,18),
+    todos:[['single-project 模板套用',1],['推送 Simiely/knowledge-base',1]], hand:'' },
+  { id:'t7', title:'HyperOS 4 定制 AOD', st:'已完成', prio:'P2', mach:'笔记本', dir:'', prog:'主题编辑器产出 mtz，已刷机预览', upd:dAgo(9,16),
+    todos:[['AOD 版式设计',1],['刷机验证',1]], hand:'字体渲染在深色下偏细。' },
+  { id:'t8', title:'Slay the Spire 2 存档备份', st:'已完成', prio:'P2', mach:'N100-小主机', dir:'C:\\Saves\\StS2',
+    prog:'255 层进度已备份', upd:dAgo(12,21), todos:[['存档目录定位',1],['备份脚本',1]], hand:'' },
+];
+var GH = [
+  // 仓库级属性：archived = 仓库是否已在 GitHub 归档
+  // 记录级状态：r = 是否同步。有的仓库本地先攒几个版本不推，未同步是唯一要行动的状态
+  { repo:'Simiely/ae-tools', archived:false, recs:[
+    { t:dAgo(0,9), v:'v1.5.8', r:'已同步', c:'v1.5.8 发布：CHANGELOG + panel README + 测试文件' },
+    { t:dAgo(1,16), v:'v1.5.7', r:'已同步', c:'MountainSpectrum 控制点驱动重构' },
+    { t:dAgo(2,11), v:'v1.5.6', r:'已同步', c:'测试文件更新' } ] },
+  { repo:'Simiely/LoginStateSwitcher', archived:false, recs:[
+    { t:dAgo(3,10), v:'v2.3.0', r:'已同步', c:'MultiSwitch 12 槽位加密调整' } ] },
+  { repo:'Simiely/knowledge-base', archived:false, recs:[
+    { t:dAgo(4,18), v:'v0.1.0', r:'已同步', c:'README 先行' },
+    { t:dAgo(6,13), v:'v0.2.0', r:'未同步', c:'AGENTS / DEVELOPMENT / CHANGELOG 三件套完成，还没推' } ] },
+  { repo:'Simiely/home-inventory', archived:false, recs:[
+    { t:dAgo(8,20), v:'v0.3.0', r:'已同步', c:'floorplan 子模块嵌入改造' },
+    { t:dAgo(11,14), v:'v0.3.1', r:'未同步', c:'低频工具合并成多步流程，本地先攒着' } ] },
+  { repo:'Simiely/workbuddy-skills', archived:false, recs:[
+    { t:dAgo(6,15), v:'v3.0.0', r:'已同步', c:'scenario-walkthrough v3 上架' } ] },
+  { repo:'Simiely/tools-center', archived:false, recs:[
+    { t:dAgo(13,9), v:'v0.7.0', r:'已同步', c:'tool.json V1 兼容映射验证' },
+    { t:dAgo(16,11), v:'v0.6.2', r:'已同步', c:'NAS 容器部署联调' } ] },
+  { repo:'Simiely/local-llm-playbook', archived:false, recs:[
+    { t:dAgo(20,15), v:'v0.1.0', r:'已同步', c:'playbook 骨架' },
+    { t:dAgo(23,10), v:'v0.2.0', r:'未同步', c:'候选模型对比与评分表，本地迭代中' } ] },
+  { repo:'Simiely/hyperos-aod-theme', archived:true, recs:[
+    { t:dAgo(30,16), v:'v1.0', r:'已同步', c:'AOD 定制主题定稿，项目结束归档' } ] },
+];
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function rel(iso){var s=(NOW-new Date(iso).getTime())/1000;
+  if(s<3600)return Math.max(1,Math.round(s/60))+' 分钟前';
+  if(s<86400)return Math.round(s/3600)+' 小时前';
+  return Math.round(s/86400)+' 天前';}
+function stale(t){return t.st==='进行中' && (NOW-new Date(t.upd).getTime())>7*86400000;}
+function todoCnt(t){var d=0;for(var i=0;i<t.todos.length;i++)if(t.todos[i][1])d++;return{d:d,n:t.todos.length};}
+
+// ── 渲染 ──
+// 默认视图 = 进行中（用户主视角是「现在手上的活」）；「全部」才看全量
+var filter = { status:'进行中', kpi:'' };
+var ghUn = false; // GitHub「未归档」筛选
+function cardHtml(t){
+  var tc=todoCnt(t), cls='card'+(t.prio==='P0'?' p0':''), pct=tc.n?Math.round(tc.d/tc.n*100):0;
+  var todo=(tc.n?'<div class="card-todo"><div class="todo-track"><div class="todo-fill" style="width:'+pct+'%"></div></div>'+
+    '<span class="todo-num">'+tc.d+'/'+tc.n+' 待办</span></div>':'');
+  var staleChip=stale(t)?'<span class="stale">久未动 '+rel(t.upd).replace(' 天前','天')+'</span>':'';
+  return '<div class="'+cls+'" tabindex="0" data-id="'+t.id+'">'+
+    '<div class="card-title">'+esc(t.title)+'</div>'+
+    '<div class="card-meta"><span class="prio '+t.prio.toLowerCase()+'">'+t.prio+'</span>'+
+    '<span>🖥 '+esc(t.mach)+'</span><span>'+rel(t.upd)+'</span>'+staleChip+'</div>'+
+    '<div class="card-progress">'+esc(t.prog)+'</div>'+todo+
+    '<div class="card-actions"><button data-act="copy">复制交接</button><button data-act="edit">编辑</button></div>'+
+  '</div>';
+}
+function render(){
+  var attention=function(t){return t.prio==='P0'||stale(t);};
+  var board=document.getElementById('board'), out='';
+  for(var m=0;m<MACHINES.length;m++){
+    var mn=MACHINES[m], list=TASKS.filter(function(t){
+      if(t.mach!==mn)return false;
+      if(filter.kpi==='doing')return t.st==='进行中';
+      if(filter.kpi==='attention')return attention(t);
+      if(filter.kpi==='todo')return todoCnt(t).d<todoCnt(t).n;
+      if(filter.kpi==='done')return t.st==='已完成';
+      if(filter.status)return t.st===filter.status;
+      return true;
+    });
+    list.sort(function(a,b){return a.st==='已完成'?(b.st==='已完成'?0:1):(b.st==='已完成'?-1:(a.prio<b.prio?-1:1));});
+    var doing=list.filter(function(t){return t.st==='进行中';}).length;
+    var p0=list.filter(function(t){return t.st==='进行中'&&t.prio==='P0';}).length;
+    var cards=list.map(cardHtml).join('')||'<div class="col-empty">暂无匹配任务</div>';
+    out+='<div class="col"><div class="col-head"><span class="name">'+esc(mn)+'</span>'+
+      '<span class="cnt">'+list.length+'</span>'+(p0?'<span class="p0dot" title="有 P0"></span>':'')+
+      '<span class="wip">进行中 '+doing+'</span></div><div class="col-body">'+cards+'</div></div>';
+  }
+  board.innerHTML=out;
+  // KPI 高亮
+  var ks=document.querySelectorAll('.kpi');
+  for(var i=0;i<ks.length;i++)ks[i].classList.toggle('on',ks[i].getAttribute('data-filter')===filter.kpi);
+  // GitHub：仓库级「是否归档」+ 记录级「是否同步」；未同步 = 本地有版本还没推，唯一要行动的状态
+  var unN=0,archN=0,recent=0;
+  for(var g=0;g<GH.length;g++){
+    if(GH[g].archived)archN++;
+    for(var r=0;r<GH[g].recs.length;r++){
+      var rec=GH[g].recs[r];
+      if(rec.r==='未同步')unN++;
+      if(NOW-new Date(rec.t).getTime()<30*86400000)recent++;
+    }
+  }
+  document.querySelector('#kpiUn .num').textContent=unN;
+  document.getElementById('kpiUn').classList.toggle('on',ghUn);
+  var gh='';
+  for(var k=0;k<GH.length;k++){
+    var G=GH[k],un=0;
+    for(var r2=0;r2<G.recs.length;r2++)if(G.recs[r2].r==='未同步')un++;
+    if(ghUn&&!un)continue; // 「未同步」KPI 点击后只看有未同步版本的仓库
+    var rows=G.recs.slice(0,3).map(function(e){
+      return '<div class="entry"><span class="t">'+e.t.slice(5,10)+'</span><span class="v">'+esc(e.v)+'</span>'+
+        '<span class="pill '+(e.r==='未同步'?'un':'ok')+'">'+e.r+'</span><span class="c">'+esc(e.c)+'</span></div>';
+    }).join('');
+    gh+='<div class="repo"><div class="repo-head">'+
+      '<button class="nm" data-copy="https://github.com/'+esc(G.repo)+'" title="点击复制仓库链接">'+esc(G.repo)+'<span class="cpi">⧉ 复制链接</span></button>'+
+      (un?'<span class="unsync">'+un+' 条未同步</span>':'')+
+      '<span class="ct">'+G.recs.length+' 条</span>'+
+      (G.archived?'<span class="archtag">已归档</span>':'')+'</div>'+
+      '<div class="repo-sub">最近 '+rel(G.recs[0].t)+'</div>'+rows+'</div>';
+  }
+  document.getElementById('ghGrid').innerHTML=gh;
+}
+
+// ── 交互：KPI 即过滤器（概览 → 过滤 → 按需细节）──
+document.getElementById('kpis').addEventListener('click',function(e){
+  var k=e.target.closest('.kpi');if(!k)return;
+  var f=k.getAttribute('data-filter');
+  if(f==='done'){filter.kpi='';filter.status='已完成';syncSeg();render();return;}
+  filter.kpi=(filter.kpi===f?'':f);filter.status='';syncSeg();render();
+});
+document.getElementById('statusSeg').addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b)return;
+  filter.status=b.getAttribute('data-s');filter.kpi='';syncSeg();render();
+});
+function syncSeg(){
+  var bs=document.querySelectorAll('#statusSeg button');
+  for(var i=0;i<bs.length;i++)bs[i].classList.toggle('on',bs[i].getAttribute('data-s')===filter.status);
+  document.getElementById('clearBtn').style.display=(filter.status||filter.kpi)?'':'none';
+}
+document.getElementById('clearBtn').addEventListener('click',function(){filter={status:'进行中',kpi:''};syncSeg();render();});
+document.getElementById('kpiUn').addEventListener('click',function(){ghUn=!ghUn;render();});
+
+// ── 仓库卡片：点库名直接复制 GitHub 链接 ──
+function toast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('on');
+  clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('on');},1800);
+}
+function copyText(s){
+  function fb(){
+    var ta=document.createElement('textarea');ta.value=s;
+    ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');toast('已复制 '+s);}
+    catch(e){toast('复制失败');}
+    document.body.removeChild(ta);
+  }
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(s).then(function(){toast('已复制 '+s);},fb);
+  }else fb();
+}
+document.getElementById('ghGrid').addEventListener('click',function(e){
+  var b=e.target.closest('[data-copy]');
+  if(b)copyText(b.getAttribute('data-copy'));
+});
+
+// ── 左右分屏：中缝拖比例，拖多少记多少 ──
+(function bindSplit(){
+  var bar=document.getElementById('splitBar');
+  var pb=document.getElementById('paneBoard');
+  var sp=document.getElementById('split');
+  if(!bar||!pb||!sp)return;
+  var KEY='awb.mockSplit';
+  function apply(p){ pb.style.width=p+'%'; }
+  try{ var s=parseFloat(localStorage.getItem(KEY)); if(s>=30&&s<=75)apply(s); }catch(e){}
+  bar.addEventListener('mousedown',function(e){
+    e.preventDefault();
+    bar.classList.add('drag');
+    function mv(ev){
+      var rc=sp.getBoundingClientRect();
+      var p=(ev.clientX-rc.left)/rc.width*100;
+      apply(Math.min(75,Math.max(30,p)));
+    }
+    function up(){
+      bar.classList.remove('drag');
+      document.removeEventListener('mousemove',mv);
+      document.removeEventListener('mouseup',up);
+      paneMax=''; // 手动拖过就退出放大态
+      try{ localStorage.setItem(KEY,String(parseFloat(pb.style.width)||58)); localStorage.setItem('awb.mockMax',''); }catch(e2){}
+    }
+    document.addEventListener('mousemove',mv);
+    document.addEventListener('mouseup',up);
+  });
+
+  // ── 小标题点击：本栏放到最大（另一栏收到最小），再点还原 ──
+  var paneMax='';
+  function applyPaneMax(){
+    var pb=document.getElementById('paneBoard');
+    if(paneMax==='board') pb.style.width='75%';
+    else if(paneMax==='gh') pb.style.width='30%';
+    else {
+      var saved=58;
+      try{ saved=parseFloat(localStorage.getItem('awb.mockSplit'))||58; }catch(e){}
+      pb.style.width=saved+'%';
+    }
+    document.getElementById('tBoard').classList.toggle('on',paneMax==='board');
+    document.getElementById('tGh').classList.toggle('on',paneMax==='gh');
+  }
+  document.getElementById('tBoard').addEventListener('click',function(){
+    paneMax=(paneMax==='board'?'':'board'); applyPaneMax();
+    try{ localStorage.setItem('awb.mockMax',paneMax); }catch(e){}
+  });
+  document.getElementById('tGh').addEventListener('click',function(){
+    paneMax=(paneMax==='gh'?'':'gh'); applyPaneMax();
+    try{ localStorage.setItem('awb.mockMax',paneMax); }catch(e){}
+  });
+  try{ paneMax=localStorage.getItem('awb.mockMax')||''; if(paneMax!=='board'&&paneMax!=='gh')paneMax=''; }catch(e){}
+  applyPaneMax();
+})();
+
+// ── 详情抽屉（次级信息按需展开）──
+function openDrawer(id){
+  var t=TASKS.filter(function(x){return x.id===id;})[0];if(!t)return;
+  document.getElementById('dTitle').textContent=t.title;
+  var tc=todoCnt(t);
+  var todos=t.todos.map(function(td){
+    return '<div class="todo-item'+(td[1]?' done':'')+'"><span class="box">'+(td[1]?'☑':'☐')+'</span><span>'+esc(td[0])+'</span></div>';
+  }).join('');
+  document.getElementById('dBody').innerHTML=
+    '<div class="field"><label>状态 / 优先级</label><div class="v">'+t.st+' · '+t.prio+' · 🖥 '+esc(t.mach)+'</div></div>'+
+    '<div class="field"><label>进度</label><div class="v">'+esc(t.prog)+'</div></div>'+
+    '<div class="field"><label>待办（'+tc.d+'/'+tc.n+'）</label><div class="v">'+todos+'</div></div>'+
+    '<div class="field"><label>交接内容</label><div class="v">'+(t.hand?esc(t.hand):'<span style="color:var(--text-3)">（空）</span>')+'</div></div>'+
+    '<div class="field"><label>目录 / 更新时间</label><div class="v">'+(esc(t.dir)||'—')+' · '+rel(t.upd)+'</div></div>';
+  document.getElementById('mask').classList.add('on');
+  document.getElementById('drawer').classList.add('on');
+}
+function closeDrawer(){document.getElementById('mask').classList.remove('on');document.getElementById('drawer').classList.remove('on');}
+document.getElementById('board').addEventListener('click',function(e){
+  if(e.target.closest('.card-actions'))return;
+  var c=e.target.closest('.card');if(c)openDrawer(c.getAttribute('data-id'));
+});
+document.getElementById('mask').addEventListener('click',closeDrawer);
+document.getElementById('dClose').addEventListener('click',closeDrawer);
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDrawer();});
+
+syncSeg();
+render();
+</script>
+</body>
+</html>

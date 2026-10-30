@@ -1,0 +1,12 @@
+{
+  "id": "agent-workbench",
+  "name": "Agent 工作台",
+  "desc": "任务台账 / 机器登录态 / GitHub 同步记录三表工作台，本地 JSON 存储",
+  "group": "工作台",
+  "icon": "🗂️",
+  "runtime": "node",
+  "capabilities": ["storage"],
+  "entry": "server.mjs",
+  "port": 8151,
+  "health": "/health"
+}

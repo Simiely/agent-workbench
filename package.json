@@ -1,0 +1,18 @@
+{
+  "name": "agent-workbench",
+  "version": "1.0.0",
+  "description": "Agent 工作台 · 任务台账 + GitHub 同步看板（tools-center 本地版）",
+  "private": true,
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "reseed": "node server.mjs 8151 --reseed",
+    "test": "python tests/run_all.py",
+    "test:e2e": "node tests/e2e_local.cjs 8159"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
