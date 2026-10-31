@@ -18,6 +18,19 @@ const publicDir = path.join(__dirname, "public");
 // 只想看效果时用：node server.mjs 8151 --reseed；日常使用不需要，首启即是空壳。
 const RESEED = process.argv.includes("--reseed");
 
+// 启动自检：存储目录必须可写。平台注入只读目录时，所有添加/保存都会 500 ——
+// 启动日志与 /health 先把原因暴露出来，不用等到点添加才发现。
+let storageOk = true, storageErr = "";
+try {
+  fs.mkdirSync(storageDir, { recursive: true });
+  const probe = path.join(storageDir, ".write-probe");
+  fs.writeFileSync(probe, "ok");
+  fs.unlinkSync(probe);
+} catch (e) {
+  storageOk = false;
+  storageErr = e.message;
+}
+
 // 表结构：name/type/config 与资料库 SDK 的 getSchema 返回对齐，
 // 前端 readOpts 从 config.options[].text 读下拉选项。
 const SCHEMAS = {
@@ -231,7 +244,7 @@ const server = http.createServer(async (req, res) => {
     if (process.env.AWB_LOG !== "0") console.log(`[${new Date().toISOString().slice(11,19)}] ${req.method} ${p}${u.search}`);
     const dbKey = u.searchParams.get("db") || "";
 
-    if (p === "/health") return json(res, { ok: true, tool: "agent-workbench" });
+    if (p === "/health") return json(res, { ok: true, tool: "agent-workbench", storage: { ok: storageOk, dir: storageDir, error: storageErr || undefined } });
 
     // 备份：列出 / 恢复（误删可回滚）
     if (p === "/api/backup" && req.method === "GET") {
@@ -372,4 +385,5 @@ const server = http.createServer(async (req, res) => {
 server.listen(port, "127.0.0.1", () => {
   console.log(`agent-workbench running on http://127.0.0.1:${port}`);
   console.log(`storage: ${dataFile}`);
+  if (!storageOk) console.error(`⚠ 存储目录不可写（${storageErr}）：添加/保存会失败。请检查目录权限或换 CAP_STORAGE_DIR。`);
 });

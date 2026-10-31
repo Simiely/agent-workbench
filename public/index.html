@@ -948,25 +948,41 @@
   var STALE_MS = 7 * 86400000; // 「久未动」阈值：进行中且 7 天没更新
 
   // 数据层：本地 REST 适配器（零依赖，五个方法与页面业务代码一一对应）
+// API 前缀跟随页面所在路径：直连（/ 或 /index.html）→ /api/...；
+// 平台反代（/tool/agent-workbench/）→ /tool/agent-workbench/api/...。
+// 绝对路径 /api/... 在平台反代下会打到平台根，导致读取和添加全部 404。
+var API_BASE = (function () {
+  var p = location.pathname || '/';
+  if (/\/[^/]*\.html?$/i.test(p)) p = p.replace(/[^/]+$/, ''); // 去掉 index.html 之类文件名
+  if (p.charAt(p.length - 1) !== '/') p += '/';
+  return p;
+})();
 function localDb() {
   function jf(url, opt) {
-    return fetch(url, opt).then(function (r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
+    return fetch(API_BASE + url, opt).then(function (r) {
+      if (!r.ok) {
+        // 把服务端的 error 原文带出来，失败提示才可诊断（如磁盘不可写 EACCES）
+        return r.text().then(function (t) {
+          var msg = 'HTTP ' + r.status;
+          try { var j = JSON.parse(t); if (j && j.error) msg += '：' + j.error; } catch (e2) {}
+          throw new Error(msg);
+        });
+      }
       return r.json();
     });
   }
   var J = { 'Content-Type': 'application/json' };
   return {
-    getSchema: function (o) { return jf('/api/schema?db=' + encodeURIComponent(o.databaseId)); },
-    query: function (o) { return jf('/api/query?db=' + encodeURIComponent(o.databaseId)); },
+    getSchema: function (o) { return jf('api/schema?db=' + encodeURIComponent(o.databaseId)); },
+    query: function (o) { return jf('api/query?db=' + encodeURIComponent(o.databaseId)); },
     addRecord: function (o) {
-      return jf('/api/records', { method: 'POST', headers: J, body: JSON.stringify({ db: o.databaseId, properties: o.properties }) });
+      return jf('api/records', { method: 'POST', headers: J, body: JSON.stringify({ db: o.databaseId, properties: o.properties }) });
     },
     updateRecord: function (o) {
-      return jf('/api/records/' + encodeURIComponent(o.recordId), { method: 'PATCH', headers: J, body: JSON.stringify({ db: o.databaseId, properties: o.properties }) });
+      return jf('api/records/' + encodeURIComponent(o.recordId), { method: 'PATCH', headers: J, body: JSON.stringify({ db: o.databaseId, properties: o.properties }) });
     },
     deleteRecord: function (o) {
-      return jf('/api/records/' + encodeURIComponent(o.recordId) + '?db=' + encodeURIComponent(o.databaseId), { method: 'DELETE' });
+      return jf('api/records/' + encodeURIComponent(o.recordId) + '?db=' + encodeURIComponent(o.databaseId), { method: 'DELETE' });
     }
   };
 }
@@ -3022,7 +3038,7 @@ var db = localDb();
       toast('已添加 ' + name);
     }).catch(function (e) {
       console.error('[workbench] 添加电脑失败', e);
-      toast('添加失败');
+      toast('添加失败：' + ((e && e.message) || '网络错误'));
     });
   }
 

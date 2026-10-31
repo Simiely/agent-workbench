@@ -41,6 +41,7 @@ node tests/e2e_local.cjs 8159    # 只跑本地版 e2e
 
 - `runtime: node`，`entry: server.mjs`，`port: 8151`，`health: /health`
 - `capabilities: ["storage"]` —— 数据目录由平台注入 `CAP_STORAGE_DIR`（随平台备份），本地直跑时落仓库外 `../agent-workbench-data/`
+- API 请求前缀跟随页面路径：平台反代 `/tool/agent-workbench/` 下自动带前缀（不加前缀会打到平台根 404）；`/health` 会返回存储目录可写性，便于平台侧排查
 
 ## 数据层
 

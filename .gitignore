@@ -1,3 +1,4 @@
+.data/
 tests/_out/
 tests/__pycache__/
 *.pyc
