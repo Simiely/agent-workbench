@@ -82,6 +82,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     check('开发强度与选择电脑都在置顶区（强度在上）',
       ghOrder && ghOrder.inTop && ghOrder.intensityFirst && ghOrder.intensitySticky, JSON.stringify(ghOrder));
 
+    // 顶栏版本号：/health 的 version 应显示在品牌旁
+    const ver = await cdp.evalJson(`(function(){
+      var el = document.querySelector('#appVer');
+      return { text: el ? el.textContent.trim() : null,
+        shown: el ? getComputedStyle(el).display !== 'none' && el.textContent.trim() !== '' : false };
+    })()`);
+    check('顶栏显示版本号（来自 /health）', ver && ver.shown && /^v\d+\.\d+/.test(ver.text), JSON.stringify(ver));
+
     const s1 = await cdp.send('Page.captureScreenshot', { format: 'png' });
     fs.writeFileSync(OUT + '-wide.png', Buffer.from(s1.data, 'base64'));
 

@@ -97,6 +97,11 @@
   }
   .brand { display: flex; align-items: center; gap: 9px; }
   .brand h1 { font-size: 15px; font-weight: 600; letter-spacing: .2px; white-space: nowrap; }
+  .brand .ver {
+    font-size: 10.5px; color: var(--text-3); background: var(--panel-3);
+    border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; line-height: 14px;
+    white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
   .spacer { flex: 1; }
   .search {
     display: flex; align-items: center; gap: 7px; background: var(--panel);
@@ -912,7 +917,7 @@
 <body>
 
 <header class="topbar">
-  <div class="brand"><h1>Agent 工作台</h1></div>
+  <div class="brand"><h1>Agent 工作台</h1><span class="ver" id="appVer" title="当前部署的版本号"></span></div>
   <div class="spacer"></div>
   <div class="search">
     <svg fill="none" height="13" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13">
@@ -4530,6 +4535,18 @@ var db = localDb();
   })();
 
   bindDrag();
+
+  // 顶栏版本号：以 /health 返回为准（= package.json），页面本身不写死，避免双处漂移
+  (function syncVersion() {
+    try {
+      fetch('/health', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (h) {
+        if (h && h.version) {
+          var el = document.getElementById('appVer');
+          if (el) el.textContent = 'v' + h.version;
+        }
+      }).catch(function () {});
+    } catch (e) {}
+  })();
 
   loadAllData(function (err) {
     render();

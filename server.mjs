@@ -21,6 +21,10 @@ const RESEED = process.argv.includes("--reseed");
 // 启动自检：存储目录必须可写。平台注入只读目录时，所有添加/保存都会 500 ——
 // 启动日志与 /health 先把原因暴露出来，不用等到点添加才发现。
 let storageOk = true, storageErr = "";
+// 版本号单一事实来源是 package.json；/health 与页面顶栏都从这里拿
+let APP_VERSION = "";
+try { APP_VERSION = JSON.parse(fs.readFileSync(path.join(__dirname, "package.json"), "utf8")).version || ""; }
+catch (e) { APP_VERSION = ""; }
 try {
   fs.mkdirSync(storageDir, { recursive: true });
   const probe = path.join(storageDir, ".write-probe");
@@ -424,7 +428,8 @@ const server = http.createServer(async (req, res) => {
     if (process.env.AWB_LOG !== "0") console.log(`[${new Date().toISOString().slice(11,19)}] ${req.method} ${p}${u.search}`);
     const dbKey = u.searchParams.get("db") || "";
 
-    if (p === "/health") return json(res, { ok: true, tool: "agent-workbench", storage: { ok: storageOk, dir: storageDir, error: storageErr || undefined } });
+    if (p === "/health") return json(res, { ok: true, tool: "agent-workbench", version: APP_VERSION,
+      storage: { ok: storageOk, dir: storageDir, error: storageErr || undefined } });
 
     // 备份：列出 / 恢复（误删可回滚）
     if (p === "/api/backup" && req.method === "GET") {

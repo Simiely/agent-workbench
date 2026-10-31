@@ -38,7 +38,7 @@ const readme = `# 平台版部署说明（tools-center 托管）
 > **平台版 = tools-center 统一宿主托管**：网页「+ 添加」→ zip 上传本包，平台自动识别 \`manifest.json\` 并托管进程。
 
 ## 接入要点
-- 平台自动拉起 \`node server.mjs 8151\`（健康检查 \`/health\`，manifest 已声明）
+- 平台自动拉起 \`node server.mjs 8151\`（健康检查 \`/health\`，manifest 已声明；\`/health\` 返回 \`version\` 字段，页面顶栏会显示）
 - 四张表：任务台账 / 机器登录态 / 登录账号 / GitHub 同步记录；打开 \`/tool/agent-workbench/\` 即用
 
 ## 数据目录
