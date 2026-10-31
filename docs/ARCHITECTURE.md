@@ -9,7 +9,7 @@
 主要使用者是 AI agent（写入为主）和人（查看与修正为主）。
 
 单文件页面（`public/index.html`）+ 零依赖 Node 服务（`server.mjs`）+ JSON 文件存储。
-三张表：任务台账 / 机器登录态 / GitHub 同步记录。
+四张表：任务台账 / 机器登录态 / 登录账号 / GitHub 同步记录。
 
 ## 二、硬约束（决定了架构形态）
 
@@ -18,7 +18,7 @@
 | 单文件页面 | 部署形态就是单 HTML | **不能物理拆文件**，模块化只能靠文件内分层 |
 | 无框架、无构建 | 零依赖 + 直接静态托管 | 纯 ES5 风格前端，IIFE 包裹 |
 | tools-center 要求零依赖 | 仓库约定 | `server.mjs` 只用 Node 内置模块 |
-| 三张表共用同一套字段名 | 前端一套业务代码 | 字段名集中在 `F.t / F.m / F.g` |
+| 四张表共用同一套字段名 | 前端一套业务代码 | 字段名集中在 `F.t / F.m / F.a / F.g` |
 
 ## 三、四层分层
 
@@ -145,16 +145,18 @@ db.updateRecord / addRecord / deleteRecord
 |---|---|---|
 | 任务台账 | `DATABASE_ID` | 任务标题 / 状态 / 优先级 / 所在电脑 / 目录 / 进度 / 待办 / 交接内容 / 更新时间 / 排序 |
 | 机器登录态 | `DB_MACHINE` | 机器名 / 位置 / WorkBuddy账号 / TRAE账号 / 最后确认 / 排序 |
+| 登录账号 | `DB_ACC` | 账号名 / 平台 / 所属电脑 / 当前 / 备注 / 最后确认 / 排序 |
 | GitHub 同步记录 | `DB_GITHUB` | 同步时间 / 电脑 / GitHub账号 / 仓库 / 内容 / 同步版本 / 是否同步 / 仓库归档 |
 
 **语义边界（易混，务必分清）**：
-
 - `是否同步`（记录级，select）：已同步 = 已推到 GitHub；未同步 = 本地有版本还没推
 - `仓库归档`（仓库级，checkbox）：该仓库是否已在 GitHub 归档。**任一条记录勾上即视为已归档**
+- `WorkBuddy账号` / `TRAE账号`（机器表）：**派生只读**，值来自 accounts 表里该机该平台「当前」那条；存储里不落第二份。写入会被服务端翻译成「设为当前」
+- `当前`（账号表）：同一台电脑 × 同一平台至多一条为 true；**全为 false 表示该平台当前没登录，但账号仍登记着**
 
 ### 硬编码库 id 的处理
 
-JS 侧一律用 `DATABASE_ID` / `DB_MACHINE` / `DB_GITHUB` 三个常量。
+JS 侧一律用 `DATABASE_ID` / `DB_MACHINE` / `DB_ACC` / `DB_GITHUB` 四个常量。
 页面里已无任何平台绑定标记，库 id 全部走常量。
 
 ## 六、扩展指南：改一个东西要碰几处
@@ -266,10 +268,12 @@ node tests/mutation_test.cjs   # 期望：10 项被捕获 / 0 项漏网
 ### 数据重置
 
 ```bash
-node server.mjs 8151 --reseed   # 重置三张表为内置种子数据（先自动备份）
+node server.mjs 8151 --reseed   # 重置四张表为内置种子数据（先自动备份）
 ```
 
-本地数据与代码分离：平台注入 `CAP_STORAGE_DIR` 时用它；本地直跑落在仓库外的 `../agent-workbench-data/db.json`（仓库永远不带数据）。每次写盘前自动备份到同目录 `.bak/`（保留 10 份）。首次启动是空壳（三张表全空），演示数据用 `--reseed` 按需生成。测试（audit_*.cjs / e2e_local.cjs）一律走 `tests/fixture_db.cjs` 夹具 + `tests/_out/storage-<端口>` 临时目录，不碰真实数据。
+本地数据与代码分离：平台注入 `CAP_STORAGE_DIR` 时用它；本地直跑落在仓库外的 `../agent-workbench-data/db.json`（仓库永远不带数据）。每次写盘前自动备份到同目录 `.bak/`（保留 10 份）。首次启动是空壳（四张表全空），演示数据用 `--reseed` 按需生成。测试（audit_*.cjs / e2e_local.cjs）一律走 `tests/fixture_db.cjs` 夹具 + `tests/_out/storage-<端口>` 临时目录，不碰真实数据。
+
+老库升级：首次读库时把机器表的单值账号搬进 `accounts` 表（一条 = 当前），并清掉机器表上的旧字段；靠 `db._meta.accountsMigrated` 保证只跑一次，误操作可从 `.bak/` 回滚。
 
 ## 九、已知问题与后续计划
 

@@ -1,12 +1,13 @@
 # Agent 工作台 · agent-workbench
 
-任务台账 / 机器登录态 / GitHub 同步记录三表工作台。给 AI Agent 的日常开发做**台账 + 看板 + 交接**：左屏任务看板、右屏 GitHub 看板，中缝可拖，点小标题一键放大。
+任务台账 / 机器登录态 / 登录账号 / GitHub 同步记录四表工作台。给 AI Agent 的日常开发做**台账 + 看板 + 交接**：左屏任务看板、右屏 GitHub 看板，中缝可拖，点小标题一键放大。
 
 零依赖：Node 原生 HTTP 服务（无任何 npm 包）+ 单文件前端（`public/index.html` 含全部样式与逻辑）+ JSON 文件存储。符合 tools-center 平台接入约定（`manifest.json` + `server.mjs`）。
 
 ## 功能
 
 - **任务看板**：按电脑分列、KPI 点击过滤（默认「进行中」）、卡面瘦身（标题/元数据/进度一句话/待办进度条）、抽屉勾选待办、跨列拖拽改所属电脑、行内编辑、管理模式批量操作
+- **登录账号**：一台电脑 × 一个平台可以登记多个账号，列头胶囊显示当前账号与账号数；点开面板可切换当前、新增、改名、删除，也能「清除登录态」（账号留着、当前置空）
 - **GitHub 看板**：仓库聚合卡（未同步 = 本地有版本还没推、仓库级归档标签）、KPI 未同步筛选、仓库详情弹窗
 - **开发强度**：多排方块格子热力（本周 1 排 / 本月 2 排 / 近3个月 3 排），格内写日期与更新数，字号随格子自适应；点开全年日历热力弹窗（按年切换、数字开关）
 - **通用**：弹窗栈导航（Esc 逐层退）、中缝拖拽记忆、双区独立折叠记忆、深浅主题
@@ -19,7 +20,7 @@ node server.mjs 9000     # 指定端口
 node server.mjs 8151 --reseed   # 重置为内置演示数据（先自动备份）
 ```
 
-首次启动是**空壳**（三张表全空），数据落在仓库外的 `../agent-workbench-data/db.json`，每次写盘前自动备份到同目录 `.bak/`（保留最近 10 份）。
+首次启动是**空壳**（四张表全空），数据落在仓库外的 `../agent-workbench-data/db.json`，每次写盘前自动备份到同目录 `.bak/`（保留最近 10 份）。
 
 ## 测试
 
@@ -55,7 +56,9 @@ node tests/e2e_local.cjs 8159    # 只跑本地版 e2e
 | `updateRecord({databaseId, recordId, properties})` | `PATCH /api/records/:id` |
 | `deleteRecord({databaseId, recordId})` | `DELETE /api/records/:id?db=` |
 
-- 三张表用语义化 key：`tasks` / `machines` / `github`
+- 四张表用语义化 key：`tasks` / `machines` / `accounts` / `github`
+- `accounts` 是账号真相：一台电脑 × 一个平台可以多条，同池至多一条 `当前`
+- 机器表的 `WorkBuddy账号` / `TRAE账号` 是**派生只读**（= 当前账号），存储里不留第二份
 - 字段用 `{text}/{select}/{date}/{number}` 包裹值格式，schema 由服务端下发
 - 页面里没有任何平台 SDK / 平台标记残留
 

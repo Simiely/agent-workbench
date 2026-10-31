@@ -9,7 +9,7 @@
 | 前缀 | 归属 | 用途 |
 |---|---|---|
 | `data-mact` | **机器菜单**（列头 kebab 菜单） | 机器动作（v1.0.2 起只剩 `delete`） |
-| `data-acc-input` | **账号输入入口**（账号下拉菜单内） | 打开「输入其他账号…」输入框 |
+| `data-acc-*` | **账号面板**（列头账号胶囊弹出层） | 切换当前 / 新增 / 改名 / 删除 / 清除登录态 |
 | `data-mid` | 机器菜单配套 | 目标机器 id |
 | `data-mb` | **管理栏**（批量操作） | 批量删除/移动/改优先级等 |
 | `data-act` | 任务卡操作区 | 卡片级动作 |
@@ -41,8 +41,14 @@
 |---|---|---|
 | `data-mid` | 机器 id | 机器菜单项、列容器 |
 | `data-mact` | 机器菜单动作：`delete`（v1.0.2 起；`rename`/`place`/`left`/`right` 已随菜单项下线，代码分支保留但无入口） | 机器菜单项（1 个） |
-| `data-acc-input` | 账号自由输入入口，值形如 `<机器id>:wb` / `<机器id>:trae` | 账号下拉菜单底部 |
-| `data-acc-save` / `data-acc-cancel` | 账号输入框的保存 / 取消 | 账号输入菜单按钮 |
+| `data-switch` | 打开账号面板，值形如 `<机器id>:wb` / `<机器id>:trae` | 列头账号胶囊 |
+| `data-acc-panel` | 账号面板容器标记，值同 `data-switch`（重绘时按它找回容器） | 面板根节点 |
+| `data-acc-pick` | 选共享账号：本机登记过就设为当前，没登记过就登记一条再设为当前 | 面板里的账号行 |
+| `data-acc-rename` | 进入改名态（改名对共享账号生效，同平台同名一起改） | 行内铅笔图标（内联 SVG，常驻可见） |
+| `data-acc-del` | 解除这台电脑对该账号的登记（走确认框；本机没登记的号不显示） | 行内叉图标（内联 SVG，常驻可见） |
+| `data-acc-add` | 进入新增态（输入框为空，不预填当前值） | 面板底部 |
+| `data-acc-clear` | 清除登录态：账号保留、当前置空 | 面板底部（有当前账号时才出现） |
+| `data-acc-field` / `data-acc-save` / `data-acc-cancel` | 新增/改名输入框、保存、取消 | 面板输入区 |
 | `data-machine` | 机器名（文本） | 列容器 |
 | `data-machine-id` | 机器 id | 列容器 |
 | `data-machine-menu` | 打开机器菜单的触发元素 | 列头 |
@@ -132,3 +138,11 @@
 - `id` 只用于**全局唯一**的常驻元素（`board` / `ghList` / `ghKpis` / `ghIntensity` / `summary` / `mask` / `saveBtn` / `addBtn` …），共 187 个。
 - 动态生成的元素（卡片、列、仓库）**不写 id**，用 `data-*` 承载标识，避免重复 id 与「拿到失效节点」的经典 bug。
 - 测试脚本里取节点一律**现查现用**，不要复用重渲染前的引用。
+
+### 响应式（v1.2.0）
+
+| 属性 / 类 | 含义 | 出现处 |
+|---|---|---|
+| `.pane-top` | 窗格顶部容器（小标题 + KPI/筛选 + 分段），`position:sticky` 钉在栏顶 | 两个窗格各一个 |
+| `body[data-page]` | 窄屏当前页：`board` 看板 / `gh` 仓库；CSS 据此显示一页隐藏另一页 | body |
+| `#tabbar` | 底部 T-bar（窄屏分页）：`[data-page]` 切页、`#tabAdd` 新增、`#tabManage` 管理、`#tabMore` 更多 | 页面底部（≥641px 隐藏） |

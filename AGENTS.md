@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**：2026-10-31（commit `ee2f84e`）账号下拉以库为准，v1.0.4
+> 📌 **文档基线**：2026-10-31（commit `84ce66c`）登录账号独立成表，v1.1.0
 > **更新文档/代码后，请更新此行**（日期 + 新 commit hash），并在 CHANGELOG 追加版本
 
 ## 技术栈
@@ -11,6 +11,7 @@
 
 ## 关键坑（改动前必读）
 
+- **机器表的 `WorkBuddy账号` / `TRAE账号` 是派生只读**：真相在 `accounts` 表（一台机 × 一个平台可多条，至多一条「当前」）。别再往机器记录里存账号值，读接口会按 accounts 现算；写入侧会自动翻译成「设为当前」
 - **`data-gi-range` 的值是语义字符串（week/month/q3），禁止 `parseInt`**——曾因 parseInt 全变 NaN 导致点「本周/本月」静默失效
 - **headless 测试里合成 `dispatchEvent(new KeyboardEvent(...))` 走隔离执行环境，主 world 业务监听器收不到**（同 world 探针却收得到，严重误导排查）。测键盘一律 CDP 原生 `Input.dispatchKeyEvent`
 - **容器 id 改名 = DOM 搬家，事件绑定必须跟着迁**，否则功能静默失效（按钮还在、点不动）

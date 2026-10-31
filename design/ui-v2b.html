@@ -1,0 +1,1115 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" dark light>
+<title>Agent 工作台 · UI v2b（保留现有交互）</title>
+<style>
+/* ============================================================================
+   UI v2b · 在现有交互骨架上做视觉与双分辨率适配
+   与 v2 的区别：不重做信息架构。看板 / GitHub 双栏、列头账号胶囊、账号面板、
+   管理模式、抽屉详情、搜索、分段、KPI 过滤 —— 全部照旧，只改样式与响应式。
+   目标分辨率（CSS pt）：
+     iPad Pro 12.9" 横屏    1366 × 1024   （物理 2732 × 2048 @2x）
+     iPhone 17 Pro Max 竖屏  440 × 956   （物理 1320 × 2868 @3x）
+   ========================================================================== */
+:root {
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 20px;
+  --ease: cubic-bezier(.32,.72,0,1); --dur: .26s;
+}
+html[data-theme="dark"] {
+  --bg:#08090B; --bg-2:#0C0E11; --panel:#14171B; --panel-2:#191D22; --panel-3:#1F242B;
+  --border:rgba(255,255,255,.075); --border-strong:rgba(255,255,255,.14);
+  --text:#F2F4F7; --text-2:#A6AEBA; --text-3:#6B7481;
+  --accent:#4C8DFF; --accent-2:#7AAEFF; --accent-soft:rgba(76,141,255,.15);
+  --ok:#30D158; --warn:#FFB020; --danger:#FF5F57;
+  --ok-soft:rgba(48,209,88,.14); --warn-soft:rgba(255,176,32,.14); --danger-soft:rgba(255,95,87,.14);
+  --glass:rgba(28,32,39,.9); --hairline:rgba(255,255,255,.06);
+  --shadow-1:0 1px 2px rgba(0,0,0,.4);
+  --shadow-2:0 18px 48px -12px rgba(0,0,0,.72), 0 2px 8px rgba(0,0,0,.4);
+  --card-grad:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012));
+  --scrim:rgba(0,0,0,.55);
+}
+html[data-theme="light"] {
+  --bg:#F2F3F6; --bg-2:#FFFFFF; --panel:#FFFFFF; --panel-2:#F7F8FA; --panel-3:#EFF1F5;
+  --border:rgba(14,18,26,.09); --border-strong:rgba(14,18,26,.18);
+  --text:#0B0F15; --text-2:#55606E; --text-3:#8A94A2;
+  --accent:#0A6BFF; --accent-2:#3A87FF; --accent-soft:rgba(10,107,255,.10);
+  --ok:#18A957; --warn:#C77900; --danger:#E0362C;
+  --ok-soft:rgba(24,169,87,.10); --warn-soft:rgba(199,121,0,.10); --danger-soft:rgba(224,54,44,.10);
+  --glass:rgba(255,255,255,.8); --hairline:rgba(14,18,26,.07);
+  --shadow-1:0 1px 2px rgba(16,22,32,.06);
+  --shadow-2:0 20px 50px -16px rgba(16,22,32,.28), 0 2px 6px rgba(16,22,32,.08);
+  --card-grad:linear-gradient(180deg, #FFFFFF, #FCFCFE);
+  --scrim:rgba(18,22,30,.32);
+}
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; }
+body { margin:0; background:#050506; color:var(--text); font-family:var(--font); font-size:14.5px;
+  line-height:1.5; -webkit-font-smoothing:antialiased; display:grid; place-items:center; overflow:hidden; }
+button { font:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer; }
+input, select, textarea { font:inherit; color:inherit; }
+ul { margin:0; padding:0; list-style:none; }
+svg { display:block; }
+:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:6px; }
+
+/* ---------- 预览舞台（评审用） ---------- */
+#stage { width:100vw; height:100dvh; display:grid; place-items:center;
+  background:radial-gradient(1200px 700px at 50% -10%, #14161B, #060708 70%); }
+html[data-theme="light"] #stage { background:radial-gradient(1200px 700px at 50% -10%, #fff, #E7E9EE 70%); }
+#frame { position:relative; width:100%; height:100%; overflow:hidden; background:var(--bg);
+  container-type:inline-size; transition:border-radius var(--dur) var(--ease); }
+#frame[data-mode="ipad"], #frame[data-mode="iphone"] { border-radius:22px;
+  box-shadow:0 40px 120px -30px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.08); }
+#frame[data-mode="ipad"]   { --safe-t:24px; --safe-b:20px; --safe-l:24px; --safe-r:24px; }
+#frame[data-mode="iphone"] { --safe-t:62px; --safe-b:34px; --safe-l:0px;  --safe-r:0px; }
+#frame[data-mode="auto"] { --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-l:env(safe-area-inset-left,0px); --safe-r:env(safe-area-inset-right,0px); }
+#frame[data-mode="iphone"]::after { content:""; position:absolute; top:12px; left:50%; transform:translateX(-50%);
+  width:118px; height:34px; border-radius:20px; background:#000; z-index:95; pointer-events:none; }
+.devbar { position:fixed; left:18px; bottom:18px; display:flex; align-items:center; gap:4px; padding:5px;
+  border-radius:999px; background:rgba(22,25,30,.85); border:1px solid rgba(255,255,255,.12);
+  backdrop-filter:blur(20px); box-shadow:0 12px 40px rgba(0,0,0,.5); z-index:200; }
+.devbar button { height:32px; padding:0 13px; border-radius:999px; font-size:12.5px; color:#A9B1BD; white-space:nowrap; }
+.devbar button:hover { color:#fff; }
+.devbar button[aria-pressed="true"] { background:rgba(255,255,255,.14); color:#fff; }
+.devbar .dim { opacity:.55; }
+@media (max-width:780px) { .devbar button:not([aria-pressed="true"]), .devbar .sep { display:none; } }
+.devbar .sep { width:1px; height:16px; background:rgba(255,255,255,.16); margin:0 2px; }
+
+/* ---------- 应用外壳 ---------- */
+.app { --pad-x:24px; position:absolute; inset:0; display:flex; flex-direction:column;
+  background:var(--bg); color:var(--text); overflow:hidden;
+  padding-left:var(--safe-l); padding-right:var(--safe-r); }
+
+/* ---------- T-bar：沿用现有 topbar 的元素，玻璃化 + 常驻两行分区 ---------- */
+.topbar {
+  position:absolute; top:0; left:0; right:0; z-index:40;
+  padding-top:var(--safe-t);
+  display:flex; align-items:center; gap:10px;
+  height:calc(var(--safe-t) + 56px); padding-left:var(--pad-x); padding-right:var(--pad-x);
+  background:var(--glass);
+  -webkit-backdrop-filter:blur(30px) saturate(180%); backdrop-filter:blur(30px) saturate(180%);
+  border-bottom:1px solid var(--hairline);
+  transition:box-shadow .2s;
+}
+.topbar.stuck { box-shadow:0 1px 0 rgba(0,0,0,.25), 0 16px 34px -22px rgba(0,0,0,.85); }
+.brand { display:flex; align-items:center; gap:10px; min-width:0; }
+.brand .logo { width:31px; height:31px; border-radius:10px; flex:none; display:grid; place-items:center;
+  color:#fff; font-size:15px; font-weight:600; background:linear-gradient(145deg,#5B95FF,#2C6BE8);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35), 0 6px 16px -6px rgba(44,107,232,.9); }
+.brand h1 { margin:0; font-size:15.5px; font-weight:600; letter-spacing:-.01em; white-space:nowrap; }
+.topbar .spacer { flex:1 1 auto; min-width:6px; }
+.search { display:flex; align-items:center; gap:7px; height:38px; padding:0 11px; min-width:0;
+  border-radius:11px; background:var(--panel-2); border:1px solid var(--border); transition:border-color .16s; }
+.search:focus-within { border-color:color-mix(in srgb, var(--accent) 45%, transparent); }
+.search svg { width:17px; height:17px; color:var(--text-2); flex:none; }
+.search input { background:none; border:0; outline:0; width:190px; font-size:13px; color:var(--text); }
+.search input::placeholder { color:var(--text-3); }
+.ghost-btn, .icon-btn {
+  min-height:38px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center;
+  gap:6px; font-size:13px; color:var(--text-2); padding:0 11px;
+  transition:background .16s, color .16s, transform .12s;
+}
+.icon-btn { width:38px; padding:0; }
+.icon-btn svg { width:17px; height:17px; }
+.ghost-btn:hover, .icon-btn:hover { background:var(--panel-2); color:var(--text); }
+.ghost-btn:active, .icon-btn:active { transform:scale(.96); }
+.ghost-btn.on { background:var(--accent-soft); color:var(--accent); }
+.btn-primary { min-height:38px; padding:0 14px; border-radius:10px; display:inline-flex; align-items:center; gap:6px;
+  background:var(--accent); color:#fff; font-size:13.5px; font-weight:550;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28), 0 6px 18px -8px rgba(76,141,255,.9);
+  transition:filter .16s, transform .12s; }
+.btn-primary:hover { filter:brightness(1.08); }
+.btn-primary:active { transform:scale(.97); }
+.btn-primary svg { width:15px; height:15px; }
+.btn-ghost { min-height:38px; padding:0 12px; border-radius:10px; display:inline-flex; align-items:center;
+  font-size:13px; color:var(--text-2); border:1px solid var(--border); transition:background .16s,color .16s; }
+.btn-ghost:hover { background:var(--panel-2); color:var(--text); }
+.btn-ghost.danger { color:var(--danger); border-color:color-mix(in srgb, var(--danger) 30%, transparent); }
+
+/* ---------- 双栏骨架（与现有 .split 相同的语义） ---------- */
+.split { flex:1; display:flex; min-height:0; margin-top:calc(var(--safe-t) + 56px); }
+.view { flex:1; min-width:0; display:flex; flex-direction:column; }
+#viewBoard { flex:1.62; }
+/* 右栏给固定宽度而不是等比：1366pt 宽下左栏拿到 985pt，三列（348+间隙+内边距）刚好放得下不裁 */
+#viewGithub { flex:0 0 380px; }
+#viewMach { display:none; }
+.split-divider { width:1px; margin:10px 0; background:var(--hairline); flex:none; position:relative; }
+.split-divider::after { content:""; position:absolute; top:0; bottom:0; left:-3px; right:-3px; cursor:col-resize; }
+
+/* 窗格头：sec-title（点 = 放大/还原，现有交互）+ 窗格级控件 */
+.pane-head { display:flex; align-items:center; gap:10px; padding:12px var(--pad-x) 8px; min-height:48px; }
+.sec-title { display:inline-flex; align-items:center; gap:7px; font-size:16.5px; font-weight:650;
+  letter-spacing:-.02em; color:var(--text); border-radius:8px; min-height:38px; padding:0 2px; }
+.sec-title .mx { font-size:12px; color:var(--text-3); font-weight:400; transition:color .16s; }
+.sec-title:hover .mx { color:var(--accent); }
+.pane-head .spacer { flex:1; }
+
+/* 分段（进行中/全部/已完成）：与现有 .tabs 相同交互 */
+.tabs { display:inline-flex; gap:2px; padding:3px; background:var(--panel-2);
+  border:1px solid var(--border); border-radius:11px; }
+.tabs button { height:32px; padding:0 12px; border-radius:8px; font-size:12.5px; color:var(--text-2); white-space:nowrap;
+  transition:background .16s, color .16s; }
+.tabs button:hover { color:var(--text); }
+.tabs button.on { background:var(--panel); color:var(--text); border:1px solid var(--border);
+  box-shadow:0 1px 2px rgba(0,0,0,.22); }
+html[data-theme="light"] .tabs button.on { border-color:transparent; box-shadow:0 1px 3px rgba(16,22,32,.14); }
+
+/* ---------- KPI 摘要（沿用 .summary/.kpi） ---------- */
+.summary { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; padding:2px var(--pad-x) 10px; }
+.kpi { position:relative; text-align:left; padding:11px 13px; border-radius:var(--r-md);
+  background:var(--panel); border:1px solid var(--border); transition:border-color .16s, transform .12s; }
+.kpi:hover { border-color:var(--border-strong); }
+.kpi:active { transform:scale(.985); }
+.kpi.on { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+.kpi .num { display:block; font-size:21px; font-weight:650; line-height:1.2; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.kpi .lab { display:block; font-size:11px; color:var(--text-3); margin-top:1px; }
+.kpi .hint { position:absolute; top:10px; right:11px; font-size:10px; padding:1px 6px; border-radius:5px;
+  color:var(--text-3); background:var(--panel-3); }
+.kpi.alert .num, .kpi.alert .hint { color:var(--danger); } .kpi.alert .hint { background:var(--danger-soft); }
+.kpi.good .num, .kpi.good .hint { color:var(--ok); } .kpi.good .hint { background:var(--ok-soft); }
+.kpi.warn .num, .kpi.warn .hint { color:var(--warn); } .kpi.warn .hint { background:var(--warn-soft); }
+
+/* ---------- 看板 ---------- */
+.boardScroll { flex:1; min-height:0; overflow:auto; scrollbar-width:none; padding-bottom:calc(var(--safe-b) + 92px); }
+.boardScroll::-webkit-scrollbar { display:none; }
+.board { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(348px,1fr); gap:14px;
+  padding:2px var(--pad-x) 14px; width:100%; min-width:100%; }
+.col { min-width:0; display:flex; flex-direction:column; border-radius:var(--r-lg);
+  background:color-mix(in srgb, var(--panel) 55%, transparent); border:1px solid var(--hairline); }
+.col-head { padding:12px 12px 10px; border-bottom:1px solid var(--hairline); }
+.ch-top { display:flex; align-items:center; gap:8px; min-width:0; }
+.drag-handle { color:var(--text-3); font-size:13px; cursor:grab; flex:none; padding:4px 2px; }
+.ch-name { font-size:14.5px; font-weight:600; letter-spacing:-.01em; overflow-wrap:anywhere; cursor:text; }
+.ch-place { font-size:11px; color:var(--text-3); background:var(--panel-3); border-radius:6px; padding:1px 7px;
+  cursor:text; flex:none; }
+.ch-place.empty { border:1px dashed var(--border-strong); background:none; }
+.ch-count { margin-left:auto; font-size:11.5px; color:var(--text-3); flex:none; font-variant-numeric:tabular-nums; }
+.ch-count b { color:var(--text-2); font-weight:600; }
+.dots { width:30px; height:30px; border-radius:8px; display:grid; place-items:center; color:var(--text-3);
+  font-size:15px; flex:none; transition:background .16s, color .16s; }
+.dots:hover { background:var(--panel-2); color:var(--text); }
+.ch-acc { display:flex; gap:6px; flex-wrap:wrap; margin-top:9px; }
+
+/* 账号胶囊：点开账号面板（现有交互） */
+.pill { display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 9px 0 6px;
+  border-radius:9px; background:var(--panel-2); border:1px solid var(--border);
+  font-size:12px; color:var(--text-2); max-width:100%; transition:border-color .16s, background .16s; }
+.pill:hover { border-color:var(--border-strong); color:var(--text); }
+.pill .pb { width:15px; height:15px; border-radius:4.5px; flex:none; display:grid; place-items:center;
+  font-size:9.5px; font-weight:700; color:#fff; background:#4C8DFF; }
+.pill .pb.trae { background:#8B5CF6; }
+.pill .an { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pill .cnt { font-size:9.5px; color:var(--text-3); border:1px solid var(--border); border-radius:5px; padding:0 4px; line-height:12px; }
+.pill.empty { color:var(--text-3); border-style:dashed; }
+.pill.empty .pb { background:var(--text-3); }
+
+/* 列体与卡片（v16 卡面结构原样保留） */
+.col-body { padding:10px; display:flex; flex-direction:column; gap:9px; overflow-y:auto; }
+.card { position:relative; padding:12px 13px 10px; border-radius:12px;
+  background:var(--card-grad), var(--panel); border:1px solid var(--border); box-shadow:var(--shadow-1);
+  cursor:pointer; transition:transform .16s var(--ease), border-color .16s, box-shadow .16s; }
+.card:hover { border-color:var(--border-strong); box-shadow:0 8px 24px -12px rgba(0,0,0,.55); transform:translateY(-1px); }
+.card:active { transform:scale(.995); }
+.card::before { content:""; position:absolute; left:0; top:13px; bottom:13px; width:2.5px; border-radius:0 3px 3px 0;
+  background:var(--text-3); opacity:.45; }
+.card.p0::before { background:var(--danger); opacity:.9; }
+.card[data-prio="p1"]::before { background:var(--warn); opacity:.85; }
+.card.done { opacity:.62; }
+.card.done .c-title { text-decoration:line-through; text-decoration-color:var(--text-3); }
+.sel-box { display:none; position:absolute; top:10px; left:10px; width:20px; height:20px; border-radius:6px;
+  border:1.5px solid var(--border-strong); color:transparent; font-size:11px; line-height:18px; text-align:center; z-index:2; }
+.app.manage .sel-box { display:block; }
+.card.selected { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+.card.selected .sel-box { background:var(--accent); border-color:var(--accent); color:#fff; }
+.c-title { font-size:14px; font-weight:550; line-height:1.4; letter-spacing:-.01em; padding-left:2px; }
+.c-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:8px; padding-left:2px; }
+.c-meta .prio { font-size:10.5px; font-weight:600; padding:1px 6px; border-radius:5px;
+  color:var(--text-3); background:var(--panel-3); }
+.c-meta .prio.p0 { color:var(--danger); background:var(--danger-soft); }
+.c-meta .prio.p1 { color:var(--warn); background:var(--warn-soft); }
+.c-meta .c-mach, .c-meta .c-age { font-size:11px; color:var(--text-3); }
+.c-meta .stale { font-size:10.5px; color:var(--warn); background:var(--warn-soft); border-radius:5px; padding:1px 6px; }
+.c-prog { margin-top:8px; font-size:12px; color:var(--text-2); padding-left:2px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.c-todo { display:flex; align-items:center; gap:8px; margin-top:9px; padding-left:2px; }
+.c-todo .bar { flex:1; height:4px; border-radius:3px; background:var(--panel-3); overflow:hidden; }
+.c-todo .bar i { display:block; height:100%; border-radius:3px; background:var(--accent); transition:width .3s var(--ease); }
+.c-todo .tnum { font-size:10.5px; color:var(--text-3); flex:none; font-variant-numeric:tabular-nums; }
+.c-actions { display:flex; gap:6px; margin-top:10px; padding-left:2px; }
+.c-actions .mini { min-height:30px; padding:0 10px; border-radius:8px; font-size:11.5px;
+  color:var(--text-2); background:var(--panel-2); border:1px solid var(--border);
+  transition:background .16s, color .16s; }
+.c-actions .mini:hover { background:var(--panel-3); color:var(--text); }
+.c-actions .dots { margin-left:auto; }
+.col-empty { border:1px dashed var(--border-strong); border-radius:12px; padding:18px 14px;
+  font-size:12px; color:var(--text-3); line-height:1.65; text-align:center; }
+
+/* ---------- 账号面板（与现有 .acc-panel 相同的交互模型） ---------- */
+.menu { position:absolute; z-index:60; background:var(--glass); border:1px solid var(--border-strong);
+  border-radius:14px; box-shadow:var(--shadow-2); padding:5px;
+  -webkit-backdrop-filter:blur(28px) saturate(180%); backdrop-filter:blur(28px) saturate(180%); }
+.menu.acc-panel { width:266px; max-width:calc(100vw - 24px); padding:5px 5px 6px; }
+.menu .mh { font-size:10px; color:var(--text-3); padding:5px 9px 6px; letter-spacing:.5px; }
+.acc-row { display:flex; align-items:center; gap:9px; min-height:44px; padding:0 6px 0 10px; border-radius:10px; cursor:pointer; }
+.acc-row:hover, .acc-row.on { background:var(--accent-soft); }
+.acc-row .dot { width:6px; height:6px; border-radius:50%; background:var(--border-strong); flex:none; }
+.acc-row.on .dot { background:var(--accent); }
+.acc-row .nm { flex:1; min-width:0; font-size:13.5px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.acc-row .tag { font-size:10px; color:var(--accent); flex:none; }
+.acc-row .ops { display:flex; gap:2px; flex:none; }
+.acc-ico { width:34px; height:34px; border-radius:9px; display:grid; place-items:center; color:var(--text-3); }
+.acc-ico svg { width:16px; height:16px; }
+.menu .acc-ico:hover { background:var(--panel); color:var(--text); }
+.menu .acc-ico.danger:hover { color:var(--danger); background:var(--danger-soft); }
+.acc-empty { padding:8px 10px 10px; font-size:12px; color:var(--text-3); line-height:1.65; }
+.acc-foot { border-top:1px solid var(--hairline); margin-top:4px; padding:5px 3px 1px; }
+.acc-foot button { width:100%; min-height:40px; border-radius:8px; justify-content:flex-start;
+  display:flex; align-items:center; padding:0 10px; color:var(--text-2); font-size:13px; }
+.acc-foot button:hover { background:var(--accent-soft); color:var(--accent); }
+.acc-form { padding:4px 8px 6px; }
+.acc-form input { width:100%; height:38px; border-radius:9px; border:1px solid var(--border-strong);
+  background:var(--panel-2); padding:0 10px; font-size:13px; outline:0; }
+.acc-form input:focus { border-color:var(--accent); }
+.acc-form-btns { display:flex; gap:6px; margin-top:8px; }
+.acc-form-btns button { flex:1; min-height:36px; border-radius:9px; font-size:12.5px;
+  background:var(--panel-2); color:var(--text-2); justify-content:center; display:flex; align-items:center; }
+.acc-form-btns button.primary { background:var(--accent); color:#fff; }
+
+/* 菜单（机器/卡片操作） */
+.menu.m-pop { min-width:168px; }
+.menu.m-pop button { display:flex; width:100%; align-items:center; gap:8px; min-height:40px;
+  padding:0 10px; border-radius:8px; font-size:13px; color:var(--text-2); text-align:left; }
+.menu.m-pop button:hover { background:var(--accent-soft); color:var(--accent); }
+.menu.m-pop button.danger:hover { background:var(--danger-soft); color:var(--danger); }
+
+/* ---------- 电脑与账号（手机上多出来的类别） ---------- */
+.mgrid { flex:1; min-height:0; overflow:auto; scrollbar-width:none;
+  display:grid; gap:12px; grid-template-columns:repeat(2, minmax(0,1fr));
+  padding:2px var(--pad-x) calc(14px + var(--safe-b) + 84px); }
+.mgrid::-webkit-scrollbar { display:none; }
+.mcard { border-radius:var(--r-lg); background:var(--panel); border:1px solid var(--border);
+  box-shadow:var(--shadow-1); overflow:hidden; }
+.mcard-h { display:flex; align-items:flex-start; gap:10px; padding:14px 14px 10px; }
+.mcard-h .mt { font-size:14.5px; font-weight:600; letter-spacing:-.01em; display:flex; align-items:center; gap:7px; }
+.mcard-h .ms { font-size:11.5px; color:var(--text-3); margin-top:3px; }
+.mcard-h .dots { margin-left:auto; }
+.accgrp { padding:0 10px 10px; }
+.accgrp + .accgrp { border-top:1px solid var(--hairline); padding-top:10px; }
+.accgrp-h { display:flex; align-items:center; gap:7px; padding:4px 5px 8px; }
+.accgrp-h .plat { width:19px; height:19px; border-radius:5px; display:grid; place-items:center;
+  font-size:9.5px; font-weight:700; color:#fff; background:#4C8DFF; flex:none; }
+.accgrp-h .plat.trae { background:#8B5CF6; }
+.accgrp-h .pname { font-size:12.5px; color:var(--text-2); }
+.accgrp-h .n { font-size:11px; color:var(--text-3); background:var(--panel-2);
+  border-radius:6px; padding:1px 6px; margin-left:auto; }
+.accgrp-h .pill { margin-left:6px; height:28px; font-size:11.5px; }
+.acc { display:flex; align-items:center; gap:9px; min-height:46px; padding:0 8px 0 10px;
+  border-radius:10px; cursor:pointer; transition:background .14s; }
+.acc:hover { background:var(--panel-2); }
+.acc.on { background:var(--accent-soft); }
+.acc .radio { width:18px; height:18px; border-radius:50%; flex:none; border:1.5px solid var(--border-strong);
+  display:grid; place-items:center; }
+.acc.on .radio { border-color:var(--accent); }
+.acc.on .radio::after { content:""; width:9px; height:9px; border-radius:50%; background:var(--accent); }
+.acc .nm { font-size:13.5px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.acc.on .nm { font-weight:550; }
+.acc .cur { font-size:10.5px; color:var(--accent); background:var(--accent-soft);
+  border-radius:5px; padding:1px 6px; flex:none; }
+.acc-add { display:flex; align-items:center; gap:8px; min-height:44px; padding:0 10px;
+  border-radius:10px; color:var(--text-3); font-size:13px; width:100%; }
+.acc-add:hover { color:var(--accent); background:var(--accent-soft); }
+.acc-add svg { width:16px; height:16px; }
+.acc-empty { padding:6px 10px 8px; font-size:12px; color:var(--text-3); line-height:1.6; }
+
+/* ---------- GitHub 窗格 ---------- */
+.gh-toolbar { display:flex; align-items:center; gap:10px; padding:0 var(--pad-x) 8px; flex-wrap:wrap; }
+.gh-toolbar label { font-size:11.5px; color:var(--text-3); }
+.gh-toolbar select { height:34px; border-radius:9px; background:var(--panel-2); border:1px solid var(--border);
+  color:var(--text-2); font-size:12.5px; padding:0 8px; outline:0; }
+.gh-kpis { display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0; }
+.gh-kpis .kpi { display:inline-flex; align-items:center; gap:5px; padding:0 10px; min-height:34px;
+  border-radius:9px; font-size:12px; color:var(--text-3); background:var(--panel-2); border:1px solid var(--border); }
+.gh-kpis .kpi .num { display:inline; font-size:13px; font-weight:600; color:var(--text-2); }
+.gh-kpis .kpi .lab { display:inline; font-size:11px; }
+.gh-kpis .kpi.on { border-color:var(--accent); background:var(--accent-soft); }
+.gh-kpis .kpi.on .num, .gh-kpis .kpi.on .lab { color:var(--accent); }
+.gh-intensity { padding:0 var(--pad-x) 10px; color:var(--text-3); font-size:11px;
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.gh-intensity .cell { width:11px; height:11px; border-radius:3px; background:var(--panel-3); }
+.gh-intensity .cell.l1 { background:color-mix(in srgb, var(--accent) 30%, var(--panel-3)); }
+.gh-intensity .cell.l2 { background:color-mix(in srgb, var(--accent) 55%, var(--panel-3)); }
+.gh-intensity .cell.l3 { background:var(--accent); }
+.gh-list { flex:1; min-height:0; overflow:auto; padding:2px var(--pad-x) calc(14px + var(--safe-b) + 84px); scrollbar-width:none;
+  display:flex; flex-direction:column; gap:9px; }
+.gh-list::-webkit-scrollbar { display:none; }
+.repo-card { padding:13px 14px; border-radius:12px; background:var(--panel); border:1px solid var(--border);
+  box-shadow:var(--shadow-1); cursor:pointer; transition:border-color .16s, transform .16s; }
+.repo-card:hover { border-color:var(--border-strong); transform:translateY(-1px); }
+.repo-top { display:flex; align-items:center; gap:9px; }
+.repo-top .rn { font-size:13.5px; font-weight:550; font-family:var(--mono); letter-spacing:-.02em;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.repo-top .dots { margin-left:auto; }
+.repo-sub { display:flex; align-items:center; gap:8px; margin-top:7px; flex-wrap:wrap; }
+.re-res { display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:2px 8px; border-radius:6px; }
+.re-res.ok { color:var(--ok); background:var(--ok-soft); }
+.re-res.un { color:var(--warn); background:var(--warn-soft); }
+.re-res.err { color:var(--danger); background:var(--danger-soft); }
+.repo-sub .meta { font-size:11px; color:var(--text-3); }
+
+/* ---------- 抽屉（iPad 右侧 / 手机底部） ---------- */
+.drawer-mask { position:absolute; inset:0; z-index:70; background:var(--scrim);
+  opacity:0; pointer-events:none; transition:opacity var(--dur) var(--ease); }
+.drawer-mask.on { opacity:1; pointer-events:auto; }
+.drawer { position:absolute; z-index:80; top:0; right:0; bottom:0; width:430px; max-width:92%;
+  background:var(--bg-2); border-left:1px solid var(--border);
+  transform:translateX(105%); transition:transform var(--dur) var(--ease);
+  display:flex; flex-direction:column; padding-top:var(--safe-t); }
+.drawer.on { transform:none; }
+.drawer-head { display:flex; align-items:center; gap:10px; padding:14px 18px 10px; }
+.drawer-head h3 { margin:0; font-size:17px; font-weight:650; letter-spacing:-.02em; flex:1; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.drawer-body { flex:1; overflow-y:auto; padding:4px 18px 16px; }
+.drawer-foot { display:flex; gap:8px; padding:12px 18px calc(12px + var(--safe-b)); border-top:1px solid var(--hairline); flex-wrap:wrap; }
+.field { display:flex; align-items:center; gap:12px; min-height:46px; border-bottom:1px solid var(--hairline); }
+.field .k { width:76px; flex:none; font-size:12.5px; color:var(--text-3); }
+.field .v { font-size:13.5px; color:var(--text); min-width:0; overflow-wrap:anywhere; }
+.field .v.mono { font-family:var(--mono); font-size:12.5px; }
+.field input, .field select, .field textarea { flex:1; min-width:0; background:var(--panel-2);
+  border:1px solid var(--border-strong); border-radius:8px; height:36px; padding:0 9px; font-size:13px; outline:0; }
+.field textarea { height:64px; padding:8px 9px; resize:vertical; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color:var(--accent); }
+
+/* 管理条 */
+.manage-bar { position:absolute; left:50%; transform:translate(-50%, 140%); bottom:calc(80px + var(--safe-b));
+  z-index:50; display:flex; align-items:center; gap:8px; padding:7px;
+  background:var(--glass); border:1px solid var(--border-strong); border-radius:14px;
+  box-shadow:var(--shadow-2); backdrop-filter:blur(24px);
+  transition:transform var(--dur) var(--ease), opacity var(--dur) var(--ease), visibility var(--dur);
+  opacity:0; visibility:hidden; }
+.manage-bar.on { transform:translate(-50%, 0); opacity:1; visibility:visible; }
+.manage-bar .info { font-size:12.5px; color:var(--text-2); padding:0 6px; }
+.manage-bar .info b { color:var(--text); }
+.manage-bar button { min-height:36px; padding:0 12px; border-radius:9px; font-size:12.5px;
+  background:var(--panel-2); color:var(--text-2); }
+.manage-bar button:hover { color:var(--text); background:var(--panel-3); }
+.manage-bar button.primary { background:var(--accent); color:#fff; }
+
+/* ---------- 底部 T-bar（功能层统一在下） ---------- */
+.dock { position:absolute; left:0; right:0; bottom:0; z-index:55;
+  display:flex; justify-content:center; pointer-events:none;
+  padding: 0 14px calc(var(--safe-b) + 12px);
+  transition:transform var(--dur) var(--ease), opacity var(--dur) var(--ease); }
+.dock.hidden { transform:translateY(130%); opacity:0; }
+.dock-inner { pointer-events:auto; display:flex; align-items:flex-end; gap:4px; padding:6px;
+  background:var(--glass); border:1px solid var(--border-strong); border-radius:24px;
+  box-shadow:var(--shadow-2);
+  -webkit-backdrop-filter:blur(28px) saturate(180%); backdrop-filter:blur(28px) saturate(180%); }
+.dock-btn { min-width:64px; height:52px; border-radius:16px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:3px; font-size:11px; color:var(--text-2);
+  transition:background .16s, color .16s, transform .12s; }
+.dock-btn:hover { background:var(--panel-2); color:var(--text); }
+.dock-btn:active { transform:scale(.95); }
+.dock-btn svg { width:20px; height:20px; }
+.dock-btn .em { font-size:16px; line-height:1; }
+.dock-btn.on { color:var(--accent); background:var(--accent-soft); }
+.dock-add { width:54px; height:54px; border-radius:50%; margin:-16px 6px 2px; flex:none;
+  display:grid; place-items:center; color:#fff;
+  background:linear-gradient(145deg,#5B95FF,#2C6BE8);
+  box-shadow:0 12px 28px -8px rgba(44,107,232,.95), inset 0 1px 0 rgba(255,255,255,.35);
+  transition:filter .16s, transform .12s; }
+.dock-add:hover { filter:brightness(1.08); }
+.dock-add:active { transform:scale(.94); }
+.dock-add svg { width:24px; height:24px; }
+/* 双栏桌面：窗格切换没意义，隐藏 */
+@media (min-width: 1001px) { .dock-btn.phone-only { display:none; } }
+/* 单栏（平板竖窗/手机）：主题回落到顶栏，dock 里不重复 */
+@media (max-width: 1000px) { .dock-btn.ipad-only, .icon-btn.ipad-hidden { display:none; } }
+
+/* toast */
+.toast { position:absolute; left:50%; bottom:calc(118px + var(--safe-b)); transform:translate(-50%, 20px);
+  z-index:120; background:var(--glass); border:1px solid var(--border-strong); color:var(--text);
+  border-radius:12px; padding:9px 16px; font-size:13px; opacity:0; pointer-events:none;
+  box-shadow:var(--shadow-2); transition:opacity .2s, transform .2s; max-width:80%; }
+.toast.on { opacity:1; transform:translate(-50%, 0); }
+
+/* ---------- 响应式（容器查询，跟 frame 宽度走） ---------- */
+/* 平板竖屏 / 小窗口：双栏变单栏 + 顶部窗格切换（沿用「点标题放大」交互） */
+@container (max-width: 1000px) {
+  .app { --pad-x:16px; }
+  .search input { width:104px; }
+  #viewGithub { flex:1; display:none; }
+  #viewBoard { flex:1; display:none; }
+  #viewMach { display:none; }
+  .split-divider { display:none; }
+  #viewBoard.on, #viewGithub.on, #viewMach.on { display:flex; }
+  .view.zoomed { display:flex; }
+  #viewBoard { display:flex; }
+  .app.ghPane #viewBoard { display:none; }
+  .app.ghPane #viewGithub { display:flex; }
+  /* 手机上两栏切换条 */
+  .pane-switch { display:inline-flex; }
+}
+@container (min-width: 1001px) { .pane-switch { display:none; } }
+
+/* 手机（iPhone 17 Pro Max = 440pt） */
+@container (max-width: 620px) {
+  .brand h1 { font-size:14.5px; }
+  .search input { width:0; padding:0; }
+  .search { width:38px; justify-content:center; padding:0; }
+  .search:focus-within { width:150px; justify-content:flex-start; padding:0 11px; }
+  .search:focus-within input { width:104px; }
+  .ghost-btn .lbl { display:none; }
+  .ghost-btn { width:38px; padding:0; justify-content:center; }
+  .btn-primary .lbl { display:none; }
+  .btn-primary svg:last-child { display:none; }
+  .btn-primary { width:38px; padding:0; justify-content:center; }
+  .summary { grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .mgrid { grid-template-columns:minmax(0, 1fr); }
+  .pane-head .sec-title { display:none; }
+  .pane-head { padding-top:10px; flex-wrap:wrap; row-gap:8px; }
+  .board { grid-auto-columns:calc(100% - 8px); gap:24px; scroll-snap-type:x mandatory; scroll-padding-left:var(--pad-x); }
+  .col { scroll-snap-align:start; }
+  .boardScroll { overflow-x:hidden; }
+  /* 抽屉改底部弹层，字段不变 */
+  .drawer { top:auto; left:0; right:0; bottom:0; width:auto; max-width:none; max-height:88%;
+    border-left:0; border-top:1px solid var(--border-strong);
+    border-radius:var(--r-xl) var(--r-xl) 0 0; transform:translateY(110%); padding-top:0; }
+  .drawer.on { transform:none; }
+  .drawer::before { content:""; width:38px; height:5px; border-radius:3px; background:var(--border-strong);
+    margin:9px auto 0; flex:none; }
+  .col-body { padding:9px; }
+}
+
+/* 卡面操作：桌面沿用现有「hover 才出现」；触屏没有 hover，必须常驻 */
+@media (hover: hover) {
+  .c-actions { opacity:0; transition:opacity .12s; }
+  .card:hover .c-actions, .card:focus-within .c-actions { opacity:1; }
+}
+@media (hover: none) {
+  .card { padding-bottom:8px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition-duration:.01ms !important; animation-duration:.01ms !important; } }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.4"/><path d="M15.8 15.8L20.5 20.5"/></symbol>
+  <symbol id="i-board" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="4.6" height="14" rx="1.5"/><rect x="10.2" y="5" width="4.6" height="9" rx="1.5"/><rect x="17" y="5" width="3.8" height="12" rx="1.5"/></symbol>
+  <symbol id="i-laptop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6" width="16" height="10" rx="1.8"/><path d="M2.5 19h19"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.4" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-repo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="6" r="2.1"/><circle cx="7" cy="18" r="2.1"/><circle cx="17" cy="9" r="2.1"/><path d="M7 8.1v7.8M9.2 6h4.6a3 3 0 0 1 3 3"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4 8.6 8.6 0 1 0 20 14.6z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.8 5.8l1.4 1.4M16.8 16.8l1.4 1.4M18.2 5.8l-1.4 1.4M7.2 16.8l-1.4 1.4"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-chevd" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.6 19.4l.9-3.9 9.2-9.2a2 2 0 0 1 2.8 0l.2.2a2 2 0 0 1 0 2.8L8.5 18.5z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M10 4.5h4M7.2 7l.7 12a1.6 1.6 0 0 0 1.6 1.5h5a1.6 1.6 0 0 0 1.6-1.5L16.8 7"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 6.6l10.8 10.8M17.4 6.6L6.6 17.4"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol>
+</svg>
+
+<div id="stage">
+  <div id="frame" data-mode="auto">
+    <div class="app" id="app">
+
+      <!-- ===== T-bar：元素与现有 topbar 一一对应 ===== -->
+      <header class="topbar" id="topbar">
+        <div class="brand"><span class="logo">◎</span><h1>Agent 工作台</h1></div>
+        <div class="spacer"></div>
+        <div class="search" id="searchBox">
+          <svg><use href="#i-search"/></svg>
+          <input id="q" placeholder="搜任务、目录、进度" type="text">
+        </div>
+        <button class="icon-btn ipad-hidden" id="themeBtn" title="切换主题" aria-label="切换主题"><svg id="themeIco"><use href="#i-moon"/></svg></button>
+      </header>
+
+      <!-- ===== 双栏：结构同现有 .split ===== -->
+      <main class="split">
+        <section class="view zoomed" id="viewBoard">
+          <div class="pane-head">
+            <button class="sec-title" id="tBoard" title="点击放大本栏，再点还原">任务看板<span class="mx">⤢</span></button>
+            <div class="spacer"></div>
+            <div class="tabs" id="segTabs">
+              <button class="on" data-s="进行中" type="button">进行中</button>
+              <button data-s="全部" type="button">全部</button>
+              <button data-s="已完成" type="button">已完成</button>
+            </div>
+          </div>
+          <div class="summary" id="summary"></div>
+          <div class="boardScroll" id="boardScroll"><div class="board" id="board"></div></div>
+        </section>
+
+        <section class="view" id="viewMach">
+          <div class="pane-head">
+            <button class="sec-title" id="tMach" title="电脑与账号">电脑与账号</button>
+            <div class="spacer"></div>
+            <div class="tabs mach-tabs">
+              <button class="on" data-mf="all">全部</button>
+              <button data-mf="wb">WorkBuddy 已登录</button>
+              <button data-mf="trae">TRAE 已登录</button>
+            </div>
+          </div>
+          <div class="mgrid" id="mgrid"></div>
+        </section>
+
+        <div class="split-divider" id="splitDivider" title="拖动调整左右比例"></div>
+
+        <section class="view" id="viewGithub">
+          <div class="pane-head">
+            <button class="sec-title" id="tGh" title="点击放大本栏，再点还原">GitHub 看板<span class="mx">⤢</span></button>
+            <div class="gh-kpis" id="ghKpis"></div>
+          </div>
+          <div class="gh-toolbar">
+            <label>电脑</label>
+            <select id="ghF_machine"><option value="">全部</option></select>
+          </div>
+          <div class="gh-intensity" id="ghIntensity"></div>
+          <div class="gh-list" id="ghList"></div>
+        </section>
+      </main>
+
+      <!-- ===== 底部 T-bar：功能按钮统一在下 ===== -->
+      <nav class="dock" id="dock" aria-label="主操作">
+        <div class="dock-inner">
+          <button class="dock-btn phone-only on" data-pane="board" title="任务看板"><svg><use href="#i-board"/></svg>看板</button>
+          <button class="dock-btn phone-only" data-pane="mach" title="电脑与账号"><svg><use href="#i-laptop"/></svg>机器</button>
+          <button class="dock-btn phone-only" data-pane="gh" title="GitHub 看板"><svg><use href="#i-repo"/></svg>仓库</button>
+          <button class="dock-add" id="addBtn" title="新增"><svg><use href="#i-plus"/></svg></button>
+          <button class="dock-btn ipad-only" id="manageBtn" title="批量选择与操作"><span class="em">☰</span>管理</button>
+          <button class="dock-btn ipad-only" id="aiGuideBtn" title="AI 写入指南"><span class="em">🤖</span>指南</button>
+          <button class="dock-btn phone-only" id="moreBtn" title="更多：管理 / 指南 / 主题"><svg><use href="#i-more"/></svg>更多</button>
+          <button class="dock-btn ipad-only" id="dockTheme" title="切换主题"><svg id="themeIco2"><use href="#i-moon"/></svg>主题</button>
+        </div>
+      </nav>
+
+      <!-- 管理条 -->
+      <div class="manage-bar" id="manageBar">
+        <span class="info">已选 <b id="selCount">0</b> 项</span>
+        <button data-mb="done">标记完成</button>
+        <button data-mb="copy">复制交接</button>
+        <button class="primary" data-mb="exit">退出管理</button>
+      </div>
+
+      <!-- 抽屉 -->
+      <div class="drawer-mask" id="mask"></div>
+      <aside class="drawer" id="drawer">
+        <div class="drawer-head">
+          <button class="icon-btn" id="drawerBack" style="display:none" title="返回上一层"><svg><use href="#i-back"/></svg></button>
+          <h3 id="drawerTitle">任务详情</h3>
+          <button class="icon-btn" id="closeDrawer" title="关闭"><svg><use href="#i-close"/></svg></button>
+        </div>
+        <div class="drawer-body" id="drawerBody"></div>
+        <div class="drawer-foot">
+          <button class="btn-primary" id="saveBtn">保存</button>
+          <button class="btn-primary" id="editBtn" style="display:none">编辑</button>
+          <button class="btn-ghost" id="copyBtn">交接文本</button>
+          <div style="flex:1"></div>
+          <button class="btn-ghost danger" id="delBtn">删除</button>
+        </div>
+      </aside>
+
+      <div class="toast" id="toast"></div>
+    </div>
+  </div>
+</div>
+
+<div class="devbar" id="devbar">
+  <button data-mode="auto" aria-pressed="true">自适应</button>
+  <span class="sep"></span>
+  <button data-mode="ipad" aria-pressed="false">iPad <span class="dim">1366×1024</span></button>
+  <button data-mode="iphone" aria-pressed="false">iPhone <span class="dim">440×956</span></button>
+</div>
+
+<script>
+/* ============================================================================
+   数据：结构与线上库同构（tasks / machines / accounts / github）
+   交互照旧：分段过滤、KPI 过滤、搜索、账号面板增删改切、管理模式、抽屉编辑
+   ========================================================================== */
+var DB = {
+  machines: [
+    { _id:'m1', '机器名':'4070S', '位置':'Office', '状态':'在线', accounts:[
+      { _id:'a1', '账号名':'坤坤', '平台':'WorkBuddy', '所属电脑':'4070S', '当前':true },
+      { _id:'a2', '账号名':'坤坤-小号', '平台':'WorkBuddy', '所属电脑':'4070S', '当前':false },
+      { _id:'a3', '账号名':'小黄trae', '平台':'TRAE', '所属电脑':'4070S', '当前':true } ] },
+    { _id:'m2', '机器名':'4070TiSuper', '位置':'Home', '状态':'在线', accounts:[
+      { _id:'a4', '账号名':'小黄', '平台':'WorkBuddy', '所属电脑':'4070TiSuper', '当前':true },
+      { _id:'a5', '账号名':'鲁妈妈trae', '平台':'TRAE', '所属电脑':'4070TiSuper', '当前':true } ] },
+    { _id:'m3', '机器名':'RedmiBook', '位置':'Home', '状态':'离线', accounts:[] }
+  ],
+  tasks: [
+    { _id:'t1', '标题':'ae-tools v1.5.8 发布联调', '状态':'进行中', '优先级':'P0', '所在电脑':'4070S',
+      '进度':'灰度 2/5 台，本周出报告', '待办':['出灰度报告','回归 v1.5.7','同步文档'], '待办完成':1, '更新时间':'2h' },
+    { _id:'t2', '标题':'local-llm-playbook 部署方案评估', '状态':'进行中', '优先级':'P1', '所在电脑':'4070S',
+      '进度':'候选 qwen3-14b / glm-4-9b', '待办':['压测吞吐','成本估算'], '待办完成':0, '更新时间':'5h' },
+    { _id:'t3', '标题':'LoginStateSwitcher 12 槽位维护', '状态':'进行中', '优先级':'P2', '所在电脑':'4070S',
+      '进度':'', '待办':[], '待办完成':0, '更新时间':'11d' },
+    { _id:'t4', '标题':'knowledge-base 索引重建', '状态':'进行中', '优先级':'P1', '所在电脑':'4070TiSuper',
+      '进度':'分块策略已定', '待办':['重建索引','抽查召回'], '待办完成':0, '更新时间':'3h' },
+    { _id:'t5', '标题':'外出机环境预置脚本', '状态':'进行中', '优先级':'P2', '所在电脑':'RedmiBook',
+      '进度':'', '待办':['写 bootstrap.sh'], '待办完成':0, '更新时间':'2d' },
+    { _id:'t6', '标题':'v1.5.7 回归归档', '状态':'已完成', '优先级':'P1', '所在电脑':'4070S',
+      '进度':'全部通过', '待办':[], '待办完成':0, '更新时间':'1d' },
+    { _id:'t7', '标题':'等宽字体渲染对比', '状态':'已完成', '优先级':'P2', '所在电脑':'RedmiBook',
+      '进度':'结论已入库', '待办':[], '待办完成':0, '更新时间':'3d' }
+  ],
+  repos: [
+    { name:'Simiely/ae-tools', branch:'main', state:'ok', label:'已同步', at:'4 分钟前', machine:'4070S' },
+    { name:'Simiely/LoginStateSwitcher', branch:'main', state:'un', label:'待推送 · 2 commit', at:'2 小时前', machine:'4070TiSuper' },
+    { name:'Simiely/knowledge-base', branch:'main', state:'err', label:'同步失败', at:'昨天', machine:'4070TiSuper' },
+    { name:'Simiely/local-llm-playbook', branch:'main', state:'ok', label:'已同步', at:'3 小时前', machine:'4070S' }
+  ]
+};
+
+var S = { view:'进行中', kpi:'', q:'', manage:false, selected:{}, ghKpi:'', ghMachine:'', pane:'board' };
+var $ = function(s, r){ return (r||document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+var esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+  return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); };
+var platShort = function(p){ return p === 'TRAE' ? 'T' : 'W'; };
+var findMachine = function(id){ return DB.machines.filter(function(m){ return m._id === id; })[0]; };
+var findAcc = function(id){ var r=null; DB.machines.forEach(function(m){ m.accounts.forEach(function(a){ if(a._id===id) r=a; }); }); return r; };
+var curAcc = function(m, plat){ var r=null; m.accounts.forEach(function(a){ if(a['平台']===plat && a['当前']) r=a; }); return r; };
+
+/* ---------- 渲染 ---------- */
+function accPill(m, plat) {
+  var pool = m.accounts.filter(function(a){ return a['平台'] === (plat==='wb'?'WorkBuddy':'TRAE'); });
+  var cur = curAcc(m, plat==='wb'?'WorkBuddy':'TRAE');
+  var name = cur ? cur['账号名'] : '未登录';
+  var n = pool.length;
+  return '<button class="pill' + (cur ? '' : ' empty') + '" data-switch="' + m._id + ':' + plat + '"' +
+    ' title="登录账号：点开面板切换 / 新增 / 改名 / 删除">' +
+    '<span class="pb' + (plat==='trae' ? ' trae' : '') + '">' + (plat==='trae'?'T':'W') + '</span>' +
+    '<span class="an">' + esc(name) + '</span>' +
+    (n > 1 || (n && !cur) ? '<span class="cnt">' + n + '</span>' : '') + '</button>';
+}
+
+function cardHTML(t) {
+  var total = t['待办'].length, done = t['待办完成'] || 0;
+  var pct = total ? Math.round(done / total * 100) : 0;
+  var stale = t['更新时间'].indexOf('d') >= 0 && parseInt(t['更新时间']) >= 7;
+  var prioCls = t['优先级'] === 'P0' ? 'p0' : t['优先级'] === 'P1' ? 'p1' : '';
+  return '<div class="card' + (t['优先级']==='P0' && t['状态']!=='已完成' ? ' p0' : '') + (t['状态']==='已完成' ? ' done' : '') +
+      '" data-task-id="' + t._id + '" data-prio="' + prioCls + '">' +
+    '<span class="sel-box">✓</span>' +
+    '<div class="c-title">' + esc(t['标题']) + '</div>' +
+    '<div class="c-meta">' +
+      '<span class="prio ' + prioCls + '">' + esc(t['优先级'] || '—') + '</span>' +
+      '<span class="c-mach">🖥 ' + esc(t['所在电脑'] || '未指定') + '</span>' +
+      '<span class="c-age">' + esc(t['更新时间']) + '</span>' +
+      (stale && t['状态'] !== '已完成' ? '<span class="stale">久未动 ' + parseInt(t['更新时间']) + ' 天</span>' : '') +
+    '</div>' +
+    (t['进度'] ? '<div class="c-prog">' + esc(t['进度']) + '</div>' : '') +
+    (total ? '<div class="c-todo"><div class="bar"><i style="width:' + pct + '%"></i></div>' +
+      '<span class="tnum">' + done + '/' + total + ' 待办</span></div>' : '') +
+    '<div class="c-actions">' +
+      '<button class="mini" data-copy="' + t._id + '">复制交接</button>' +
+      '<button class="mini" data-edit-task="' + t._id + '">编辑</button>' +
+      '<button class="dots" data-task-menu="' + t._id + '" title="更多操作">⋯</button>' +
+    '</div></div>';
+}
+
+function renderSummary() {
+  var list = DB.tasks;
+  var doing = list.filter(function(t){ return t['状态'] === '进行中'; });
+  var att = doing.filter(function(t){ return parseInt(t['更新时间']) >= 7; });
+  var todoN = list.filter(function(t){ return t['状态'] !== '已完成' && t['待办'].length > (t['待办完成']||0); }).length;
+  var defs = [
+    { k:'', lab:'进行中任务', num: doing.length },
+    { k:'att', lab:'需要关注', num: att.length, cls: att.length ? 'alert' : 'good', hint: att.length ? '久未动' : '健康' },
+    { k:'todo', lab:'未勾待办', num: todoN, cls: todoN ? 'warn' : '' },
+    { k:'done', lab:'已完成', num: list.length - doing.length, cls:'good' }
+  ];
+  $('#summary').innerHTML = defs.map(function(d){
+    return '<button class="kpi ' + (d.cls||'') + (S.kpi === d.k ? ' on' : '') + '" data-kpi="' + d.k + '">' +
+      '<span class="num">' + d.num + '</span><span class="lab">' + d.lab + '</span>' +
+      (d.hint ? '<span class="hint">' + d.hint + '</span>' : '') + '</button>';
+  }).join('');
+}
+
+function match(t) {
+  if (S.q && (t['标题'] + t['进度'] + t['所在电脑']).indexOf(S.q) < 0) return false;
+  if (S.kpi === 'att') return t['状态'] === '进行中' && parseInt(t['更新时间']) >= 7;
+  if (S.kpi === 'todo') return t['状态'] !== '已完成' && t['待办'].length > (t['待办完成']||0);
+  if (S.kpi === 'done') return t['状态'] === '已完成';
+  return true;
+}
+function viewMatch(t) {
+  if (S.view === '全部') return true;
+  if (S.view === '已完成') return t['状态'] === '已完成';
+  return t['状态'] === '进行中';
+}
+
+function renderBoard() {
+  var out = '';
+  DB.machines.forEach(function(m) {
+    var items = DB.tasks.filter(function(t){ return t['所在电脑'] === m['机器名'] && match(t) && viewMatch(t); });
+    var body = items.length
+      ? items.map(cardHTML).join('')
+      : '<div class="col-empty">' + (S.q || S.kpi ? '没有符合筛选的任务' : '这台电脑还没有进行中的任务') + '</div>';
+    out += '<section class="col" data-machine-id="' + m._id + '">' +
+      '<div class="col-head"><div class="ch-top">' +
+        '<span class="drag-handle" title="拖动调整顺序">⠿</span>' +
+        '<span class="ch-name" data-edit="machineName" data-id="' + m._id + '" title="点击可直接改名">' + esc(m['机器名']) + '</span>' +
+        (m['位置'] ? '<span class="ch-place" data-edit="machinePlace" data-id="' + m._id + '">' + esc(m['位置']) + '</span>'
+                   : '<span class="ch-place empty" data-edit="machinePlace" data-id="' + m._id + '">＋位置</span>') +
+        '<span class="ch-count"><b>' + items.length + '</b> 项</span>' +
+        '<button class="dots" data-machine-menu="' + m._id + '" title="机器操作">⋯</button>' +
+      '</div><div class="ch-acc">' + accPill(m, 'wb') + accPill(m, 'trae') + '</div></div>' +
+      '<div class="col-body">' + body + '</div></section>';
+  });
+  $('#board').innerHTML = out;
+  renderSummary();
+}
+
+function renderGh() {
+  var rows = DB.repos.filter(function(r){ return !S.ghMachine || r.machine === S.ghMachine; });
+  var ok = rows.filter(function(r){ return r.state === 'ok'; }).length;
+  var un = rows.filter(function(r){ return r.state === 'un'; }).length;
+  var er = rows.filter(function(r){ return r.state === 'err'; }).length;
+  $('#ghKpis').innerHTML =
+    '<button class="kpi' + (!S.ghKpi ? ' on' : '') + '" data-ghk=""><span class="num">' + rows.length + '</span><span class="lab">全部</span></button>' +
+    '<button class="kpi' + (S.ghKpi === 'ok' ? ' on' : '') + '" data-ghk="ok"><span class="num">' + ok + '</span><span class="lab">已同步</span></button>' +
+    '<button class="kpi' + (S.ghKpi === 'un' ? ' on' : '') + '" data-ghk="un"><span class="num">' + un + '</span><span class="lab">待推送</span></button>' +
+    '<button class="kpi' + (S.ghKpi === 'err' ? ' on' : '') + '" data-ghk="err"><span class="num">' + er + '</span><span class="lab">失败</span></button>';
+  var shown = rows.filter(function(r){ return !S.ghKpi || r.state === S.ghKpi; });
+  $('#ghList').innerHTML = shown.map(function(r) {
+    return '<div class="repo-card" data-repo="' + esc(r.name) + '">' +
+      '<div class="repo-top"><span class="rn">' + esc(r.name) + '</span>' +
+      '<button class="dots" data-repo-menu="' + esc(r.name) + '" title="仓库操作">⋯</button></div>' +
+      '<div class="repo-sub"><span class="re-res ' + r.state + '">' + esc(r.label) + '</span>' +
+      '<span class="meta">' + esc(r.branch) + ' · ' + esc(r.machine) + ' · ' + esc(r.at) + '</span></div></div>';
+  }).join('') || '<div class="col-empty">没有符合条件的仓库</div>';
+  // 同步强度：近 14 天占位
+  var cells = '';
+  for (var i = 0; i < 14; i++) {
+    var l = (i * 7 + 3) % 4; cells += '<span class="cell' + (l ? ' l' + l : '') + '"></span>';
+  }
+  $('#ghIntensity').innerHTML = '近 14 天同步' + cells;
+}
+
+/* ---------- 账号面板（交互与现有一致） ---------- */
+var accUI = { mid:'', key:'', mode:'list', editId:'', draft:'' };
+function closeMenus() { $$('.menu').forEach(function(m){ m.remove(); }); }
+function openAccPanel(anchor, mid, key) {
+  closeMenus();
+  accUI = { mid:mid, key:key, mode:'list', editId:'', draft:'' };
+  var r = anchor.getBoundingClientRect(), frame = $('#frame').getBoundingClientRect();
+  var menu = document.createElement('div');
+  menu.className = 'menu acc-panel';
+  menu.setAttribute('data-acc-panel', mid + ':' + key);
+  document.getElementById('app').appendChild(menu);
+  paintAccPanel();
+  var mr = menu.getBoundingClientRect();
+  var left = Math.max(10 + frame.left, Math.min(r.left, frame.right - mr.width - 10)) - frame.left;
+  var top = r.bottom + 6;
+  if (top + mr.height > frame.bottom - 8) top = r.top - 6 - mr.height;
+  menu.style.left = left + 'px';
+  menu.style.top = (top - frame.top) + 'px';
+}
+function paintAccPanel() {
+  var menu = $('[data-acc-panel="' + accUI.mid + ':' + accUI.key + '"]'); if (!menu) return;
+  var m = findMachine(accUI.mid); if (!m) { closeMenus(); return; }
+  var plat = accUI.key === 'wb' ? 'WorkBuddy' : 'TRAE';
+  var pool = m.accounts.filter(function(a){ return a['平台'] === plat; });
+  var body, foot;
+  if (accUI.mode === 'add' || accUI.mode === 'rename') {
+    foot = '<div class="acc-form"><input type="text" maxlength="80" placeholder="账号名 / 邮箱" value="' +
+      esc(accUI.draft) + '" data-acc-field><div class="acc-form-btns">' +
+      '<button data-acc-cancel>取消</button><button class="primary" data-acc-save="1">' +
+      (accUI.mode === 'rename' ? '保存' : '添加') + '</button></div></div>';
+  } else {
+    var rows = pool.length ? pool.map(function(a) {
+      return '<div class="acc-row' + (a['当前'] ? ' on' : '') + '" data-acc-cur="' + a._id + '">' +
+        '<span class="dot"></span><span class="nm">' + esc(a['账号名']) + '</span>' +
+        (a['当前'] ? '<span class="tag">当前</span>' : '') +
+        '<span class="ops"><button class="acc-ico" data-acc-rename="' + a._id + '" title="改名"><svg><use href="#i-pencil"/></svg></button>' +
+        '<button class="acc-ico danger" data-acc-del="' + a._id + '" title="删除"><svg><use href="#i-trash"/></svg></button></span></div>';
+    }).join('') : '<div class="acc-empty">这台电脑还没登记 ' + plat + ' 账号。点下面「＋ 新增账号」，一台机可以记多个。</div>';
+    foot = '<div class="acc-foot">' +
+      '<button data-acc-add="' + accUI.mid + ':' + accUI.key + '">＋ 新增账号</button>' +
+      (curAcc(m, plat) ? '<button data-acc-clear="' + accUI.mid + ':' + accUI.key + '">清除登录态</button>' : '') +
+      '</div>';
+  }
+  menu.innerHTML = '<div class="mh">' + plat + ' 账号 · ' + esc(m['机器名']) + '</div>' +
+    (accUI.mode === 'list' ? (pool.length ? '<div class="acc-list">' + rows + '</div>' : rows) : '') + foot;
+  var input = menu.querySelector('[data-acc-field]');
+  if (input) { input.focus(); input.select();
+    input.addEventListener('keydown', function(e){
+      if (e.key === 'Enter') { e.preventDefault(); commitAccForm(); }
+      if (e.key === 'Escape') { e.preventDefault(); accUI.mode='list'; accUI.draft=''; paintAccPanel(); }
+    });
+  }
+}
+function commitAccForm() {
+  var input = $('[data-acc-panel] [data-acc-field]'); if (!input) return;
+  var v = input.value.replace(/^\s+|\s+$/g, '');
+  if (!v) { toast('账号名不能为空'); return; }
+  var m = findMachine(accUI.mid), plat = accUI.key === 'wb' ? 'WorkBuddy' : 'TRAE';
+  if (accUI.mode === 'rename') {
+    var a = findAcc(accUI.editId); if (a) { a['账号名'] = v; toast('已改名'); }
+  } else {
+    m.accounts.push({ _id:'a' + Date.now(), '账号名':v, '平台':plat, '所属电脑':m['机器名'], '当前':false });
+    toast('已添加，原有的号都还在');
+  }
+  accUI.mode = 'list'; accUI.draft = '';
+  renderBoard(); renderGh(); paintAccPanel();
+}
+
+/* ---------- 抽屉 ---------- */
+var drawerTaskId = '';
+function openTask(id, edit) {
+  drawerTaskId = id;
+  var t = DB.tasks.filter(function(x){ return x._id === id; })[0];
+  if (!t) return;
+  $('#drawerTitle').textContent = t['标题'];
+  var total = t['待办'].length, done = t['待办完成'] || 0;
+  $('#drawerBody').innerHTML =
+    '<div class="field"><span class="k">状态</span><span class="v">' + esc(t['状态']) + '</span></div>' +
+    '<div class="field"><span class="k">优先级</span><span class="v">' + esc(t['优先级']) + '</span></div>' +
+    '<div class="field"><span class="k">所在电脑</span><span class="v">' + esc(t['所在电脑']) + '</span></div>' +
+    '<div class="field"><span class="k">更新时间</span><span class="v">' + esc(t['更新时间']) + '</span></div>' +
+    '<div class="field"><span class="k">进度</span><span class="v">' + esc(t['进度'] || '—') + '</span></div>' +
+    (total ? '<div class="field"><span class="k">待办</span><span class="v">' + done + '/' + total + '：' + esc(t['待办'].join('、')) + '</span></div>' : '') +
+    (edit ? '<div class="field"><span class="k">改标题</span><input id="fTitle" value="' + esc(t['标题']) + '"></div>' : '');
+  $('#editBtn').style.display = edit ? 'none' : '';
+  $('#saveBtn').style.display = edit ? '' : 'none';
+  $('#mask').classList.add('on'); $('#drawer').classList.add('on');
+  $('#dock').classList.add('hidden');
+}
+function closeDrawer() { $('#mask').classList.remove('on'); $('#drawer').classList.remove('on'); $('#dock').classList.remove('hidden'); }
+
+/* ---------- toast / 菜单 ---------- */
+var toastTimer;
+function toast(msg) {
+  var el = $('#toast'); el.textContent = msg; el.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(function(){ el.classList.remove('on'); }, 1800);
+}
+function openMenuPop(anchor, items) {
+  closeMenus();
+  var r = anchor.getBoundingClientRect(), frame = $('#frame').getBoundingClientRect();
+  var menu = document.createElement('div'); menu.className = 'menu m-pop';
+  menu.innerHTML = items.map(function(i){
+    return '<button data-mact="' + i.act + '"' + (i.danger ? ' class="danger"' : '') + '>' + i.t + '</button>';
+  }).join('');
+  document.getElementById('app').appendChild(menu);
+  var mr = menu.getBoundingClientRect();
+  menu.style.left = Math.max(10, Math.min(r.left, frame.right - mr.width - 10)) - frame.left + 'px';
+  menu.style.top = Math.min(r.bottom + 4, frame.bottom - mr.height - 10) - frame.top + 'px';
+  return menu;
+}
+
+/* ---------- 事件 ---------- */
+document.addEventListener('click', function(e) {
+  var el = e.target.closest ? e.target : null;
+  var dev = e.target.closest('#devbar button');
+  if (dev) {
+    var order = ['auto','ipad','iphone'], f = $('#frame');
+    var next = innerWidth < 780 ? order[(order.indexOf(f.dataset.mode) + 1) % 3] : dev.dataset.mode;
+    setMode(next); return;
+  }
+  var t;
+
+  // 账号面板内
+  if ((t = e.target.closest('[data-acc-save]'))) return commitAccForm();
+  if ((t = e.target.closest('[data-acc-cancel]'))) { accUI.mode='list'; accUI.draft=''; paintAccPanel(); return; }
+  if ((t = e.target.closest('[data-acc-add]'))) {
+    var p = t.getAttribute('data-acc-add').split(':');
+    accUI.mid = p[0]; accUI.key = p[1]; accUI.mode = 'add'; accUI.draft = ''; paintAccPanel(); return;
+  }
+  if ((t = e.target.closest('[data-acc-rename]'))) {
+    var a0 = findAcc(t.getAttribute('data-acc-rename'));
+    accUI.mode = 'rename'; accUI.editId = a0._id; accUI.draft = a0['账号名']; paintAccPanel(); return;
+  }
+  if ((t = e.target.closest('[data-acc-del]'))) {
+    var a1 = findAcc(t.getAttribute('data-acc-del'));
+    var m1 = DB.machines.filter(function(m){ return m.accounts.indexOf(a1) >= 0; })[0];
+    m1.accounts.splice(m1.accounts.indexOf(a1), 1);
+    if (a1['当前'] && m1.accounts.length) { var pool = m1.accounts.filter(function(x){ return x['平台'] === a1['平台']; }); if (pool[0]) pool[0]['当前'] = true; }
+    renderBoard(); renderGh(); closeMenus(); toast('已删除，当前顺延到剩下的号'); return;
+  }
+  if ((t = e.target.closest('[data-acc-clear]'))) {
+    var p2 = t.getAttribute('data-acc-clear').split(':');
+    var m2 = findMachine(p2[0]), plat2 = p2[1] === 'wb' ? 'WorkBuddy' : 'TRAE';
+    m2.accounts.forEach(function(a){ if (a['平台'] === plat2) a['当前'] = false; });
+    renderBoard(); paintAccPanel(); toast('已清除登录态，账号仍在列表里'); return;
+  }
+  if ((t = e.target.closest('.acc-row[data-acc-cur]'))) {
+    if (e.target.closest('.ops')) return;
+    var a2 = findAcc(t.getAttribute('data-acc-cur'));
+    DB.machines.forEach(function(m){ m.accounts.forEach(function(a){ if (a['平台'] === a2['平台'] && a['所属电脑'] === a2['所属电脑']) a['当前'] = a === a2; }); });
+    renderBoard(); paintAccPanel(); return;
+  }
+  if ((t = e.target.closest('[data-switch]'))) {
+    e.stopPropagation();
+    var sw = t.getAttribute('data-switch').split(':');
+    openAccPanel(t, sw[0], sw[1]); return;
+  }
+
+  // 机器菜单 / 卡片菜单 / 仓库菜单
+  if ((t = e.target.closest('[data-machine-menu]'))) {
+    e.stopPropagation();
+    var mid = t.getAttribute('data-machine-menu');
+    openMenuPop(t, [
+      { act:'m-rename:' + mid, t:'重命名' }, { act:'m-place:' + mid, t:'改位置' },
+      { act:'m-acc:' + mid, t:'账号管理' }, { act:'m-del:' + mid, t:'删除电脑', danger:true }
+    ]); return;
+  }
+  if ((t = e.target.closest('[data-task-menu]'))) {
+    e.stopPropagation();
+    var tid = t.getAttribute('data-task-menu');
+    openMenuPop(t, [
+      { act:'t-copy:' + tid, t:'复制交接' }, { act:'t-edit:' + tid, t:'编辑' },
+      { act:'t-done:' + tid, t:'标记完成' }, { act:'t-del:' + tid, t:'删除任务', danger:true }
+    ]); return;
+  }
+  if ((t = e.target.closest('[data-repo-menu]'))) {
+    e.stopPropagation();
+    openMenuPop(t, [{ act:'r-open', t:'打开仓库' }, { act:'r-sync', t:'立即同步' }, { act:'r-del', t:'移除记录', danger:true }]);
+    return;
+  }
+  if ((t = e.target.closest('[data-mact]'))) {
+    var act = t.getAttribute('data-mact'); closeMenus();
+    if (act.indexOf('m-del') === 0) { var dm = findMachine(act.split(':')[1]); DB.machines.splice(DB.machines.indexOf(dm),1); renderBoard(); renderGh(); toast('电脑已删除（账号一并清理）'); }
+    else if (act.indexOf('t-del') === 0) { var dt = DB.tasks.filter(function(x){return x._id===act.split(':')[1]})[0]; DB.tasks.splice(DB.tasks.indexOf(dt),1); renderBoard(); toast('任务已删除'); }
+    else if (act.indexOf('t-edit') === 0) openTask(act.split(':')[1], true);
+    else if (act.indexOf('t-copy') === 0 || act === 'r-sync' || act === 'r-open') toast('原型演示：该操作在正式版里走现有逻辑');
+    return;
+  }
+
+  // KPI / ghKPI / 分段
+  if ((t = e.target.closest('[data-kpi]'))) {
+    var k = t.getAttribute('data-kpi'); S.kpi = (S.kpi === k) ? '' : k; renderBoard(); return;
+  }
+  if ((t = e.target.closest('[data-ghk]'))) { S.ghKpi = t.getAttribute('data-ghk'); renderGh(); return; }
+  if ((t = e.target.closest('#segTabs button'))) {
+    S.view = t.getAttribute('data-s');
+    $$('#segTabs button').forEach(function(b){ b.classList.toggle('on', b === t); });
+    renderBoard(); return;
+  }
+  // 窗格切换（手机）/ 放大（iPad，现有交互）
+  if ((t = e.target.closest('[data-pane]'))) {
+    S.pane = t.getAttribute('data-pane');
+    $$('.pane-switch button').forEach(function(b){ b.classList.toggle('on', b === t); });
+    $('#app').classList.toggle('ghPane', S.pane === 'gh');
+    return;
+  }
+  if ((t = e.target.closest('#tBoard')) || (t = e.target.closest('#tGh'))) {
+    if (innerWidth <= 1000) { // 容器查询断点近似：小窗 = 切换窗格
+      S.pane = (t.id === 'tGh') ? 'gh' : 'board';
+      $('#app').classList.toggle('ghPane', S.pane === 'gh');
+      $$('.pane-switch button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-pane') === S.pane); });
+    } else {
+      var v = t.closest('.view');
+      var was = v.classList.contains('zoomed');
+      $$('.view').forEach(function(x){ x.classList.remove('zoomed'); });
+      v.style.flex = '';
+      if (!was) v.classList.add('zoomed');
+      toast(was ? '已还原双栏' : '已放大本栏，再点还原');
+    }
+    return;
+  }
+
+  // 管理模式
+  if ((t = e.target.closest('#manageBtn'))) {
+    S.manage = !S.manage; t.classList.toggle('on', S.manage);
+    $('#app').classList.toggle('manage', S.manage);
+    $('#manageBar').classList.toggle('on', S.manage);
+    S.selected = {}; updateSel(); toast(S.manage ? '管理模式：点卡片多选' : '已退出管理'); return;
+  }
+  if ((t = e.target.closest('[data-mb]'))) {
+    var mb = t.getAttribute('data-mb');
+    if (mb === 'exit') { S.manage = false; $('#manageBtn').classList.remove('on'); $('#app').classList.remove('manage'); $('#manageBar').classList.remove('on'); S.selected={}; renderBoard(); }
+    else if (mb === 'done') { Object.keys(S.selected).forEach(function(id){ var x = DB.tasks.filter(function(y){return y._id===id})[0]; if (x) x['状态']='已完成'; }); S.selected={}; renderBoard(); updateSel(); toast('已标记完成'); }
+    else toast('原型演示：批量' + (mb === 'copy' ? '复制交接' : mb));
+    return;
+  }
+  if ((t = e.target.closest('.sel-box'))) {
+    var cid = t.closest('.card').getAttribute('data-task-id');
+    if (S.selected[cid]) delete S.selected[cid]; else S.selected[cid] = 1;
+    t.closest('.card').classList.toggle('selected', !!S.selected[cid]);
+    updateSel(); return;
+  }
+
+  // 卡片 / 仓库 / 抽屉
+  if ((t = e.target.closest('[data-edit-task]'))) { e.stopPropagation(); openTask(t.getAttribute('data-edit-task'), true); return; }
+  if ((t = e.target.closest('[data-copy]'))) { e.stopPropagation(); toast('交接文本已复制（原型演示）'); return; }
+  if ((t = e.target.closest('.card[data-task-id]'))) { openTask(t.getAttribute('data-task-id'), false); return; }
+  if ((t = e.target.closest('.repo-card'))) { toast('打开仓库详情（原型演示）'); return; }
+
+  if ((t = e.target.closest('#editBtn'))) { openTask(drawerTaskId, true); return; }
+  if ((t = e.target.closest('#saveBtn'))) {
+    var it = $('#fTitle'); if (it && it.value.trim()) {
+      DB.tasks.filter(function(x){return x._id===drawerTaskId})[0]['标题'] = it.value.trim();
+      renderBoard(); $('#drawerTitle').textContent = it.value.trim();
+    }
+    openTask(drawerTaskId, false); toast('已保存'); return;
+  }
+  if ((t = e.target.closest('#copyBtn'))) { toast('交接文本已复制（原型演示）'); return; }
+  if ((t = e.target.closest('#delBtn'))) { var d = DB.tasks.filter(function(x){return x._id===drawerTaskId})[0]; DB.tasks.splice(DB.tasks.indexOf(d),1); renderBoard(); closeDrawer(); toast('任务已删除'); return; }
+  if ((t = e.target.closest('#closeDrawer')) || e.target.id === 'mask') { closeDrawer(); return; }
+
+  if ((t = e.target.closest('#themeBtn')) || (t = e.target.closest('#dockTheme'))) {
+    var th = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = th;
+    ['#themeIco', '#themeIco2'].forEach(function(id2){
+      var u = $(id2); if (u) u.innerHTML = '<use href="#' + (th === 'dark' ? 'i-moon' : 'i-sun') + '"/>';
+    });
+    try { localStorage.setItem('awb-theme', th); } catch (err) {}
+    return;
+  }
+  if ((t = e.target.closest('#aiGuideBtn'))) { toast('AI 指南抽屉（原型演示，交互同现有）'); return; }
+  if ((t = e.target.closest('#addBtn'))) { toast('新增菜单：新任务 / 添加电脑 / 记录同步（同现有）'); return; }
+
+  if (!e.target.closest('.menu') && !e.target.closest('.search')) closeMenus();
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { closeMenus(); closeDrawer(); }
+});
+
+$('#q').addEventListener('input', function(e) { S.q = e.target.value.trim(); renderBoard(); });
+$('#ghF_machine').addEventListener('change', function(e) { S.ghMachine = e.target.value; renderGh(); });
+$('#boardScroll').addEventListener('scroll', function(e) {
+  $('#topbar').classList.toggle('stuck', e.target.scrollTop > 4);
+}, { passive:true });
+$('#ghF_machine').innerHTML = '<option value="">全部</option>' +
+  DB.machines.map(function(m){ return '<option>' + esc(m['机器名']) + '</option>'; }).join('');
+
+function updateSel() {
+  var n = Object.keys(S.selected).length;
+  $('#selCount').textContent = n;
+}
+
+/* ---------- 预览尺寸 ---------- */
+function setMode(mode) {
+  var f = $('#frame'); f.dataset.mode = mode;
+  $$('#devbar button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.mode === mode)); });
+  if (mode === 'auto') { f.style.width='100%'; f.style.height='100%'; f.style.transform=''; f.style.margin=''; }
+  else {
+    var wh = mode === 'ipad' ? [1366,1024] : [440,956];
+    var k = Math.min(1, (innerWidth - 48) / wh[0], (innerHeight - 96) / wh[1]);
+    f.style.width = wh[0] + 'px'; f.style.height = wh[1] + 'px';
+    f.style.transform = 'scale(' + k + ')';
+    f.style.margin = Math.round((wh[1]*k - wh[1]) / 2) + 'px ' + Math.round((wh[0]*k - wh[0]) / 2) + 'px';
+  }
+}
+
+/* ---------- 启动 ---------- */
+var QS = new URLSearchParams(location.search);
+if (QS.has('clean')) $('#devbar').style.display = 'none';
+renderBoard(); renderGh();
+var th0 = QS.get('theme') || (function(){ try { return localStorage.getItem('awb-theme') || 'dark'; } catch(e){ return 'dark'; } })();
+document.documentElement.dataset.theme = th0;
+['#themeIco', '#themeIco2'].forEach(function(id2){
+  var u = $(id2); if (u) u.innerHTML = '<use href="#' + (th0 === 'dark' ? 'i-moon' : 'i-sun') + '"/>';
+});
+</script>
+</body>
+</html>
