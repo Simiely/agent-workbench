@@ -9,7 +9,7 @@ const H = parseInt(process.argv[3] || '1024', 10);
 const OUT = process.argv[4] || ('C:/Temp/uiv2-' + W + 'x' + H + '.png');
 const VIEW = process.argv[5] || 'board';
 const QS = process.argv[6] || 'clean';
-const FILE = url.pathToFileURL(path.join(path.dirname(__dirname), 'design', 'ui-v2.html')).href + (QS ? '?' + QS : '');
+const FILE = url.pathToFileURL(path.join(path.dirname(__dirname), 'design', 'ui-v2b.html')).href + (QS ? '?' + QS : '');
 
 (async () => {
   const browser = await launch();
@@ -26,8 +26,8 @@ const FILE = url.pathToFileURL(path.join(path.dirname(__dirname), 'design', 'ui-
     }
 
     const geo = await cdp.evalJson(`(function(){
-      var app=document.querySelector('.app'), tb=document.querySelector('.tbar'), sc=document.querySelector('.scroll');
-      var first=document.querySelector('.view.on .view-h')||document.querySelector('.view.on .board');
+      var app=document.querySelector('.app'), tb=document.querySelector('.topbar');
+      var first=document.querySelector('.pane-head')||document.querySelector('.view.on .board');
       var fr=first.getBoundingClientRect(), tr=tb.getBoundingClientRect();
       return {
         vw: innerWidth, vh: innerHeight,
@@ -38,9 +38,10 @@ const FILE = url.pathToFileURL(path.join(path.dirname(__dirname), 'design', 'ui-
         gapUnderTbar: Math.round(fr.top - tr.bottom),
         boardScrollW: (function(){var b=document.querySelector('.board');return b?b.scrollWidth+'/'+b.clientWidth:'-'})(),
         cols: document.querySelectorAll('.board .col').length,
+        ghRows: document.querySelectorAll('.gh-list .repo-card').length,
         colW: (function(){var c=document.querySelector('.board .col');return c?Math.round(c.getBoundingClientRect().width):0})(),
-        segW: Math.round(document.querySelector('.seg').getBoundingClientRect().width),
-        segOverflow: (function(){var s=document.querySelector('.seg');return s.scrollWidth>s.clientWidth+1})(),
+        segW: Math.round(document.querySelector('#segTabs').getBoundingClientRect().width),
+        segOverflow: (function(){var s=document.querySelector('#segTabs');return s.scrollWidth>s.clientWidth+1})(),
         hOverflow: document.documentElement.scrollWidth > innerWidth + 1
       };
     })()`);
