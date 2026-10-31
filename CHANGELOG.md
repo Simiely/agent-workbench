@@ -37,6 +37,12 @@
 - 修复断言基线字段引用错位、对象键非法标识符等测试自身问题
 - 实拍工具 `shot_intensity.cjs` / `shot_gi_rows.cjs`（clip 截图 + 数据采集 + 原生 Esc 验证）
 
+### 发布物
+
+- **平台版 zip**（`pack-platform.mjs` 打包，对齐 tools-center 平台标准）：zip 根目录直接放 `manifest.json` + 运行时文件，命名 `agent-workbench-平台版-v1.0.0.zip`，内附自动生成的《平台部署说明.md》；tests/docs/design 不进包
+- `node pack-platform.mjs [输出目录]` 一条命令产出；解压即可被平台「zip 上传」识别托管，或本地 `node server.mjs` 直跑
+- `manifest.json` 增加 `version` 字段（与 package.json 同步 1.0.0）
+
 ### 文档
 
 - 按 single-project 模板补齐四件套：README / AGENTS / DEVELOPMENT / CHANGELOG
