@@ -506,7 +506,7 @@
   .acc .cnt { font-size: 9px; color: var(--text-3); border: 1px solid var(--border); border-radius: 5px; padding: 0 3px; line-height: 12px; }
   /* 账号面板：列头胶囊 → 切换 / 新增 / 改名 / 删除。
      z-index 压在确认弹窗（44）之下，删除确认时不会被面板挡住。 */
-  .menu.acc-panel { min-width: 246px; max-width: 302px; z-index: 43; padding: 5px 5px 6px; }
+  .menu.acc-panel { width: 262px; max-width: calc(100vw - 24px); z-index: 43; padding: 5px 5px 6px; }
   .acc-list { max-height: 258px; overflow-y: auto; }
   .acc-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; }
   .acc-row:hover { background: var(--accent-soft); }
@@ -515,11 +515,14 @@
   .acc-row.on .dot { background: var(--accent); }
   .acc-row .nm { flex: 1; min-width: 0; font-size: 12px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .acc-row .tag { font-size: 9.5px; color: var(--accent); flex: none; }
-  .acc-row .ops { display: flex; gap: 1px; flex: none; opacity: 0; transition: opacity .12s; }
-  .acc-row:hover .ops, .acc-row.on .ops { opacity: 1; }
-  .acc-ico { width: 20px; height: 20px; border-radius: 5px; color: var(--text-3); font-size: 11px; display: grid; place-items: center; }
-  .acc-ico:hover { background: var(--panel); color: var(--text); }
-  .acc-ico.danger:hover { color: #F0736F; }
+  /* 改名 / 删除常驻可见：这两个入口正是用户找不到的地方，不能藏在 hover 里。
+     选择器带 .menu 前缀是为了压过上面的 .menu button（width:100% / padding），否则图标会被撑宽。 */
+  .acc-row .ops { display: flex; gap: 2px; flex: none; }
+  .menu .acc-ico { width: 20px; height: 20px; padding: 0; border-radius: 5px; color: var(--text-3); display: grid; place-items: center; }
+  .menu .acc-ico svg { width: 11px; height: 11px; display: block; }
+  .acc-row:hover .acc-ico { color: var(--text-2); }
+  .menu .acc-ico:hover { background: var(--panel); color: var(--text); }
+  .menu .acc-ico.danger:hover { color: #F0736F; }
   .acc-empty { padding: 6px 9px 9px; font-size: 11.5px; color: var(--text-3); line-height: 1.65; }
   .acc-foot { border-top: 1px solid var(--border); margin-top: 4px; padding: 5px 3px 1px; }
   .acc-foot button { width: 100%; color: var(--text-2); }
@@ -3398,6 +3401,15 @@ var db = localDb();
     return out ? '<datalist id="accSuggest">' + out + '<' + '/datalist>' : '';
   }
 
+  // 图标用内联 SVG 而不是 ✎ / ✕：符号字形在不同系统上大小、粗细、有无都不可控，
+  // 内网 Linux 上甚至可能没字形。这里统一成 11px 描边图标。
+  var ICO_EDIT = '<svg viewBox="0 0 12 12" aria-hidden="true">' +
+    '<path d="M2.1 9.9l.5-2.3 5.5-5.5a1 1 0 0 1 1.4 0l.4.4a1 1 0 0 1 0 1.4L4.4 9.4l-2.3.5z" ' +
+    'fill="none" stroke="currentColor" stroke-width="1.05" stroke-linejoin="round"/><' + '/svg>';
+  var ICO_DEL = '<svg viewBox="0 0 12 12" aria-hidden="true">' +
+    '<path d="M3.3 3.3l5.4 5.4M8.7 3.3l-5.4 5.4" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.25" stroke-linecap="round"/><' + '/svg>';
+
   function accRowHTML(a) {
     var on = a[F.a.cur] === true;
     return '<div class="acc-row' + (on ? ' on' : '') + '" data-acc-cur="' + escapeHtml(a._id) + '"' +
@@ -3406,8 +3418,8 @@ var db = localDb();
       '<span class="nm">' + escapeHtml(txt(a[F.a.name])) + '<' + '/span>' +
       (on ? '<span class="tag">当前</span>' : '') +
       '<span class="ops">' +
-        '<button class="acc-ico" data-acc-rename="' + escapeHtml(a._id) + '" title="改名">✎</button>' +
-        '<button class="acc-ico danger" data-acc-del="' + escapeHtml(a._id) + '" title="删除">✕</button>' +
+        '<button class="acc-ico" data-acc-rename="' + escapeHtml(a._id) + '" title="改名" aria-label="改名">' + ICO_EDIT + '</button>' +
+        '<button class="acc-ico danger" data-acc-del="' + escapeHtml(a._id) + '" title="删除" aria-label="删除">' + ICO_DEL + '</button>' +
       '<' + '/span>' +
     '<' + '/div>';
   }

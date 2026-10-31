@@ -101,6 +101,25 @@ function rowsExpr() {
     check('只列本机 WorkBuddy 的号', JSON.stringify(rows1) === JSON.stringify(['WB-主号*', 'WB-备用号']), JSON.stringify(rows1));
     check('当前号带「当前」标记', rows1 && rows1[0] === 'WB-主号*', rows1 && rows1[0]);
 
+    // 改名 / 删除入口必须常驻可见：藏在 :hover 里等于没有入口（用户就是这么找不到删除的）
+    const opsVis = await ev(`(function(){
+      var rs=document.querySelectorAll('.acc-panel .acc-row');
+      if(rs.length<2) return null;
+      var ops=rs[1].querySelector('.ops'), ico=rs[1].querySelector('.acc-ico');
+      if(!ops||!ico) return null;
+      var cs=getComputedStyle(ops), ir=ico.getBoundingClientRect();
+      return {op:cs.opacity, disp:cs.display, w:Math.round(ir.width), h:Math.round(ir.height),
+              icos:rs[1].querySelectorAll('.acc-ico').length};
+    })()`);
+    check('非当前行也直接看到改名/删除图标', opsVis && opsVis.op === '1' && opsVis.disp !== 'none' &&
+      opsVis.w >= 10 && opsVis.h >= 10 && opsVis.icos === 2, JSON.stringify(opsVis));
+    const icoSvg = await ev(`(function(){
+      var s=document.querySelectorAll('.acc-panel .acc-ico svg');
+      return {n:s.length, vb:(s[0]&&s[0].getAttribute('viewBox'))||''};
+    })()`);
+    check('图标是内联 SVG（不依赖系统 dingbat 字形）', icoSvg && icoSvg.n === 4 && icoSvg.vb === '0 0 12 12',
+      JSON.stringify(icoSvg));
+
     // ---------- 3. 新增：输入框必须是空的（旧实现预填当前值 → 看起来像改名）----------
     await click(cdp, '.acc-panel [data-acc-add]');
     await wait(240);

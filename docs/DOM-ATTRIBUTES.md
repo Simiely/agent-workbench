@@ -44,8 +44,8 @@
 | `data-switch` | 打开账号面板，值形如 `<机器id>:wb` / `<机器id>:trae` | 列头账号胶囊 |
 | `data-acc-panel` | 账号面板容器标记，值同 `data-switch`（重绘时按它找回容器） | 面板根节点 |
 | `data-acc-cur` | 把该行设为当前账号（点当前行不做动作） | 面板里的账号行 |
-| `data-acc-rename` | 进入改名态，值是账号 id | 行内 ✎ |
-| `data-acc-del` | 删除该账号（走确认框，值是账号 id） | 行内 ✕ |
+| `data-acc-rename` | 进入改名态，值是账号 id | 行内铅笔图标（内联 SVG，常驻可见） |
+| `data-acc-del` | 删除该账号（走确认框，值是账号 id） | 行内叉图标（内联 SVG，常驻可见） |
 | `data-acc-add` | 进入新增态（输入框为空，不预填当前值） | 面板底部 |
 | `data-acc-clear` | 清除登录态：账号保留、当前置空 | 面板底部（有当前账号时才出现） |
 | `data-acc-field` / `data-acc-save` / `data-acc-cancel` | 新增/改名输入框、保存、取消 | 面板输入区 |
