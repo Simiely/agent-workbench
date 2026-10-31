@@ -138,3 +138,11 @@
 - `id` 只用于**全局唯一**的常驻元素（`board` / `ghList` / `ghKpis` / `ghIntensity` / `summary` / `mask` / `saveBtn` / `addBtn` …），共 187 个。
 - 动态生成的元素（卡片、列、仓库）**不写 id**，用 `data-*` 承载标识，避免重复 id 与「拿到失效节点」的经典 bug。
 - 测试脚本里取节点一律**现查现用**，不要复用重渲染前的引用。
+
+### 响应式（v1.2.0）
+
+| 属性 / 类 | 含义 | 出现处 |
+|---|---|---|
+| `.pane-top` | 窗格顶部容器（小标题 + KPI/筛选 + 分段），`position:sticky` 钉在栏顶 | 两个窗格各一个 |
+| `body[data-page]` | 窄屏当前页：`board` 看板 / `gh` 仓库；CSS 据此显示一页隐藏另一页 | body |
+| `#tabbar` | 底部 T-bar（窄屏分页）：`[data-page]` 切页、`#tabAdd` 新增、`#tabManage` 管理、`#tabMore` 更多 | 页面底部（≥641px 隐藏） |

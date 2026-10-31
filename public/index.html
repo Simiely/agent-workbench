@@ -828,6 +828,75 @@
   .rd-row .rd-content { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .rd-row .rd-chev { color: var(--text-3); flex: none; font-size: 14px; }
   .repo-name { cursor: pointer; }
+
+  /* ===== 窗格顶部置顶：滚动时标题 / KPI / 分段 / 筛选留在栏顶 =====
+     .view 是滚动容器（overflow-y:auto），.pane-top 用 sticky 钉在栏顶；
+     负 margin 让它铺满栏宽、并把 .view 的上内边距也吃掉，内容不会从缝里透出来。 */
+  .pane-top {
+    position: sticky; top: 0; z-index: 6;
+    margin: 0 -14px; padding: 12px 14px 10px;
+    background: var(--bg);
+  }
+  /* 上内边距移到 .pane-top 里：sticky 的偏移是按滚动容器的 padding 计算的，
+     容器自己留 padding-top 会让顶栏被顶下去一条缝，滚动时内容从缝里透出来。 */
+  .view { padding: 0 14px 40px; }
+  .pane-top .sec-title { margin-bottom: 10px; }
+  .gh-intensity { padding-top: 10px; }
+
+  /* ===== 底部 T-bar（窄屏分页）：宽屏隐藏，≤760px 接管导航与主操作 ===== */
+  .tabbar { display: none; }
+  .tb-item, .tb-add { -webkit-tap-highlight-color: transparent; }
+
+  @media (max-width: 640px) {
+    .topbar { padding: 10px 14px; gap: 8px; }
+    .topbar #manageBtn, .topbar #aiGuideBtn, .topbar #addBtn { display: none; }
+    .search { width: 100%; order: 3; }
+
+    main.split { padding: 0 10px; flex-direction: column; overflow-y: auto; }
+    .split-divider { display: none; }
+    .view { padding: 0 4px 96px; overflow: visible; }
+    /* 没有左右分屏了：一次只显示一页，由底部 T-bar 切换 */
+    body[data-page="board"] #viewGithub { display: none; }
+    body[data-page="gh"] #viewBoard { display: none; }
+    .pane-top { margin: 0 -4px; padding: 10px 4px 8px; }
+    .board, .gh-list { grid-template-columns: minmax(0, 1fr); }
+
+    .tabbar {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+      display: flex; align-items: flex-end; justify-content: space-around; gap: 2px;
+      padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+      background: var(--sheet-bg); border-top: 1px solid var(--border);
+      -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
+    }
+    .tb-item {
+      min-width: 58px; min-height: 48px; border-radius: 12px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+      font-size: 10.5px; color: var(--text-2);
+    }
+    .tb-item .em { font-size: 16px; line-height: 1; }
+    .tb-item.on { color: var(--accent); background: var(--accent-soft); }
+    .tb-add {
+      width: 52px; height: 52px; border-radius: 50%; margin-top: -14px; flex: none;
+      display: grid; place-items: center; background: var(--accent); color: #fff;
+      box-shadow: 0 10px 24px -8px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.3);
+    }
+    .tb-add:active { transform: scale(.94); }
+
+    /* 抽屉在窄屏改底部弹层 */
+    .drawer {
+      left: 0; right: 0; top: auto; bottom: 0;
+      width: auto; max-width: none; max-height: 88%;
+      border-radius: 18px 18px 0 0; border-left: 0;
+      transform: translateY(105%);
+    }
+    .drawer.on { transform: translateY(0); }
+    .drawer-foot { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+
+    .manage-bar { bottom: calc(74px + env(safe-area-inset-bottom, 0px)); left: 8px; right: 8px; transform: translateY(140%); }
+    .manage-bar.on { transform: translateY(0); }
+    .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+  }
+
 </style>
 </head>
 <body>
@@ -857,26 +926,49 @@
 
 <main class="split">
   <section class="view" id="viewBoard">
-    <button class="sec-title" id="tBoard" title="点击放大本栏，再点还原" type="button">任务看板<span class="mx">⤢</span></button>
-    <div class="summary" id="summary"></div>
-    <div class="tabs" id="segTabs">
-      <button class="on" data-s="进行中" type="button">进行中</button>
-      <button data-s="全部" type="button">全部</button>
-      <button data-s="已完成" type="button">已完成</button>
+    <div class="pane-top">
+      <button class="sec-title" id="tBoard" title="点击放大本栏，再点还原" type="button">任务看板<span class="mx">⤢</span></button>
+      <div class="summary" id="summary"></div>
+      <div class="tabs" id="segTabs">
+        <button class="on" data-s="进行中" type="button">进行中</button>
+        <button data-s="全部" type="button">全部</button>
+        <button data-s="已完成" type="button">已完成</button>
+      </div>
     </div>
     <div class="board" id="board"></div>
   </section>
   <div class="split-divider" id="splitDivider" title="拖动调整左右比例"></div>
   <section class="view" id="viewGithub">
-    <button class="sec-title" id="tGh" title="点击放大本栏，再点还原" type="button">GitHub 看板<span class="mx">⤢</span></button>
-    <div class="gh-intensity" id="ghIntensity"></div>
-    <div class="gh-toolbar">
-      <div class="gh-filter"><label>电脑</label><select id="ghF_machine"><option value>全部</option></select></div>
-      <div class="gh-kpis" id="ghKpis"></div>
+    <div class="pane-top">
+      <button class="sec-title" id="tGh" title="点击放大本栏，再点还原" type="button">GitHub 看板<span class="mx">⤢</span></button>
+      <div class="gh-toolbar">
+        <div class="gh-filter"><label>电脑</label><select id="ghF_machine"><option value>全部</option></select></div>
+        <div class="gh-kpis" id="ghKpis"></div>
+      </div>
     </div>
+    <div class="gh-intensity" id="ghIntensity"></div>
     <div class="gh-list" id="ghList"></div>
   </section>
 </main>
+
+<nav class="tabbar" id="tabbar" aria-label="分页">
+  <button class="tb-item" data-page="board" type="button">
+    <svg fill="none" height="19" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" width="19"><rect x="3.5" y="5" width="4.6" height="14" rx="1.5"/><rect x="10.2" y="5" width="4.6" height="9" rx="1.5"/><rect x="17" y="5" width="3.8" height="12" rx="1.5"/></svg>
+    <span>看板</span>
+  </button>
+  <button class="tb-item" data-page="gh" type="button">
+    <svg fill="none" height="19" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" width="19"><circle cx="7" cy="6" r="2.1"/><circle cx="7" cy="18" r="2.1"/><circle cx="17" cy="9" r="2.1"/><path d="M7 8.1v7.8M9.2 6h4.6a3 3 0 0 1 3 3"/></svg>
+    <span>仓库</span>
+  </button>
+  <button class="tb-add" id="tabAdd" type="button" title="新增">
+    <svg fill="none" height="23" stroke="currentColor" stroke-linecap="round" stroke-width="2.2" viewBox="0 0 24 24" width="23"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+  <button class="tb-item" id="tabManage" type="button"><span class="em">☰</span><span>管理</span></button>
+  <button class="tb-item" id="tabMore" type="button">
+    <svg fill="none" height="19" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="19"><circle cx="6" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="18" cy="12" r="1.4" fill="currentColor"/></svg>
+    <span>更多</span>
+  </button>
+</nav>
 
 <div class="drawer-mask" id="mask"></div>
 <aside class="drawer" id="drawer">
@@ -4272,6 +4364,66 @@ var db = localDb();
     $('summary').innerHTML = '<span class="hint">未连接本地服务</span>';
     return;
   }
+
+  /* ── 窄屏分页：底部 T-bar 在 看板 / 仓库 之间切页，主操作一并下沉 ──
+     宽屏不插手：左右分屏照旧，顶部小标题仍是「放大本栏 / 还原」。 */
+  (function bindMobilePages() {
+    var MQ = window.matchMedia('(max-width: 640px)');
+    function isMobile() { return MQ.matches; }
+    function setPage(p) {
+      p = p || 'board';
+      document.body.setAttribute('data-page', p);
+      var items = document.querySelectorAll('#tabbar [data-page]');
+      for (var i = 0; i < items.length; i++) {
+        items[i].classList.toggle('on', items[i].getAttribute('data-page') === p);
+      }
+    }
+    if (!document.body.getAttribute('data-page')) setPage('board');
+
+    var items = document.querySelectorAll('#tabbar [data-page]');
+    for (var i = 0; i < items.length; i++) {
+      items[i].addEventListener('click', function (e) {
+        e.stopPropagation(); closeMenus();
+        setPage(this.getAttribute('data-page'));
+      });
+    }
+    var addBtn2 = $('tabAdd');
+    if (addBtn2) addBtn2.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var a = $('addBtn');
+      if (a) openAddMenu(a);
+    });
+    var mg = $('tabManage');
+    if (mg) mg.addEventListener('click', function (e) {
+      e.stopPropagation(); setManage(!S.manage);
+      this.classList.toggle('on', S.manage);
+    });
+    var mo = $('tabMore');
+    if (mo) mo.addEventListener('click', function (e) {
+      e.stopPropagation(); closeMenus();
+      var menu = document.createElement('div');
+      menu.className = 'menu';
+      menu.setAttribute('data-tbmenu', '1');
+      menu.innerHTML = '<button data-tbact="ai">🤖 AI 指南<' + '/button>' +
+        '<button data-tbact="theme">切换主题<' + '/button>';
+      document.body.appendChild(menu);
+      var r = mo.getBoundingClientRect(), mr = menu.getBoundingClientRect();
+      menu.style.left = Math.max(8, Math.min(r.left - 30, window.innerWidth - mr.width - 8)) + 'px';
+      menu.style.top = Math.max(8, r.top - mr.height - 8) + 'px';
+    });
+    document.addEventListener('click', function (e) {
+      var m = e.target.closest ? e.target.closest('[data-tbact]') : null;
+      if (!m || !m.closest('[data-tbmenu]')) return;
+      var k = m.getAttribute('data-tbact');
+      closeMenus();
+      if (k === 'ai') openAiGuide();
+      if (k === 'theme') { var t = $('themeBtn'); if (t) t.click(); }
+    });
+    // 窄屏下点小标题就是切页（宽屏仍是放大/还原，见 bindPaneMax）
+    var tbT = $('tBoard'), tgT = $('tGh');
+    if (tbT) tbT.addEventListener('click', function () { if (isMobile()) setPage('board'); }, true);
+    if (tgT) tgT.addEventListener('click', function () { if (isMobile()) setPage('gh'); }, true);
+  })();
 
   bindDrag();
 

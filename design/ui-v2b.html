@@ -133,8 +133,11 @@ html[data-theme="light"] #stage { background:radial-gradient(1200px 700px at 50%
 
 /* ---------- 双栏骨架（与现有 .split 相同的语义） ---------- */
 .split { flex:1; display:flex; min-height:0; margin-top:calc(var(--safe-t) + 56px); }
-.view { flex:1.62; min-width:0; display:flex; flex-direction:column; }
-#viewGithub { flex:1; }
+.view { flex:1; min-width:0; display:flex; flex-direction:column; }
+#viewBoard { flex:1.62; }
+/* 右栏给固定宽度而不是等比：1366pt 宽下左栏拿到 985pt，三列（348+间隙+内边距）刚好放得下不裁 */
+#viewGithub { flex:0 0 380px; }
+#viewMach { display:none; }
 .split-divider { width:1px; margin:10px 0; background:var(--hairline); flex:none; position:relative; }
 .split-divider::after { content:""; position:absolute; top:0; bottom:0; left:-3px; right:-3px; cursor:col-resize; }
 
@@ -172,7 +175,7 @@ html[data-theme="light"] .tabs button.on { border-color:transparent; box-shadow:
 .kpi.warn .num, .kpi.warn .hint { color:var(--warn); } .kpi.warn .hint { background:var(--warn-soft); }
 
 /* ---------- 看板 ---------- */
-.boardScroll { flex:1; min-height:0; overflow:auto; scrollbar-width:none; padding-bottom:var(--safe-b); }
+.boardScroll { flex:1; min-height:0; overflow:auto; scrollbar-width:none; padding-bottom:calc(var(--safe-b) + 92px); }
 .boardScroll::-webkit-scrollbar { display:none; }
 .board { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(348px,1fr); gap:14px;
   padding:2px var(--pad-x) 14px; width:100%; min-width:100%; }
@@ -284,6 +287,45 @@ html[data-theme="light"] .tabs button.on { border-color:transparent; box-shadow:
 .menu.m-pop button:hover { background:var(--accent-soft); color:var(--accent); }
 .menu.m-pop button.danger:hover { background:var(--danger-soft); color:var(--danger); }
 
+/* ---------- 电脑与账号（手机上多出来的类别） ---------- */
+.mgrid { flex:1; min-height:0; overflow:auto; scrollbar-width:none;
+  display:grid; gap:12px; grid-template-columns:repeat(2, minmax(0,1fr));
+  padding:2px var(--pad-x) calc(14px + var(--safe-b) + 84px); }
+.mgrid::-webkit-scrollbar { display:none; }
+.mcard { border-radius:var(--r-lg); background:var(--panel); border:1px solid var(--border);
+  box-shadow:var(--shadow-1); overflow:hidden; }
+.mcard-h { display:flex; align-items:flex-start; gap:10px; padding:14px 14px 10px; }
+.mcard-h .mt { font-size:14.5px; font-weight:600; letter-spacing:-.01em; display:flex; align-items:center; gap:7px; }
+.mcard-h .ms { font-size:11.5px; color:var(--text-3); margin-top:3px; }
+.mcard-h .dots { margin-left:auto; }
+.accgrp { padding:0 10px 10px; }
+.accgrp + .accgrp { border-top:1px solid var(--hairline); padding-top:10px; }
+.accgrp-h { display:flex; align-items:center; gap:7px; padding:4px 5px 8px; }
+.accgrp-h .plat { width:19px; height:19px; border-radius:5px; display:grid; place-items:center;
+  font-size:9.5px; font-weight:700; color:#fff; background:#4C8DFF; flex:none; }
+.accgrp-h .plat.trae { background:#8B5CF6; }
+.accgrp-h .pname { font-size:12.5px; color:var(--text-2); }
+.accgrp-h .n { font-size:11px; color:var(--text-3); background:var(--panel-2);
+  border-radius:6px; padding:1px 6px; margin-left:auto; }
+.accgrp-h .pill { margin-left:6px; height:28px; font-size:11.5px; }
+.acc { display:flex; align-items:center; gap:9px; min-height:46px; padding:0 8px 0 10px;
+  border-radius:10px; cursor:pointer; transition:background .14s; }
+.acc:hover { background:var(--panel-2); }
+.acc.on { background:var(--accent-soft); }
+.acc .radio { width:18px; height:18px; border-radius:50%; flex:none; border:1.5px solid var(--border-strong);
+  display:grid; place-items:center; }
+.acc.on .radio { border-color:var(--accent); }
+.acc.on .radio::after { content:""; width:9px; height:9px; border-radius:50%; background:var(--accent); }
+.acc .nm { font-size:13.5px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.acc.on .nm { font-weight:550; }
+.acc .cur { font-size:10.5px; color:var(--accent); background:var(--accent-soft);
+  border-radius:5px; padding:1px 6px; flex:none; }
+.acc-add { display:flex; align-items:center; gap:8px; min-height:44px; padding:0 10px;
+  border-radius:10px; color:var(--text-3); font-size:13px; width:100%; }
+.acc-add:hover { color:var(--accent); background:var(--accent-soft); }
+.acc-add svg { width:16px; height:16px; }
+.acc-empty { padding:6px 10px 8px; font-size:12px; color:var(--text-3); line-height:1.6; }
+
 /* ---------- GitHub 窗格 ---------- */
 .gh-toolbar { display:flex; align-items:center; gap:10px; padding:0 var(--pad-x) 8px; flex-wrap:wrap; }
 .gh-toolbar label { font-size:11.5px; color:var(--text-3); }
@@ -302,7 +344,7 @@ html[data-theme="light"] .tabs button.on { border-color:transparent; box-shadow:
 .gh-intensity .cell.l1 { background:color-mix(in srgb, var(--accent) 30%, var(--panel-3)); }
 .gh-intensity .cell.l2 { background:color-mix(in srgb, var(--accent) 55%, var(--panel-3)); }
 .gh-intensity .cell.l3 { background:var(--accent); }
-.gh-list { flex:1; min-height:0; overflow:auto; padding:2px var(--pad-x) 14px; scrollbar-width:none;
+.gh-list { flex:1; min-height:0; overflow:auto; padding:2px var(--pad-x) calc(14px + var(--safe-b) + 84px); scrollbar-width:none;
   display:flex; flex-direction:column; gap:9px; }
 .gh-list::-webkit-scrollbar { display:none; }
 .repo-card { padding:13px 14px; border-radius:12px; background:var(--panel); border:1px solid var(--border);
@@ -343,11 +385,13 @@ html[data-theme="light"] .tabs button.on { border-color:transparent; box-shadow:
 .field input:focus, .field select:focus, .field textarea:focus { border-color:var(--accent); }
 
 /* 管理条 */
-.manage-bar { position:absolute; left:50%; transform:translate(-50%, 140%); bottom:calc(14px + var(--safe-b));
+.manage-bar { position:absolute; left:50%; transform:translate(-50%, 140%); bottom:calc(80px + var(--safe-b));
   z-index:50; display:flex; align-items:center; gap:8px; padding:7px;
   background:var(--glass); border:1px solid var(--border-strong); border-radius:14px;
-  box-shadow:var(--shadow-2); backdrop-filter:blur(24px); transition:transform var(--dur) var(--ease); }
-.manage-bar.on { transform:translate(-50%, 0); }
+  box-shadow:var(--shadow-2); backdrop-filter:blur(24px);
+  transition:transform var(--dur) var(--ease), opacity var(--dur) var(--ease), visibility var(--dur);
+  opacity:0; visibility:hidden; }
+.manage-bar.on { transform:translate(-50%, 0); opacity:1; visibility:visible; }
 .manage-bar .info { font-size:12.5px; color:var(--text-2); padding:0 6px; }
 .manage-bar .info b { color:var(--text); }
 .manage-bar button { min-height:36px; padding:0 12px; border-radius:9px; font-size:12.5px;
@@ -355,8 +399,39 @@ html[data-theme="light"] .tabs button.on { border-color:transparent; box-shadow:
 .manage-bar button:hover { color:var(--text); background:var(--panel-3); }
 .manage-bar button.primary { background:var(--accent); color:#fff; }
 
+/* ---------- 底部 T-bar（功能层统一在下） ---------- */
+.dock { position:absolute; left:0; right:0; bottom:0; z-index:55;
+  display:flex; justify-content:center; pointer-events:none;
+  padding: 0 14px calc(var(--safe-b) + 12px);
+  transition:transform var(--dur) var(--ease), opacity var(--dur) var(--ease); }
+.dock.hidden { transform:translateY(130%); opacity:0; }
+.dock-inner { pointer-events:auto; display:flex; align-items:flex-end; gap:4px; padding:6px;
+  background:var(--glass); border:1px solid var(--border-strong); border-radius:24px;
+  box-shadow:var(--shadow-2);
+  -webkit-backdrop-filter:blur(28px) saturate(180%); backdrop-filter:blur(28px) saturate(180%); }
+.dock-btn { min-width:64px; height:52px; border-radius:16px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:3px; font-size:11px; color:var(--text-2);
+  transition:background .16s, color .16s, transform .12s; }
+.dock-btn:hover { background:var(--panel-2); color:var(--text); }
+.dock-btn:active { transform:scale(.95); }
+.dock-btn svg { width:20px; height:20px; }
+.dock-btn .em { font-size:16px; line-height:1; }
+.dock-btn.on { color:var(--accent); background:var(--accent-soft); }
+.dock-add { width:54px; height:54px; border-radius:50%; margin:-16px 6px 2px; flex:none;
+  display:grid; place-items:center; color:#fff;
+  background:linear-gradient(145deg,#5B95FF,#2C6BE8);
+  box-shadow:0 12px 28px -8px rgba(44,107,232,.95), inset 0 1px 0 rgba(255,255,255,.35);
+  transition:filter .16s, transform .12s; }
+.dock-add:hover { filter:brightness(1.08); }
+.dock-add:active { transform:scale(.94); }
+.dock-add svg { width:24px; height:24px; }
+/* 双栏桌面：窗格切换没意义，隐藏 */
+@media (min-width: 1001px) { .dock-btn.phone-only { display:none; } }
+/* 单栏（平板竖窗/手机）：主题回落到顶栏，dock 里不重复 */
+@media (max-width: 1000px) { .dock-btn.ipad-only, .icon-btn.ipad-hidden { display:none; } }
+
 /* toast */
-.toast { position:absolute; left:50%; bottom:calc(64px + var(--safe-b)); transform:translate(-50%, 20px);
+.toast { position:absolute; left:50%; bottom:calc(118px + var(--safe-b)); transform:translate(-50%, 20px);
   z-index:120; background:var(--glass); border:1px solid var(--border-strong); color:var(--text);
   border-radius:12px; padding:9px 16px; font-size:13px; opacity:0; pointer-events:none;
   box-shadow:var(--shadow-2); transition:opacity .2s, transform .2s; max-width:80%; }
@@ -367,8 +442,11 @@ html[data-theme="light"] .tabs button.on { border-color:transparent; box-shadow:
 @container (max-width: 1000px) {
   .app { --pad-x:16px; }
   .search input { width:104px; }
-  #viewGithub { display:none; }
+  #viewGithub { flex:1; display:none; }
+  #viewBoard { flex:1; display:none; }
+  #viewMach { display:none; }
   .split-divider { display:none; }
+  #viewBoard.on, #viewGithub.on, #viewMach.on { display:flex; }
   .view.zoomed { display:flex; }
   #viewBoard { display:flex; }
   .app.ghPane #viewBoard { display:none; }
@@ -391,6 +469,7 @@ html[data-theme="light"] .tabs button.on { border-color:transparent; box-shadow:
   .btn-primary svg:last-child { display:none; }
   .btn-primary { width:38px; padding:0; justify-content:center; }
   .summary { grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .mgrid { grid-template-columns:minmax(0, 1fr); }
   .pane-head .sec-title { display:none; }
   .pane-head { padding-top:10px; flex-wrap:wrap; row-gap:8px; }
   .board { grid-auto-columns:calc(100% - 8px); gap:24px; scroll-snap-type:x mandatory; scroll-padding-left:var(--pad-x); }
@@ -421,6 +500,10 @@ html[data-theme="light"] .tabs button.on { border-color:transparent; box-shadow:
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.4"/><path d="M15.8 15.8L20.5 20.5"/></symbol>
+  <symbol id="i-board" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="4.6" height="14" rx="1.5"/><rect x="10.2" y="5" width="4.6" height="9" rx="1.5"/><rect x="17" y="5" width="3.8" height="12" rx="1.5"/></symbol>
+  <symbol id="i-laptop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6" width="16" height="10" rx="1.8"/><path d="M2.5 19h19"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.4" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-repo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="6" r="2.1"/><circle cx="7" cy="18" r="2.1"/><circle cx="17" cy="9" r="2.1"/><path d="M7 8.1v7.8M9.2 6h4.6a3 3 0 0 1 3 3"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4 8.6 8.6 0 1 0 20 14.6z"/></symbol>
   <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.8 5.8l1.4 1.4M16.8 16.8l1.4 1.4M18.2 5.8l-1.4 1.4M7.2 16.8l-1.4 1.4"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol>
@@ -444,12 +527,7 @@ html[data-theme="light"] .tabs button.on { border-color:transparent; box-shadow:
           <svg><use href="#i-search"/></svg>
           <input id="q" placeholder="搜任务、目录、进度" type="text">
         </div>
-        <button class="icon-btn" id="themeBtn" title="切换主题" aria-label="切换主题"><svg id="themeIco"><use href="#i-moon"/></svg></button>
-        <button class="ghost-btn" id="manageBtn" title="批量选择与操作">☰<span class="lbl">管理</span></button>
-        <button class="ghost-btn" id="aiGuideBtn" title="AI 写入指南">🤖<span class="lbl">指南</span></button>
-        <button class="btn-primary" id="addBtn" title="新增">
-          <svg><use href="#i-plus"/></svg><span class="lbl">新增</span><svg><use href="#i-chevd"/></svg>
-        </button>
+        <button class="icon-btn ipad-hidden" id="themeBtn" title="切换主题" aria-label="切换主题"><svg id="themeIco"><use href="#i-moon"/></svg></button>
       </header>
 
       <!-- ===== 双栏：结构同现有 .split ===== -->
@@ -458,10 +536,6 @@ html[data-theme="light"] .tabs button.on { border-color:transparent; box-shadow:
           <div class="pane-head">
             <button class="sec-title" id="tBoard" title="点击放大本栏，再点还原">任务看板<span class="mx">⤢</span></button>
             <div class="spacer"></div>
-            <div class="pane-switch tabs" role="tablist">
-              <button class="on" data-pane="board">看板</button>
-              <button data-pane="gh">GitHub</button>
-            </div>
             <div class="tabs" id="segTabs">
               <button class="on" data-s="进行中" type="button">进行中</button>
               <button data-s="全部" type="button">全部</button>
@@ -472,16 +546,24 @@ html[data-theme="light"] .tabs button.on { border-color:transparent; box-shadow:
           <div class="boardScroll" id="boardScroll"><div class="board" id="board"></div></div>
         </section>
 
+        <section class="view" id="viewMach">
+          <div class="pane-head">
+            <button class="sec-title" id="tMach" title="电脑与账号">电脑与账号</button>
+            <div class="spacer"></div>
+            <div class="tabs mach-tabs">
+              <button class="on" data-mf="all">全部</button>
+              <button data-mf="wb">WorkBuddy 已登录</button>
+              <button data-mf="trae">TRAE 已登录</button>
+            </div>
+          </div>
+          <div class="mgrid" id="mgrid"></div>
+        </section>
+
         <div class="split-divider" id="splitDivider" title="拖动调整左右比例"></div>
 
         <section class="view" id="viewGithub">
           <div class="pane-head">
             <button class="sec-title" id="tGh" title="点击放大本栏，再点还原">GitHub 看板<span class="mx">⤢</span></button>
-            <div class="pane-switch tabs" role="tablist">
-              <button data-pane="board">看板</button>
-              <button class="on" data-pane="gh">GitHub</button>
-            </div>
-            <div class="spacer"></div>
             <div class="gh-kpis" id="ghKpis"></div>
           </div>
           <div class="gh-toolbar">
@@ -492,6 +574,20 @@ html[data-theme="light"] .tabs button.on { border-color:transparent; box-shadow:
           <div class="gh-list" id="ghList"></div>
         </section>
       </main>
+
+      <!-- ===== 底部 T-bar：功能按钮统一在下 ===== -->
+      <nav class="dock" id="dock" aria-label="主操作">
+        <div class="dock-inner">
+          <button class="dock-btn phone-only on" data-pane="board" title="任务看板"><svg><use href="#i-board"/></svg>看板</button>
+          <button class="dock-btn phone-only" data-pane="mach" title="电脑与账号"><svg><use href="#i-laptop"/></svg>机器</button>
+          <button class="dock-btn phone-only" data-pane="gh" title="GitHub 看板"><svg><use href="#i-repo"/></svg>仓库</button>
+          <button class="dock-add" id="addBtn" title="新增"><svg><use href="#i-plus"/></svg></button>
+          <button class="dock-btn ipad-only" id="manageBtn" title="批量选择与操作"><span class="em">☰</span>管理</button>
+          <button class="dock-btn ipad-only" id="aiGuideBtn" title="AI 写入指南"><span class="em">🤖</span>指南</button>
+          <button class="dock-btn phone-only" id="moreBtn" title="更多：管理 / 指南 / 主题"><svg><use href="#i-more"/></svg>更多</button>
+          <button class="dock-btn ipad-only" id="dockTheme" title="切换主题"><svg id="themeIco2"><use href="#i-moon"/></svg>主题</button>
+        </div>
+      </nav>
 
       <!-- 管理条 -->
       <div class="manage-bar" id="manageBar">
@@ -785,8 +881,9 @@ function openTask(id, edit) {
   $('#editBtn').style.display = edit ? 'none' : '';
   $('#saveBtn').style.display = edit ? '' : 'none';
   $('#mask').classList.add('on'); $('#drawer').classList.add('on');
+  $('#dock').classList.add('hidden');
 }
-function closeDrawer() { $('#mask').classList.remove('on'); $('#drawer').classList.remove('on'); }
+function closeDrawer() { $('#mask').classList.remove('on'); $('#drawer').classList.remove('on'); $('#dock').classList.remove('hidden'); }
 
 /* ---------- toast / 菜单 ---------- */
 var toastTimer;
@@ -897,7 +994,7 @@ document.addEventListener('click', function(e) {
     renderBoard(); return;
   }
   // 窗格切换（手机）/ 放大（iPad，现有交互）
-  if ((t = e.target.closest('.pane-switch button'))) {
+  if ((t = e.target.closest('[data-pane]'))) {
     S.pane = t.getAttribute('data-pane');
     $$('.pane-switch button').forEach(function(b){ b.classList.toggle('on', b === t); });
     $('#app').classList.toggle('ghPane', S.pane === 'gh');
@@ -958,10 +1055,12 @@ document.addEventListener('click', function(e) {
   if ((t = e.target.closest('#delBtn'))) { var d = DB.tasks.filter(function(x){return x._id===drawerTaskId})[0]; DB.tasks.splice(DB.tasks.indexOf(d),1); renderBoard(); closeDrawer(); toast('任务已删除'); return; }
   if ((t = e.target.closest('#closeDrawer')) || e.target.id === 'mask') { closeDrawer(); return; }
 
-  if ((t = e.target.closest('#themeBtn'))) {
+  if ((t = e.target.closest('#themeBtn')) || (t = e.target.closest('#dockTheme'))) {
     var th = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = th;
-    $('#themeIco').innerHTML = '<use href="#' + (th === 'dark' ? 'i-moon' : 'i-sun') + '"/>';
+    ['#themeIco', '#themeIco2'].forEach(function(id2){
+      var u = $(id2); if (u) u.innerHTML = '<use href="#' + (th === 'dark' ? 'i-moon' : 'i-sun') + '"/>';
+    });
     try { localStorage.setItem('awb-theme', th); } catch (err) {}
     return;
   }
@@ -1008,7 +1107,9 @@ if (QS.has('clean')) $('#devbar').style.display = 'none';
 renderBoard(); renderGh();
 var th0 = QS.get('theme') || (function(){ try { return localStorage.getItem('awb-theme') || 'dark'; } catch(e){ return 'dark'; } })();
 document.documentElement.dataset.theme = th0;
-$('#themeIco').innerHTML = '<use href="#' + (th0 === 'dark' ? 'i-moon' : 'i-sun') + '"/>';
+['#themeIco', '#themeIco2'].forEach(function(id2){
+  var u = $(id2); if (u) u.innerHTML = '<use href="#' + (th0 === 'dark' ? 'i-moon' : 'i-sun') + '"/>';
+});
 </script>
 </body>
 </html>
