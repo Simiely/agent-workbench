@@ -2,7 +2,7 @@
 
 ## 项目概览
 
-Agent 工作台：给 AI Agent 的日常开发做台账 + 看板 + 交接。三张表（任务 / 机器登录态 / GitHub 同步记录），左右分屏单页应用，零依赖 Node 服务 + JSON 文件存储。
+Agent 工作台：给 AI Agent 的日常开发做台账 + 看板 + 交接。四张表（任务 / 机器登录态 / 登录账号 / GitHub 同步记录），左右分屏单页应用，零依赖 Node 服务 + JSON 文件存储。
 
 - 代码仓库即全部程序：`server.mjs`（约 400 行）+ `public/index.html`（约 3500 行，唯一前端真源）
 - 数据与代码分离：运行时数据在仓库外 `../agent-workbench-data/`（平台托管时在 `CAP_STORAGE_DIR`）

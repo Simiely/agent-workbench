@@ -94,6 +94,7 @@ const SCHEMAS = {
 // 一台电脑 × 一个平台 = 一个账号池，池里至多一条「当前」。
 // 机器表上的账号字段是派生值（只读），真相在 accounts 表。
 const PLATFORMS = ["WorkBuddy", "TRAE"];
+const MACHINE_NAME = "机器名";
 const MACHINE_ACC_FIELD = { WorkBuddy: "WorkBuddy账号", TRAE: "TRAE账号" };
 const ACC = { name: "账号名", plat: "平台", mach: "所属电脑", cur: "当前", note: "备注", at: "最后确认", order: "排序" };
 
@@ -170,7 +171,8 @@ function migrateAccounts(d) {
   if (d._meta && d._meta.accountsMigrated) return false;
   let added = 0;
   for (const m of d.machines || []) {
-    const machineName = String(m["机器名"] || "").trim();
+    const machineName = String(m[MACHINE_NAME] || "").trim();
+    // 没有机器名的脏记录不参与迁移，也不清字段：宁可留着旧值，也不能把账号删没
     if (!machineName) continue;
     for (const p of PLATFORMS) {
       const v = String(m[MACHINE_ACC_FIELD[p]] || "").trim();
@@ -183,9 +185,7 @@ function migrateAccounts(d) {
       });
       added++;
     }
-  }
-  // 机器表不再存账号字段（改为派生），清掉旧值避免两份真相
-  for (const m of d.machines || []) {
+    // 这台机已经搬进 accounts 表了，旧字段就地清掉，避免两份真相
     delete m[MACHINE_ACC_FIELD.WorkBuddy];
     delete m[MACHINE_ACC_FIELD.TRAE];
   }

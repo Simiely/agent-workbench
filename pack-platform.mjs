@@ -39,11 +39,11 @@ const readme = `# 平台版部署说明（tools-center 托管）
 
 ## 接入要点
 - 平台自动拉起 \`node server.mjs 8151\`（健康检查 \`/health\`，manifest 已声明）
-- 三张表：任务台账 / 机器登录态 / GitHub 同步记录；打开 \`/tool/agent-workbench/\` 即用
+- 四张表：任务台账 / 机器登录态 / 登录账号 / GitHub 同步记录；打开 \`/tool/agent-workbench/\` 即用
 
 ## 数据目录
 - 平台注入 \`CAP_STORAGE_DIR\` → 数据随平台存储目录托管（含自动备份，保留 10 份）
-- 首次启动为**空壳**（三张表全空），直接在页面上录入即可
+- 首次启动为**空壳**（四张表全空），直接在页面上录入即可
 - 想看演示效果：把工具目录下启动命令临时加 \`--reseed\`，或本地跑 \`node server.mjs --reseed\`
 
 ## 本地直跑（脱离平台）
@@ -55,6 +55,9 @@ node server.mjs 9000       # 指定端口
 
 ## 升级
 替换平台 \`tools/agent-workbench/\` 下代码 → 平台卡片「↻ 重启」。数据在存储目录，替换代码不影响。
+
+> **v1.0.x → v1.1.0**：老库首次启动会自动把机器表里的单值账号迁成 \`accounts\` 记录（只跑一次，标记在
+> \`_meta.accountsMigrated\`）；迁移前已自动备份到 \`.bak/\`，要回滚就把备份覆盖回 \`db.json\` 再换回旧代码。
 
 ## 文档
 仓库内 \`README.md\`（功能与测试）/ \`CHANGELOG.md\`（版本历史）/ \`contract.md\`（AI 写入契约）。
