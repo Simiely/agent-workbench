@@ -3160,14 +3160,32 @@ var db = localDb();
     document.body.removeChild(ta);
   }
 
+  // 账号可选值 = schema 枚举 ∪ 机器表里出现过的值（去重，保持出现顺序）。
+  // 必须每次打开菜单现算：schema 里账号是 text 类型没有枚举，光靠 schema 列表永远是空的，
+  // 录入的新账号也就永远点不到。现算之后，任一台机器输过的账号立刻成为其他机器的可点标签。
+  function accountOptions(key) {
+    var field = key === 'wb' ? F.m.wb : F.m.trae;
+    var seen = {}, out = [];
+    function add(v) {
+      v = txt(v);
+      if (!v || seen[v]) return;
+      seen[v] = 1;
+      out.push(v);
+    }
+    var base = key === 'wb' ? S.opts.wb : S.opts.trae;
+    for (var i = 0; i < base.length; i++) add(base[i]);
+    for (var j = 0; j < S.machines.length; j++) add(S.machines[j][field]);
+    if (!seen['未登录']) out.push('未登录'); // 始终留一个「清空」出口
+    return out;
+  }
+
   function openSwitchMenu(btn, machineId, key) {
     closeMenus();
     var m = findMachine(machineId);
     if (!m) return;
     var field = key === 'wb' ? F.m.wb : F.m.trae;
     var cur = txt(m[field]);
-    var list = key === 'wb' ? S.opts.wb : S.opts.trae;
-    if (!list.length) list = ['未登录'];
+    var list = accountOptions(key);
     var rect = btn.getBoundingClientRect();
     var menu = document.createElement('div');
     menu.className = 'menu';
@@ -3179,8 +3197,7 @@ var db = localDb();
         '<span class="pick ' + (list[i] === cur ? 'cur' : '') + '"></span>' + escapeHtml(list[i]) +
         (list[i] === cur ? '<span style="margin-left:auto;font-size:9.5px;color:var(--accent)">当前</span>' : '') + '<' + '/button>';
     }
-    // 选项只来自「已有数据」提炼的枚举，库里一条账号都没有时列表只有「未登录」，
-    // 等于没法录入。补一个自由输入入口，账号信息才真正可编辑。
+    // 枚举里没有的账号（第一次录入的名字）走这里写：写库后它就成了所有机器的可点标签
     html += '<button data-acc-input="' + escapeHtml(machineId) + ':' + key + '">' +
       '<span class="pick"></span>输入其他账号…<' + '/button>';
     menu.innerHTML = html;

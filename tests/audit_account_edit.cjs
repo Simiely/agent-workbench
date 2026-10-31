@@ -30,7 +30,11 @@ function getJSON(p) {
 }
 
 async function click(cdp, sel) {
-  const box = await cdp.evalJson('(function(){var e=document.querySelector(' + JSON.stringify(sel) + ');if(!e)return null;var r=e.getBoundingClientRect();return {x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2),w:Math.round(r.width),h:Math.round(r.height)};})()');
+  // 先滚到视口内再取坐标：看板横向可滚，第二列以后的元素原本在视口外，直接点会点到空处
+  const selJson = JSON.stringify(sel);
+  await cdp.evalJson('(function(){var e=document.querySelector(' + selJson + ');if(e&&e.scrollIntoView)e.scrollIntoView({block:"center",inline:"center"});return 1})()');
+  await new Promise(r => setTimeout(r, 150));
+  const box = await cdp.evalJson('(function(){var e=document.querySelector(' + selJson + ');if(!e)return null;var r=e.getBoundingClientRect();return {x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2),w:Math.round(r.width),h:Math.round(r.height)};})()');
   if (!box) return false;
   await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: box.x, y: box.y });
   await cdp.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: box.x, y: box.y, button: 'left', clickCount: 1 });
@@ -150,6 +154,61 @@ async function key(cdp, k) {
     const rec = (dbM.results || []).filter(r => r._id === mid)[0];
     check('落盘 WorkBuddy账号 == 新值', rec && rec['WorkBuddy账号'] === NEWACC, rec ? String(rec['WorkBuddy账号']) : '无记录');
     check('落盘「最后确认」已刷新', !!(rec && rec['最后确认']), rec ? String(rec['最后确认']) : '');
+
+    // ---------- 3b. 跨机器复用：另一台电脑立刻能点这个账号 ----------
+    const ids = await ev('(function(){return Array.prototype.map.call(document.querySelectorAll("#board .col[data-machine-id]"),function(c){return c.getAttribute("data-machine-id")});})()');
+    const other = (ids || []).filter(x => x !== mid)[0];
+    check('存在第二台电脑（跨机器复用可测）', !!other, (ids || []).join(','));
+
+    if (other) {
+      await click(cdp, '[data-switch="' + other + ':wb"]');
+      await wait(260);
+      const otherOpts = await ev(`(function(){
+        var m=document.querySelector('.menu'); if(!m) return null;
+        var bs=m.querySelectorAll('button[data-pick]');
+        var arr=[]; for(var i=0;i<bs.length;i++) arr.push(bs[i].getAttribute('data-pick'));
+        return {options:arr, hasNew:arr.indexOf(${JSON.stringify(NEWACC)})>=0, hasClear:arr.indexOf('未登录')>=0};
+      })()`);
+      check('另一台电脑的下拉里出现新账号（无需刷新）', otherOpts && otherOpts.hasNew, otherOpts ? JSON.stringify(otherOpts.options) : '菜单没打开');
+      check('下拉始终保留「未登录」清空项', otherOpts && otherOpts.hasClear, otherOpts ? JSON.stringify(otherOpts.options) : '');
+
+      await click(cdp, '.menu [data-pick="' + NEWACC + '"]');
+      await wait(650);
+      const otherPill = await ev(`(function(){
+        var b=document.querySelector('.col[data-machine-id="${other}"] .ch-acc .acc[data-switch$=":wb"]');
+        return b?b.querySelector('.an').textContent.trim():null;
+      })()`);
+      check('点标签即可把该账号用到另一台电脑', otherPill === NEWACC, otherPill);
+      const dbM3 = await getJSON('/api/query?db=machines');
+      const rec3 = (dbM3.results || []).filter(r => r._id === other)[0];
+      check('另一台电脑的账号也已落盘', rec3 && rec3['WorkBuddy账号'] === NEWACC, rec3 ? String(rec3['WorkBuddy账号']) : '');
+    }
+
+    // ---------- 3c. 刷新后仍在（选项来自库，不是内存） ----------
+    await browser.goto('http://127.0.0.1:' + PORT + '/');
+    await cdp.waitFor('(function(){return document.querySelectorAll("#board .col[data-machine-id]").length>0})()', 15000);
+    await wait(600);
+    const afterReload = await ev(`(function(){
+      var cs=document.querySelectorAll('#board .col[data-machine-id]');
+      var c=cs[0];
+      var b=c.querySelector('.ch-acc .acc[data-switch$=":wb"]');
+      return {sw:b?b.getAttribute('data-switch'):null};
+    })()`);
+    if (afterReload && afterReload.sw) {
+      await click(cdp, '[data-switch="' + afterReload.sw + '"]');
+      await wait(260);
+      const reloadOpts = await ev(`(function(){
+        var m=document.querySelector('.menu'); if(!m) return null;
+        var bs=m.querySelectorAll('button[data-pick]'); var arr=[];
+        for(var i=0;i<bs.length;i++) arr.push(bs[i].getAttribute('data-pick'));
+        return arr;
+      })()`);
+      check('刷新页面后新账号仍是可点标签', Array.isArray(reloadOpts) && reloadOpts.indexOf(NEWACC) >= 0, JSON.stringify(reloadOpts));
+      await key(cdp, 'Escape');
+      await wait(150);
+    } else {
+      check('刷新页面后新账号仍是可点标签', false, '刷新后找不到账号胶囊');
+    }
 
     // ---------- 4. Esc 取消不写库 ----------
     await click(cdp, '[data-switch="' + accInfo.sw + '"]');
