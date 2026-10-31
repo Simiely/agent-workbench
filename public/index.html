@@ -804,12 +804,23 @@
   .repo-entries { display: flex; flex-direction: column; gap: 1px; border-top: 1px solid var(--border); padding-top: 7px; }
   .repo-entry { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-2); padding: 4px 0; min-width: 0; }
   .repo-entry .re-time { color: var(--text-3); flex: none; font-variant-numeric: tabular-nums; }
-  .repo-entry .re-ver { color: var(--text); font-weight: 500; flex: none; }
+  /* 版本号可能一次列好几个（v0.34.0 / v0.35.0 / v0.36.0）：
+     之前是 flex:none 且没有宽度上限，长版本号会直接撑出卡片、压住后面的状态标签。
+     现在允许收缩 + 省略号，完整内容放在 title 里。 */
+  .repo-entry .re-ver {
+    color: var(--text); font-weight: 500;
+    flex: 0 1 auto; min-width: 0; max-width: 38%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   .repo-entry .re-res { flex: none; font-size: 10px; line-height: 15px; padding: 0 5px; border-radius: 4px; }
   .repo-entry .re-res.ok { color: var(--done); background: var(--done-soft); }
   .repo-entry .re-res.un { color: var(--warn); background: var(--warn-soft); }
-  .repo-entry .re-who { color: var(--text-3); flex: none; white-space: nowrap; }
-  .repo-entry .re-content { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .repo-entry .re-who {
+    color: var(--text-3); white-space: nowrap;
+    flex: 0 1 auto; min-width: 0; max-width: 32%;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .repo-entry .re-content { flex: 1 1 0; min-width: 46px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .repo-entry .re-dots { width: 18px; height: 18px; font-size: 13px; margin: 0; }
   .repo-foot { display: flex; align-items: center; gap: 12px; }
   .link-btn { font-size: 11.5px; color: var(--accent); padding: 2px 0; }
@@ -827,7 +838,7 @@
   }
   .rd-row:hover { background: var(--panel-3); border-color: var(--border); }
   .rd-row .rd-time { color: var(--text-3); flex: none; font-variant-numeric: tabular-nums; width: 96px; }
-  .rd-row .rd-ver { color: var(--text); font-weight: 500; flex: none; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rd-row .rd-ver { color: var(--text); font-weight: 500; flex: 0 1 auto; min-width: 0; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .rd-row .re-res { flex: none; font-size: 10px; line-height: 15px; padding: 0 5px; border-radius: 4px; }
   .rd-row .re-res.ok { color: var(--done); background: var(--done-soft); }
   .rd-row .re-res.un { color: var(--warn); background: var(--warn-soft); }
@@ -1693,9 +1704,10 @@ var db = localDb();
     return '<div class="repo-entry" data-gh-id="' + escapeHtml(ghRecId(r)) + '">' +
       '<span class="sel-box">✓</span>' +
       '<span class="re-time">' + (d ? fmtDateTime(d).slice(5) : '—') + '<' + '/span>' +
-      '<span class="re-ver">' + escapeHtml(vs.join(' / ') || '—') + '<' + '/span>' +
+      '<span class="re-ver" title="' + escapeHtml(vs.join(' / ')) + '">' + escapeHtml(vs.join(' / ') || '—') + '<' + '/span>' +
       resHtml +
-      '<span class="re-who">' + escapeHtml((txt(r[F.g.account]) || '') + (txt(r[F.g.machine]) ? ' · ' + txt(r[F.g.machine]) : '')) + '<' + '/span>' +
+      '<span class="re-who" title="' + escapeHtml((txt(r[F.g.account]) || '') + (txt(r[F.g.machine]) ? ' · ' + txt(r[F.g.machine]) : '')) + '">' +
+        escapeHtml((txt(r[F.g.account]) || '') + (txt(r[F.g.machine]) ? ' · ' + txt(r[F.g.machine]) : '')) + '<' + '/span>' +
       '<span class="re-content">' + escapeHtml(txt(r[F.g.content]) || '') + '<' + '/span>' +
       '<button class="dots re-dots" data-gh-menu="' + escapeHtml(ghRecId(r)) + '" title="操作">⋯</button>' +
     '<' + '/div>';
@@ -1747,7 +1759,7 @@ var db = localDb();
       var res = txt(rec[F.g.result]);
       html += '<button class="rd-row" data-gh-open="' + escapeHtml(ghRecId(rec)) + '">' +
         '<span class="rd-time">' + (d ? escapeHtml(fmtDateTime(d)) : '—') + '<' + '/span>' +
-        '<span class="rd-ver">' + escapeHtml(vs.join(' / ') || '—') + '<' + '/span>' +
+        '<span class="rd-ver" title="' + escapeHtml(vs.join(' / ')) + '">' + escapeHtml(vs.join(' / ') || '—') + '<' + '/span>' +
         '<span class="re-res ' + resClass(res) + '">' + escapeHtml(res || '—') + '<' + '/span>' +
         '<span class="rd-content">' + escapeHtml(txt(rec[F.g.content]) || '（无内容）') + '<' + '/span>' +
         '<span class="rd-chev">›</span>' +
