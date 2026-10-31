@@ -503,6 +503,14 @@
   .menu button:hover { background: var(--accent-soft); color: var(--accent); }
   .menu .pick { width: 5px; height: 5px; border-radius: 50%; background: var(--border-strong); flex: none; }
   .menu .pick.cur { background: var(--accent); }
+  /* 账号自由输入（列头账号胶囊 → 输入其他账号…） */
+  .menu.acc-menu { min-width: 234px; }
+  .acc-form { padding: 2px 8px 7px; }
+  .acc-form .inline-input { width: 100%; height: 27px; font-size: 12px; }
+  .acc-form-btns { display: flex; gap: 6px; padding: 0 8px 4px; }
+  .acc-form-btns button { flex: 1; justify-content: center; padding: 6px 8px; }
+  .acc-form-btns button.primary { background: var(--accent); color: #fff; }
+  .acc-form-btns button.primary:hover { filter: brightness(1.07); color: #fff; }
 
   .boot { flex: 1; display: grid; place-items: center; text-align: center; color: var(--text-3); font-size: 12.5px; line-height: 1.9; }
 
@@ -2966,13 +2974,11 @@ var db = localDb();
     menu.className = 'menu';
     menu.style.left = Math.max(12, Math.min(rect.left - 150, window.innerWidth - 212)) + 'px';
     menu.style.top = (rect.bottom + 6) + 'px';
+    // v1.0.2 精简：重命名 / 改位置 / 左右移列 都能直接在列头操作（点名字、点位置胶囊、拖 ⠿），
+    // 菜单里重复一遍反而误点，只留删除。
     menu.innerHTML =
       '<div class="mh">' + escapeHtml(txt(m[F.m.name])) + '</div>' +
-      '<button data-mact="rename" data-mid="' + escapeHtml(id) + '">重命名这台电脑</button>' +
-      '<button data-mact="place" data-mid="' + escapeHtml(id) + '">改位置标签</button>' +
-      '<button data-mact="left" data-mid="' + escapeHtml(id) + '">向左移一列</button>' +
-      '<button data-mact="right" data-mid="' + escapeHtml(id) + '">向右移一列</button>' +
-      '<button data-mact="delete" data-mid="' + escapeHtml(id) + '">删除这台电脑</button>';
+      '<button data-mact="delete" data-mid="' + escapeHtml(id) + '" class="danger">删除这台电脑</button>';
     document.body.appendChild(menu);
   }
 
@@ -3153,9 +3159,62 @@ var db = localDb();
         '<span class="pick ' + (list[i] === cur ? 'cur' : '') + '"></span>' + escapeHtml(list[i]) +
         (list[i] === cur ? '<span style="margin-left:auto;font-size:9.5px;color:var(--accent)">当前</span>' : '') + '<' + '/button>';
     }
+    // 选项只来自「已有数据」提炼的枚举，库里一条账号都没有时列表只有「未登录」，
+    // 等于没法录入。补一个自由输入入口，账号信息才真正可编辑。
+    html += '<button data-acc-input="' + escapeHtml(machineId) + ':' + key + '">' +
+      '<span class="pick"></span>输入其他账号…<' + '/button>';
     menu.innerHTML = html;
     document.body.appendChild(menu);
   }
+  // 账号自由输入：预设列表里没有的账号（首次录入、临时换号）从这里写
+  function openAccInputMenu(machineId, key) {
+    closeMenus();
+    var m = findMachine(machineId);
+    if (!m) return;
+    var field = key === 'wb' ? F.m.wb : F.m.trae;
+    var cur = txt(m[field]);
+    if (cur === '未登录') cur = '';
+    var anchor = document.querySelector('[data-switch="' + machineId + ':' + key + '"]');
+    var r = anchor ? anchor.getBoundingClientRect() : { left: 24, bottom: 96 };
+    var menu = document.createElement('div');
+    menu.className = 'menu acc-menu';
+    menu.style.left = Math.max(12, Math.min(r.left, window.innerWidth - 252)) + 'px';
+    menu.style.top = (r.bottom + 6) + 'px';
+    menu.innerHTML =
+      '<div class="mh">' + (key === 'wb' ? 'WorkBuddy' : 'TRAE') + ' 账号 · ' + escapeHtml(txt(m[F.m.name])) + '</div>' +
+      '<div class="acc-form"><input class="inline-input" type="text" maxlength="80" placeholder="账号名 / 邮箱" value="' + escapeHtml(cur) + '"></div>' +
+      '<div class="acc-form-btns"><button data-acc-cancel>取消</button><button class="primary" data-acc-save="1">保存</button></div>';
+    document.body.appendChild(menu);
+
+    var input = menu.querySelector('input');
+    var settled = false;
+    function commit() {
+      if (settled) return;
+      settled = true;
+      var v = input.value.replace(/^\s+|\s+$/g, '');
+      closeMenus();
+      if (!v) { toast('账号名不能为空'); return; }
+      if (v === txt(m[field])) return;
+      setAccount(machineId, key, v);
+    }
+    function cancel() {
+      if (settled) return;
+      settled = true;
+      closeMenus();
+    }
+    input.focus();
+    input.select();
+    input.addEventListener('click', function (e) { e.stopPropagation(); });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); commit(); }
+      else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+    });
+    var sv = menu.querySelector('[data-acc-save]');
+    if (sv) sv.addEventListener('click', function (e) { e.stopPropagation(); commit(); });
+    var cc = menu.querySelector('[data-acc-cancel]');
+    if (cc) cc.addEventListener('click', function (e) { e.stopPropagation(); cancel(); });
+  }
+
   function closeMenus() {
     var ms = document.querySelectorAll('.menu');
     for (var i = 0; i < ms.length; i++) ms[i].parentNode.removeChild(ms[i]);
@@ -3394,6 +3453,13 @@ var db = localDb();
       e.stopPropagation();
       var parts = sw.getAttribute('data-switch').split(':');
       openSwitchMenu(sw, parts[0], parts[1]);
+      return;
+    }
+    var accIn = el.closest ? el.closest('[data-acc-input]') : null;
+    if (accIn) {
+      e.stopPropagation();
+      var ap = accIn.getAttribute('data-acc-input').split(':');
+      openAccInputMenu(ap[0], ap[1]);
       return;
     }
     var pick = el.closest ? el.closest('[data-pick]') : null;

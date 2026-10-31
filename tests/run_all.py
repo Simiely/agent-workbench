@@ -278,6 +278,7 @@ def run_audit():
         ('audit_repo_card.cjs', '8177', '运行仓库卡交互体检...'),
         ('audit_gh_header.cjs', '8180', '运行 GitHub 看板头部体检...'),
         ('audit_platform_proxy.cjs', '8181', '运行平台反代适配体检...'),
+        ('audit_account_edit.cjs', '8182', '运行机器菜单与账号编辑体检...'),
         ('audit_journey.cjs', '8179', '运行端到端旅程体检...'),
     ]:
         path = os.path.join(TD, script)
