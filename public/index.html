@@ -515,6 +515,7 @@
   .acc-row.on .dot { background: var(--accent); }
   .acc-row .nm { flex: 1; min-width: 0; font-size: 12px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .acc-row .tag { font-size: 9.5px; color: var(--accent); flex: none; }
+  .acc-row .tag.sub { color: var(--text-3); }
   /* 改名 / 删除常驻可见：这两个入口正是用户找不到的地方，不能藏在 hover 里。
      选择器带 .menu 前缀是为了压过上面的 .menu button（width:100% / padding），否则图标会被撑宽。 */
   .acc-row .ops { display: flex; gap: 2px; flex: none; }
@@ -1071,7 +1072,7 @@
 
   var DATABASE_ID = 'tasks'; // Agent 任务台账
   var DB_MACHINE = 'machines'; // 机器登录态
-  var DB_ACC = 'accounts'; // 登录账号（一台电脑 × 一个平台可以有多个号）
+  var DB_ACC = 'accounts'; // 登录账号（共享名单 + 每台电脑各自的登记）
   var DB_GITHUB = 'github'; // GitHub 同步记录
 
   var F = {
@@ -1421,6 +1422,36 @@ var db = localDb();
     return out;
   }
 
+  // 共享账号池：账号是全局共享的一份名单（同一平台按账号名去重），
+  // 每台电脑只是「我现在用的是哪个号」。面板列全库，改名全库同步，删除只解除本机登记。
+  function accShared(plat, machineName) {
+    var map = {}, out = [];
+    for (var i = 0; i < S.accounts.length; i++) {
+      var a = S.accounts[i];
+      if (txt(a[F.a.plat]) !== plat) continue;
+      var nm = txt(a[F.a.name]);
+      if (!nm || nm === '未登录') continue;
+      if (!map[nm]) {
+        map[nm] = { name: nm, recs: [], mine: null, others: [], cur: false };
+        out.push(map[nm]);
+      }
+      var e = map[nm];
+      e.recs.push(a);
+      if (txt(a[F.a.mach]) === machineName) {
+        e.mine = a;
+        if (a[F.a.cur] === true) e.cur = true;
+      } else if (e.others.indexOf(txt(a[F.a.mach])) < 0) {
+        e.others.push(txt(a[F.a.mach]));
+      }
+    }
+    out.sort(function (x, y) {
+      if (x.cur !== y.cur) return x.cur ? -1 : 1;
+      if (!!x.mine !== !!y.mine) return x.mine ? -1 : 1;
+      return x.name < y.name ? -1 : (x.name > y.name ? 1 : 0);
+    });
+    return out;
+  }
+
   function currentAcc(machineName, plat) {
     var p = accPool(machineName, plat);
     for (var i = 0; i < p.length; i++) if (p[i][F.a.cur] === true) return p[i];
@@ -1440,7 +1471,7 @@ var db = localDb();
     // 账号表是唯一真相：没有「当前」就是未登录，不能拿机器记录里的旧派生值兜底，
     // 否则清除登录态后胶囊还挂着上一个名字（数据已经空了）
     var val = cur ? txt(cur[F.a.name]) : (S.ready ? '' : txt(m[key === 'wb' ? F.m.wb : F.m.trae]));
-    var n = accPool(name, plat).length;
+    var n = accShared(plat, name).length;
     var empty = (!val || val === '未登录');
     return '<button class="acc ' + (empty ? 'empty' : '') + '" data-switch="' + escapeHtml(m._id) + ':' + key + '"' +
       ' title="' + (empty ? '登记这个平台登录过的账号' : '切换 / 管理账号') + '">' +
@@ -2944,7 +2975,8 @@ var db = localDb();
     ],
     rules: [
       '写任务前先读机器表，「所在电脑」必须是已登记的机器名；没有就先登记电脑，否则任务会落进「未识别电脑」兜底列',
-      '一台电脑可以登录多个账号：多号写在「登录账号」表（平台 + 所属电脑 + 当前），同一台机同一平台只允许一条「当前」',
+      '一台电脑可以登录多个账号：多号写在「登录账号」表，同一台机同一平台只允许一条「当前」',
+      '账号是共享名单：同一平台按「账号名」去重，一个号可以被多台电脑各登记一条；改名要同步所有同名登记，解绑只删那一台电脑的登记',
       '机器表上的 WorkBuddy账号 / TRAE账号 是派生只读值；往这两个字段写 = 把那个号设为当前（库里没有会自动补一条）',
       '枚举值严格照抄：状态=进行中/已完成，优先级=P0/P1/P2，是否同步=已同步/未同步；旧的「结果」字段已不存在',
       '待办只认行首的 [ ] 与 [x]，不要用 - [ ] 或 ● 之类',
@@ -3296,13 +3328,31 @@ var db = localDb();
     });
   }
 
+  // 点共享名单里的一个号：本机登记过就切过去，没登记过就登记一条再切过去
+  function pickSharedAcc(name) {
+    var m = findMachine(accUI.mid);
+    if (!m) return;
+    var mach = txt(m[F.m.name]), plat = accPlat(accUI.key);
+    var pool = accPool(mach, plat);
+    for (var i = 0; i < pool.length; i++) {
+      if (txt(pool[i][F.a.name]) === name) {
+        if (pool[i][F.a.cur] === true) return; // 已经是当前，不做动作也不关面板
+        setCurrentAcc(pool[i]._id);
+        return;
+      }
+    }
+    addAcc(mach, plat, name, { setCurrent: true });
+  }
+
   // 新增账号：只往池里加一条，绝不动已有的号
-  function addAcc(machineName, plat, name) {
+  function addAcc(machineName, plat, name, opts) {
     var pool = accPool(machineName, plat);
     for (var i = 0; i < pool.length; i++) {
       if (txt(pool[i][F.a.name]) === name) { toast('这台电脑已经有同名账号了'); return; }
     }
-    var noCurrent = !currentAcc(machineName, plat);
+    var prev = currentAcc(machineName, plat);
+    var force = !!(opts && opts.setCurrent);
+    var noCurrent = force || !prev;
     var order = 1;
     for (var j = 0; j < pool.length; j++) {
       if (typeof pool[j][F.a.order] === 'number' && pool[j][F.a.order] >= order) order = pool[j][F.a.order] + 1;
@@ -3325,6 +3375,11 @@ var db = localDb();
       rec[F.a.cur] = !!noCurrent;
       rec[F.a.at] = noCurrent ? now : '';
       S.accounts.push(rec);
+      if (force && prev) {
+        prev[F.a.cur] = false;
+        db.updateRecord({ databaseId: DB_ACC, recordId: prev._id,
+          properties: { '当前': { checkbox: false } } }).catch(function () {});
+      }
       render();
       paintAccPanel();
       touchMachine(machineName);
@@ -3336,31 +3391,53 @@ var db = localDb();
     });
   }
 
+  // 改名是对共享账号本身的操作：同平台同名的每一条登记一起改，别的电脑看到的名字保持一致
   function renameAcc(a, name) {
     var old = txt(a[F.a.name]);
+    var plat = txt(a[F.a.plat]);
     if (old === name) { accUI.mode = 'list'; paintAccPanel(); return; }
-    a[F.a.name] = name;
+    var same = [];
+    for (var i = 0; i < S.accounts.length; i++) {
+      var x = S.accounts[i];
+      if (txt(x[F.a.plat]) === plat && txt(x[F.a.name]) === old) same.push(x);
+    }
+    var touched = {};
+    for (var j = 0; j < same.length; j++) {
+      same[j][F.a.name] = name;
+      touched[txt(same[j][F.a.mach])] = 1;
+    }
     accUI.mode = 'list';
     render();
     paintAccPanel();
-    db.updateRecord({ databaseId: DB_ACC, recordId: a._id, properties: { '账号名': { text: name } } })
-      .then(function () { touchMachine(txt(a[F.a.mach])); toast(old + ' → ' + name); })
-      .catch(function (e) {
-        console.error('[workbench] 账号改名失败', e);
-        a[F.a.name] = old;
-        render();
-        paintAccPanel();
-        toast('改名失败');
-      });
+    var jobs = same.map(function (x) {
+      return db.updateRecord({ databaseId: DB_ACC, recordId: x._id, properties: { '账号名': { text: name } } });
+    });
+    Promise.all(jobs).then(function () {
+      Object.keys(touched).forEach(function (mn) { touchMachine(mn); });
+      toast(old + ' → ' + name + (same.length > 1 ? '（' + same.length + ' 台电脑同步）' : ''));
+    }).catch(function (e) {
+      console.error('[workbench] 账号改名失败', e);
+      for (var k = 0; k < same.length; k++) same[k][F.a.name] = old;
+      render();
+      paintAccPanel();
+      toast('改名失败');
+    });
   }
 
   function confirmDelAcc(id) {
     var a = findAcc(id);
     if (!a) return;
     var nm = txt(a[F.a.name]);
+    var mach = txt(a[F.a.mach]);
     var isCur = a[F.a.cur] === true;
-    showConfirm('删除账号', '「' + nm + '」会从这台电脑的账号列表里移除。' +
-      (isCur ? '它正在使用中，删除后会自动切到列表里的下一个账号。' : ''), function () { doDelAcc(id); });
+    var others = 0;
+    for (var i = 0; i < S.accounts.length; i++) {
+      var x = S.accounts[i];
+      if (x._id !== id && txt(x[F.a.name]) === nm && txt(x[F.a.plat]) === txt(a[F.a.plat])) others++;
+    }
+    showConfirm('解除登记', '「' + nm + '」会从「' + mach + '」的账号列表里移除；' +
+      (others ? '另外 ' + others + " 台电脑仍在用这个号，不受影响。" : '共享账号池里没有别的电脑在用，移除后这个号就没人登记了。') +
+      (isCur ? '它正在使用中，移除后这台电脑会自动切到列表里的下一个账号。' : ''), function () { doDelAcc(id); });
   }
 
   // 确认框的「确定」在面板外，点它会顺带收起面板；删完把面板重新打开，别让人再点一次
@@ -3513,16 +3590,25 @@ var db = localDb();
     '<path d="M3.3 3.3l5.4 5.4M8.7 3.3l-5.4 5.4" fill="none" stroke="currentColor" ' +
     'stroke-width="1.25" stroke-linecap="round"/><' + '/svg>';
 
-  function accRowHTML(a) {
-    var on = a[F.a.cur] === true;
-    return '<div class="acc-row' + (on ? ' on' : '') + '" data-acc-cur="' + escapeHtml(a._id) + '"' +
-        ' title="' + (on ? '当前账号' : '点一下设为当前账号') + '">' +
+  // 一行 = 共享名单里的一个账号名。✎ 是全局改名，✕ 只解除这台电脑的登记（别的电脑不受影响）
+  function accRowHTML(e) {
+    var mine = e.mine;
+    var on = !!e.cur;
+    var id = mine ? mine._id : (e.recs[0] && e.recs[0]._id);
+    var tip = on ? '这台电脑正在用'
+      : (mine ? '点一下切到这个号' : '共享账号，点一下在这台电脑上使用');
+    var right = on ? '<span class="tag">当前</span>'
+      : (mine ? '<span class="tag sub">已登记</span>'
+        : (e.others.length ? '<span class="tag sub">' + escapeHtml(e.others[0]) + ' 在用<' + '/span>' : ''));
+    return '<div class="acc-row' + (on ? ' on' : '') + '" data-acc-pick="' + escapeHtml(e.name) + '"' +
+        ' title="' + tip + '">' +
       '<span class="dot"></span>' +
-      '<span class="nm">' + escapeHtml(txt(a[F.a.name])) + '<' + '/span>' +
-      (on ? '<span class="tag">当前</span>' : '') +
+      '<span class="nm">' + escapeHtml(e.name) + '<' + '/span>' +
+      right +
       '<span class="ops">' +
-        '<button class="acc-ico" data-acc-rename="' + escapeHtml(a._id) + '" title="改名" aria-label="改名">' + ICO_EDIT + '</button>' +
-        '<button class="acc-ico danger" data-acc-del="' + escapeHtml(a._id) + '" title="删除" aria-label="删除">' + ICO_DEL + '</button>' +
+        '<button class="acc-ico" data-acc-rename="' + escapeHtml(id) + '" title="改名（全库同步）" aria-label="改名">' + ICO_EDIT + '</button>' +
+        (mine ? '<button class="acc-ico danger" data-acc-del="' + escapeHtml(mine._id) +
+          '" title="解除这台电脑对这个号的登记" aria-label="解除登记">' + ICO_DEL + '</button>' : '') +
       '<' + '/span>' +
     '<' + '/div>';
   }
@@ -3534,13 +3620,13 @@ var db = localDb();
     if (!m) { closeMenus(); return; }
     var plat = accPlat(accUI.key);
     var machineName = txt(m[F.m.name]);
-    var pool = accPool(machineName, plat);
+    var pool = accShared(plat, machineName);
     var platLabel = accUI.key === 'wb' ? 'WorkBuddy' : 'TRAE';
 
     var body;
     if (!pool.length) {
-      body = '<div class="acc-empty">这台电脑还没登记 ' + platLabel +
-        ' 账号。点下面「＋ 新增账号」把登录过的号记下来，一台机可以记多个。</div>';
+      body = '<div class="acc-empty">还没有登记任何 ' + platLabel +
+        ' 账号。点下面「＋ 新增账号」加一个，之后每台电脑都能从这里选。</div>';
     } else {
       body = '<div class="acc-list">';
       for (var i = 0; i < pool.length; i++) body += accRowHTML(pool[i]);
@@ -3908,10 +3994,10 @@ var db = localDb();
       confirmDelAcc(accDelBtn.getAttribute('data-acc-del'));
       return;
     }
-    var accCurRow = el.closest ? el.closest('[data-acc-cur]') : null;
-    if (accCurRow) {
+    var accPickRow = el.closest ? el.closest('[data-acc-pick]') : null;
+    if (accPickRow) {
       e.stopPropagation();
-      setCurrentAcc(accCurRow.getAttribute('data-acc-cur'));
+      pickSharedAcc(accPickRow.getAttribute('data-acc-pick'));
       return;
     }
     var accAddBtn = el.closest ? el.closest('[data-acc-add]') : null;

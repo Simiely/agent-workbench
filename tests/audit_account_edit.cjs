@@ -91,14 +91,16 @@ function rowsExpr() {
       return {name:b.querySelector('.an').textContent.trim(), cnt:c?c.textContent.trim():''};
     })()`);
     check('胶囊显示当前账号', pill && pill.name === 'WB-主号', pill && pill.name);
-    check('胶囊带账号数角标 2', pill && pill.cnt === '2', pill && pill.cnt);
+    // 角标是共享账号池里这个平台共有多少个号（主号/备用号/副号 = 3）
+    check('胶囊带共享池角标 3', pill && pill.cnt === '3', pill && pill.cnt);
 
-    // ---------- 2. 打开面板：只列本机该平台的号 ----------
+    // ---------- 2. 打开面板：列的是共享账号池（全库该平台去重后的号） ----------
     await click(cdp, PILL);
     await wait(260);
     const rows1 = await ev(rowsExpr());
     check('面板能打开', Array.isArray(rows1), rows1 === null ? '没找到 .acc-panel' : '');
-    check('只列本机 WorkBuddy 的号', JSON.stringify(rows1) === JSON.stringify(['WB-主号*', 'WB-备用号']), JSON.stringify(rows1));
+    check('共享账号池：本机在用的 + 别的电脑在用的都列出',
+      JSON.stringify(rows1) === JSON.stringify(['WB-主号*', 'WB-备用号', 'WB-副号']), JSON.stringify(rows1));
     check('当前号带「当前」标记', rows1 && rows1[0] === 'WB-主号*', rows1 && rows1[0]);
 
     // 改名 / 删除入口必须常驻可见：藏在 :hover 里等于没有入口（用户就是这么找不到删除的）
@@ -117,8 +119,19 @@ function rowsExpr() {
       var s=document.querySelectorAll('.acc-panel .acc-ico svg');
       return {n:s.length, vb:(s[0]&&s[0].getAttribute('viewBox'))||''};
     })()`);
-    check('图标是内联 SVG（不依赖系统 dingbat 字形）', icoSvg && icoSvg.n === 4 && icoSvg.vb === '0 0 12 12',
+    check('图标是内联 SVG（不依赖系统 dingbat 字形）', icoSvg && icoSvg.n === 5 && icoSvg.vb === '0 0 12 12',
       JSON.stringify(icoSvg));
+    // 别的电脑在用、本机没登记的号：只能改名，不显示「解除登记」（没得解）
+    const rowIcons = await ev(`(function(){
+      var rs=document.querySelectorAll('.acc-panel .acc-row');
+      return [].map.call(rs, function(r){
+        return { name: r.querySelector('.nm').textContent.trim(),
+                 del: !!r.querySelector('[data-acc-del]'),
+                 ren: !!r.querySelector('[data-acc-rename]') };
+      });
+    })()`);
+    const otherRow = (rowIcons || []).filter(r => r.name === 'WB-副号')[0];
+    check('非本机登记的号只有改名、没有解除登记', otherRow && otherRow.ren && !otherRow.del, JSON.stringify(rowIcons));
 
     // ---------- 3. 新增：输入框必须是空的（旧实现预填当前值 → 看起来像改名）----------
     await click(cdp, '.acc-panel [data-acc-add]');
@@ -138,7 +151,8 @@ function rowsExpr() {
     const rows2 = await ev(rowsExpr());
     check('新增后原有的号都还在', Array.isArray(rows2) && rows2.indexOf('WB-主号*') >= 0 && rows2.indexOf('WB-备用号') >= 0,
       JSON.stringify(rows2));
-    check('新增后池里有 3 个号', Array.isArray(rows2) && rows2.length === 3, JSON.stringify(rows2));
+    check('新增后面板多一个共享号', Array.isArray(rows2) &&
+      JSON.stringify(rows2) === JSON.stringify(['WB-主号*', 'WB-备用号', 'WB-测试号', 'WB-副号']), JSON.stringify(rows2));
 
     const d1 = await getJSON('/api/query?db=accounts');
     const pool1 = (d1.results || []).filter(a => a['所属电脑'] === '台式机-家' && a['平台'] === 'WorkBuddy');
@@ -190,7 +204,7 @@ function rowsExpr() {
     await wait(900);
     const rows4 = await ev(rowsExpr());
     check('删除后该号消失', Array.isArray(rows4) && rows4.join('/').indexOf('WB-测试号2') < 0, JSON.stringify(rows4));
-    check('删除后当前顺延到剩下的号', Array.isArray(rows4) && rows4.length === 2 && rows4.filter(r => r.slice(-1) === '*').length === 1,
+    check('删除后当前顺延到剩下的号', Array.isArray(rows4) && rows4.length === 3 && rows4.filter(r => r.slice(-1) === '*').length === 1,
       JSON.stringify(rows4));
     const d4 = await getJSON('/api/query?db=accounts');
     const pool4 = (d4.results || []).filter(a => a['所属电脑'] === '台式机-家' && a['平台'] === 'WorkBuddy');
@@ -204,7 +218,7 @@ function rowsExpr() {
       await wait(800);
       const pill4 = await ev(`(function(){var b=document.querySelector('${PILL}');if(!b)return null;var c=b.querySelector('.cnt');return {name:b.querySelector('.an').textContent.trim(),cnt:c?c.textContent.trim():'',empty:b.classList.contains('empty')}})()`);
       check('清除后胶囊显示未登录', pill4 && pill4.name === '未登录' && pill4.empty, pill4 && pill4.name);
-      check('清除后角标仍在（账号没丢）', pill4 && pill4.cnt === '2', pill4 && pill4.cnt);
+      check('清除后角标仍在（共享池没丢）', pill4 && pill4.cnt === '3', pill4 && pill4.cnt);
       const d5 = await getJSON('/api/query?db=accounts');
       const pool5 = (d5.results || []).filter(a => a['所属电脑'] === '台式机-家' && a['平台'] === 'WorkBuddy');
       check('清除后账号仍有 2 条、当前为 0', pool5.length === 2 && pool5.filter(a => a['当前'] === true).length === 0,
@@ -220,13 +234,66 @@ function rowsExpr() {
     check('另一台电脑的账号没被波及', other.length === 1 && other[0]['账号名'] === 'WB-副号' && other[0]['当前'] === true,
       other.map(a => a['账号名'] + (a['当前'] ? '*' : '')).join('/'));
 
-    // ---------- 10. 面板不混入别的电脑的账号 ----------
+    // ---------- 10. 另一台电脑的面板看到的是同一份共享名单 ----------
     await key(cdp, 'Escape');
     await wait(200);
     await click(cdp, '.col[data-machine-id="m2"] .ch-acc .acc[data-switch="m2:wb"]');
     await wait(300);
     const rows6 = await ev(rowsExpr());
-    check('另一台电脑的面板只列自己的号', JSON.stringify(rows6) === JSON.stringify(['WB-副号*']), JSON.stringify(rows6));
+    check('另一台电脑的面板是同一份共享名单',
+      JSON.stringify(rows6) === JSON.stringify(['WB-副号*', 'WB-主号', 'WB-备用号']), JSON.stringify(rows6));
+
+    // ---------- 11. 共享语义：点别的电脑在用的号 → 这台机登记一条并切过去 ----------
+    await key(cdp, 'Escape');
+    await wait(200);
+    await click(cdp, PILL);
+    await wait(300);
+    const rows7 = await ev(rowsExpr());
+    const idx7 = rows7.indexOf('WB-副号');
+    await click(cdp, '.acc-panel .acc-list .acc-row:nth-child(' + (idx7 + 1) + ') .nm');
+    await wait(900);
+    const d7 = await getJSON('/api/query?db=accounts');
+    const m1wb = (d7.results || []).filter(a => a['所属电脑'] === '台式机-家' && a['平台'] === 'WorkBuddy');
+    const nbwb = (d7.results || []).filter(a => a['所属电脑'] === '笔记本' && a['平台'] === 'WorkBuddy');
+    check('点共享号 → 本机登记一条并设为当前',
+      m1wb.some(a => a['账号名'] === 'WB-副号' && a['当前'] === true), m1wb.map(a => a['账号名'] + (a['当前'] ? '*' : '')).join('/'));
+    check('同池仍只有一条「当前」', m1wb.filter(a => a['当前'] === true).length === 1,
+      m1wb.filter(a => a['当前'] === true).map(a => a['账号名']).join('/'));
+    check('别的电脑的同一账号仍是它自己的当前', nbwb.length === 1 && nbwb[0]['当前'] === true,
+      nbwb.map(a => a['账号名'] + (a['当前'] ? '*' : '')).join('/'));
+
+    // ---------- 12. 改名 = 改共享账号本身，同名登记一起改 ----------
+    const sub1 = m1wb.filter(a => a['账号名'] === 'WB-副号')[0];
+    await click(cdp, '.acc-panel [data-acc-rename="' + sub1._id + '"]');
+    await wait(260);
+    await click(cdp, '.acc-panel [data-acc-field]');
+    await ctrlA(cdp);
+    await cdp.send('Input.insertText', { text: 'WB-副号2' });
+    await wait(120);
+    await key(cdp, 'Enter');
+    await wait(900);
+    const d8 = await getJSON('/api/query?db=accounts');
+    const sameName = (d8.results || []).filter(a => a['平台'] === 'WorkBuddy' && a['账号名'] === 'WB-副号2');
+    check('改名是全库同步的（共享账号本身）', sameName.length === 2,
+      (d8.results || []).filter(a => a['平台'] === 'WorkBuddy').map(a => a['所属电脑'] + ':' + a['账号名']).join('/'));
+
+    // ---------- 13. 解除登记：只删这台电脑这一条，别的电脑仍在用 ----------
+    await click(cdp, '.acc-panel [data-acc-del="' + sub1._id + '"]');
+    await wait(300);
+    await click(cdp, '#cOk');
+    await wait(1000);
+    const d9 = await getJSON('/api/query?db=accounts');
+    const m1wb2 = (d9.results || []).filter(a => a['所属电脑'] === '台式机-家' && a['平台'] === 'WorkBuddy');
+    const nbwb2 = (d9.results || []).filter(a => a['所属电脑'] === '笔记本' && a['平台'] === 'WorkBuddy');
+    check('解除登记只删本机这一条', !m1wb2.some(a => a['账号名'] === 'WB-副号2'),
+      m1wb2.map(a => a['账号名'] + (a['当前'] ? '*' : '')).join('/'));
+    check('别的电脑仍在用这个号', nbwb2.length === 1 && nbwb2[0]['账号名'] === 'WB-副号2' && nbwb2[0]['当前'] === true,
+      nbwb2.map(a => a['账号名'] + (a['当前'] ? '*' : '')).join('/'));
+    check('共享池里这个号还没消失', (d9.results || []).some(a => a['账号名'] === 'WB-副号2'),
+      (d9.results || []).filter(a => a['账号名'] === 'WB-副号2').map(a => a['所属电脑']).join('/'));
+    const rows8 = await ev(rowsExpr());
+    check('解除后本机仍有当前账号（顺延）', Array.isArray(rows8) && rows8.filter(r => r.slice(-1) === '*').length === 1,
+      JSON.stringify(rows8));
   } catch (e) {
     check('执行未抛错', false, e && e.message);
     console.error(e);
