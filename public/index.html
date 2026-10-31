@@ -842,7 +842,7 @@
      容器自己留 padding-top 会让顶栏被顶下去一条缝，滚动时内容从缝里透出来。 */
   .view { padding: 0 14px 40px; }
   .pane-top .sec-title { margin-bottom: 10px; }
-  .gh-intensity { padding-top: 10px; }
+  .pane-top .gh-intensity { padding: 0 0 8px; }
 
   /* ===== 底部 T-bar（窄屏分页）：宽屏隐藏，≤760px 接管导航与主操作 ===== */
   .tabbar { display: none; }
@@ -951,12 +951,12 @@
   <section class="view" id="viewGithub">
     <div class="pane-top">
       <button class="sec-title" id="tGh" title="点击放大本栏，再点还原" type="button">GitHub 看板<span class="mx">⤢</span></button>
+      <div class="gh-intensity" id="ghIntensity"></div>
       <div class="gh-toolbar">
         <div class="gh-filter"><label>电脑</label><select id="ghF_machine"><option value>全部</option></select></div>
         <div class="gh-kpis" id="ghKpis"></div>
       </div>
     </div>
-    <div class="gh-intensity" id="ghIntensity"></div>
     <div class="gh-list" id="ghList"></div>
   </section>
 </main>

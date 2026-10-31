@@ -72,6 +72,15 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       return Math.round(vg.querySelector('.pane-top').getBoundingClientRect().top - vg.getBoundingClientRect().top);
     })()`);
     check('滚动后 GitHub 顶部仍贴在栏顶', Math.abs(ghTop) <= 2, '偏移 ' + ghTop + 'px');
+    const ghOrder = await cdp.evalJson(`(function(){
+      var pt = document.querySelector('#viewGithub .pane-top');
+      var it = pt.querySelector('#ghIntensity'), tb = pt.querySelector('.gh-toolbar');
+      if (!it || !tb) return null;
+      return { inTop: true, intensityFirst: it.getBoundingClientRect().top < tb.getBoundingClientRect().top,
+        intensitySticky: getComputedStyle(it.closest('.pane-top')).position === 'sticky' };
+    })()`);
+    check('开发强度与选择电脑都在置顶区（强度在上）',
+      ghOrder && ghOrder.inTop && ghOrder.intensityFirst && ghOrder.intensitySticky, JSON.stringify(ghOrder));
 
     const s1 = await cdp.send('Page.captureScreenshot', { format: 'png' });
     fs.writeFileSync(OUT + '-wide.png', Buffer.from(s1.data, 'base64'));
