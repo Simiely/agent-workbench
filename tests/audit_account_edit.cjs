@@ -1,9 +1,5 @@
-// 机器列头菜单精简 + 账号可编辑体检
-// 关键点：
-//   1. 列头 ⋯ 菜单只剩「删除这台电脑」，其余 4 项（重命名/改位置/左移/右移）已下掉
-//   2. 账号胶囊菜单末尾有「输入其他账号…」，点开是输入框，回车写库
-//   3. Esc 取消不写库；空值不写库
-//   4. 预设选项（未登录）仍可用
+// 登录账号：一台电脑 × 一个平台可以有多个号，且能新增 / 改名 / 删除 / 设为当前。
+// 关键回归：**新增一个号不能覆盖已有的号**（旧实现只有单值字段，新增 = 重命名）。
 const { launch } = require('./cdp.cjs');
 const { spawn } = require('child_process');
 const { seedFixture } = require('./fixture_db.cjs');
@@ -30,7 +26,7 @@ function getJSON(p) {
 }
 
 async function click(cdp, sel) {
-  // 先滚到视口内再取坐标：看板横向可滚，第二列以后的元素原本在视口外，直接点会点到空处
+  // 看板横向可滚，第二列之后的元素原本在视口外，直接点会点到空处
   const selJson = JSON.stringify(sel);
   await cdp.evalJson('(function(){var e=document.querySelector(' + selJson + ');if(e&&e.scrollIntoView)e.scrollIntoView({block:"center",inline:"center"});return 1})()');
   await new Promise(r => setTimeout(r, 150));
@@ -43,7 +39,6 @@ async function click(cdp, sel) {
 }
 
 async function ctrlA(cdp) {
-  // 输入框预填了当前值，全选后输入才是"替换"，否则 insertText 会拼在后面
   await cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: 'a', code: 'KeyA', windowsVirtualKeyCode: 65, modifiers: 2 });
   await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'a', code: 'KeyA', windowsVirtualKeyCode: 65, modifiers: 2 });
 }
@@ -52,6 +47,16 @@ async function key(cdp, k) {
   const code = k === 'Enter' ? 13 : k === 'Escape' ? 27 : 0;
   await cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: k, code: k, windowsVirtualKeyCode: code });
   await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: k, code: k, windowsVirtualKeyCode: code });
+}
+
+// 面板里的账号行文本（当前账号带「当前」）
+function rowsExpr() {
+  return `(function(){
+    var p=document.querySelector('.acc-panel'); if(!p) return null;
+    var rs=p.querySelectorAll('.acc-row'); var out=[];
+    for(var i=0;i<rs.length;i++) out.push(rs[i].querySelector('.nm').textContent.trim()+(rs[i].classList.contains('on')?'*':''));
+    return out;
+  })()`;
 }
 
 (async () => {
@@ -76,182 +81,133 @@ async function key(cdp, k) {
     const ev = expr => cdp.evalJson(expr);
     const wait = ms => new Promise(r => setTimeout(r, ms));
 
-    // ---------- 1. 列头菜单只剩删除 ----------
-    const menuBtnSel = '.col[data-machine-id] .col-head .dots[data-machine-menu]';
-    await click(cdp, menuBtnSel);
+    // m1 = 台式机-家，WB 池里有 WB-主号(当前) + WB-备用号
+    const PILL = '.col[data-machine-id="m1"] .ch-acc .acc[data-switch="m1:wb"]';
+
+    // ---------- 1. 胶囊显示当前账号 + 账号数角标 ----------
+    const pill = await ev(`(function(){
+      var b=document.querySelector('${PILL}'); if(!b) return null;
+      var c=b.querySelector('.cnt');
+      return {name:b.querySelector('.an').textContent.trim(), cnt:c?c.textContent.trim():''};
+    })()`);
+    check('胶囊显示当前账号', pill && pill.name === 'WB-主号', pill && pill.name);
+    check('胶囊带账号数角标 2', pill && pill.cnt === '2', pill && pill.cnt);
+
+    // ---------- 2. 打开面板：只列本机该平台的号 ----------
+    await click(cdp, PILL);
     await wait(260);
-    const menu = await ev(`(function(){
-      var ms=document.querySelectorAll('.menu');
-      if(!ms.length) return {open:false};
-      var b=ms[ms.length-1].querySelectorAll('button');
-      var arr=[]; for(var i=0;i<b.length;i++) arr.push(b[i].textContent.replace(/\\s+/g,' ').trim());
-      return {open:true, items:arr};
-    })()`);
-    check('列头菜单能打开', menu.open === true, menu.open ? '' : '没找到 .menu');
-    check('菜单只剩 1 项', menu.items && menu.items.length === 1, JSON.stringify(menu.items));
-    check('唯一项是「删除这台电脑」', menu.items && menu.items[0] === '删除这台电脑', (menu.items || [])[0]);
-    const gone = ['重命名这台电脑', '改位置标签', '向左移一列', '向右移一列'];
-    check('原 4 项已全部移除', menu.items && gone.every(x => menu.items.indexOf(x) < 0), JSON.stringify(menu.items));
+    const rows1 = await ev(rowsExpr());
+    check('面板能打开', Array.isArray(rows1), rows1 === null ? '没找到 .acc-panel' : '');
+    check('只列本机 WorkBuddy 的号', JSON.stringify(rows1) === JSON.stringify(['WB-主号*', 'WB-备用号']), JSON.stringify(rows1));
+    check('当前号带「当前」标记', rows1 && rows1[0] === 'WB-主号*', rows1 && rows1[0]);
 
-    // 关闭菜单
-    await key(cdp, 'Escape');
-    await wait(150);
+    // ---------- 3. 新增：输入框必须是空的（旧实现预填当前值 → 看起来像改名）----------
+    await click(cdp, '.acc-panel [data-acc-add]');
+    await wait(240);
+    const inputVal = await ev(`(function(){var i=document.querySelector('.acc-panel [data-acc-field]');return i?i.value:null})()`);
+    check('新增输入框默认为空', inputVal === '', JSON.stringify(inputVal));
+    const btnText = await ev(`(function(){var b=document.querySelector('.acc-panel [data-acc-save]');return b?b.textContent.trim():null})()`);
+    check('新增按钮文案是「添加」', btnText === '添加', btnText);
 
-    // ---------- 2. 账号胶囊 → 输入其他账号… ----------
-    const accInfo = await ev(`(function(){
-      var b=document.querySelector('.col[data-machine-id] .ch-acc .acc[data-switch$=":wb"]');
-      if(!b) return null;
-      return {sw:b.getAttribute('data-switch'), text:b.querySelector('.an').textContent.trim()};
-    })()`);
-    check('找到 WorkBuddy 账号胶囊', !!accInfo, accInfo ? accInfo.text : '');
-    const mid = accInfo.sw.split(':')[0];
-
-    await click(cdp, '[data-switch="' + accInfo.sw + '"]');
-    await wait(260);
-    const swMenu = await ev(`(function(){
-      var ms=document.querySelectorAll('.menu');
-      if(!ms.length) return {open:false};
-      var b=ms[ms.length-1].querySelectorAll('button');
-      var arr=[]; for(var i=0;i<b.length;i++) arr.push(b[i].textContent.replace(/\\s+/g,' ').trim());
-      return {open:true, items:arr, hasInput: !!document.querySelector('.menu [data-acc-input]')};
-    })()`);
-    check('账号菜单能打开', swMenu.open === true, '');
-    check('账号菜单有「输入其他账号…」', swMenu.hasInput === true, JSON.stringify(swMenu.items));
-    check('账号菜单第 1 项是列内已有账号（列表仍可用）', true, (swMenu.items || [])[0]);
-
-    await click(cdp, '.menu [data-acc-input]');
-    await wait(260);
-    const boxState = await ev(`(function(){
-      var m=document.querySelector('.menu.acc-menu');
-      if(!m) return {open:false};
-      var i=m.querySelector('input');
-      var r=i?i.getBoundingClientRect():null;
-      return {open:true, hasInput:!!i, focused: document.activeElement===i,
-              value:i?i.value:'', w:r?Math.round(r.width):0, h:r?Math.round(r.height):0};
-    })()`);
-    check('输入框弹出且自动聚焦', boxState.open === true && boxState.hasInput === true && boxState.focused === true, JSON.stringify(boxState));
-    check('输入框宽度铺满菜单（≥180px）', boxState.w >= 180, boxState.w + 'px');
-
-    // ---------- 3. 输入并回车写库 ----------
-    const NEWACC = 'qa-wb-account';
-    await click(cdp, '.menu.acc-menu input');
-    await wait(120);
-    await ctrlA(cdp);
-    await cdp.send('Input.insertText', { text: NEWACC });
+    // ---------- 4. 真键盘输入 + 回车，新增第二个号 ----------
+    await click(cdp, '.acc-panel [data-acc-field]');
+    await wait(80);
+    await cdp.send('Input.insertText', { text: 'WB-测试号' });
     await wait(120);
     await key(cdp, 'Enter');
+    await wait(900);
+    const rows2 = await ev(rowsExpr());
+    check('新增后原有的号都还在', Array.isArray(rows2) && rows2.indexOf('WB-主号*') >= 0 && rows2.indexOf('WB-备用号') >= 0,
+      JSON.stringify(rows2));
+    check('新增后池里有 3 个号', Array.isArray(rows2) && rows2.length === 3, JSON.stringify(rows2));
+
+    const d1 = await getJSON('/api/query?db=accounts');
+    const pool1 = (d1.results || []).filter(a => a['所属电脑'] === '台式机-家' && a['平台'] === 'WorkBuddy');
+    check('库里落成 3 条账号记录', pool1.length === 3, pool1.map(a => a['账号名']).join('/'));
+    check('新增的号不是当前', (pool1.filter(a => a['账号名'] === 'WB-测试号')[0] || {})['当前'] === false,
+      String((pool1.filter(a => a['账号名'] === 'WB-测试号')[0] || {})['当前']));
+
+    const m1a = await getJSON('/api/query?db=machines');
+    const mac1 = (m1a.results || []).filter(m => m['机器名'] === '台式机-家')[0] || {};
+    check('机器表当前账号没被新增改动', mac1['WorkBuddy账号'] === 'WB-主号', String(mac1['WorkBuddy账号']));
+
+    // ---------- 5. 点另一个号 = 设为当前（只切当前，不删不改名）----------
+    await click(cdp, '.acc-panel .acc-list .acc-row:nth-child(3) .nm');
     await wait(700);
+    const rows3 = await ev(rowsExpr());
+    check('点一下即切换当前账号', Array.isArray(rows3) && rows3.indexOf('WB-测试号*') >= 0, JSON.stringify(rows3));
+    const d2 = await getJSON('/api/query?db=accounts');
+    const pool2 = (d2.results || []).filter(a => a['所属电脑'] === '台式机-家' && a['平台'] === 'WorkBuddy');
+    check('同池只有一条「当前」', pool2.filter(a => a['当前'] === true).length === 1,
+      pool2.filter(a => a['当前'] === true).map(a => a['账号名']).join('/'));
+    const pill2 = await ev(`(function(){var b=document.querySelector('${PILL}');return b?b.querySelector('.an').textContent.trim():null})()`);
+    check('胶囊跟着变成新当前', pill2 === 'WB-测试号', pill2);
 
-    const afterPill = await ev(`(function(){
-      var b=document.querySelector('.col[data-machine-id] .ch-acc .acc[data-switch$=":wb"]');
-      return b?b.querySelector('.an').textContent.trim():null;
-    })()`);
-    check('胶囊显示新账号', afterPill === NEWACC, afterPill);
-    const menuClosed = await ev('(function(){return document.querySelectorAll(".menu").length})()');
-    check('保存后菜单自动关闭', menuClosed === 0, 'menu=' + menuClosed);
-
-    const dbM = await getJSON('/api/query?db=machines');
-    const rec = (dbM.results || []).filter(r => r._id === mid)[0];
-    check('落盘 WorkBuddy账号 == 新值', rec && rec['WorkBuddy账号'] === NEWACC, rec ? String(rec['WorkBuddy账号']) : '无记录');
-    check('落盘「最后确认」已刷新', !!(rec && rec['最后确认']), rec ? String(rec['最后确认']) : '');
-
-    // ---------- 3b. 跨机器复用：另一台电脑立刻能点这个账号 ----------
-    const ids = await ev('(function(){return Array.prototype.map.call(document.querySelectorAll("#board .col[data-machine-id]"),function(c){return c.getAttribute("data-machine-id")});})()');
-    const other = (ids || []).filter(x => x !== mid)[0];
-    check('存在第二台电脑（跨机器复用可测）', !!other, (ids || []).join(','));
-
-    if (other) {
-      await click(cdp, '[data-switch="' + other + ':wb"]');
-      await wait(260);
-      const otherOpts = await ev(`(function(){
-        var m=document.querySelector('.menu'); if(!m) return null;
-        var bs=m.querySelectorAll('button[data-pick]');
-        var arr=[]; for(var i=0;i<bs.length;i++) arr.push(bs[i].getAttribute('data-pick'));
-        return {options:arr, hasNew:arr.indexOf(${JSON.stringify(NEWACC)})>=0, hasClear:arr.indexOf('未登录')>=0};
-      })()`);
-      check('另一台电脑的下拉里出现新账号（无需刷新）', otherOpts && otherOpts.hasNew, otherOpts ? JSON.stringify(otherOpts.options) : '菜单没打开');
-      check('下拉始终保留「未登录」清空项', otherOpts && otherOpts.hasClear, otherOpts ? JSON.stringify(otherOpts.options) : '');
-
-      await click(cdp, '.menu [data-pick="' + NEWACC + '"]');
-      await wait(650);
-      const otherPill = await ev(`(function(){
-        var b=document.querySelector('.col[data-machine-id="${other}"] .ch-acc .acc[data-switch$=":wb"]');
-        return b?b.querySelector('.an').textContent.trim():null;
-      })()`);
-      check('点标签即可把该账号用到另一台电脑', otherPill === NEWACC, otherPill);
-      const dbM3 = await getJSON('/api/query?db=machines');
-      const rec3 = (dbM3.results || []).filter(r => r._id === other)[0];
-      check('另一台电脑的账号也已落盘', rec3 && rec3['WorkBuddy账号'] === NEWACC, rec3 ? String(rec3['WorkBuddy账号']) : '');
-    }
-
-    // ---------- 3c. 刷新后仍在（选项来自库，不是内存） ----------
-    await browser.goto('http://127.0.0.1:' + PORT + '/');
-    await cdp.waitFor('(function(){return document.querySelectorAll("#board .col[data-machine-id]").length>0})()', 15000);
-    await wait(600);
-    const afterReload = await ev(`(function(){
-      var cs=document.querySelectorAll('#board .col[data-machine-id]');
-      var c=cs[0];
-      var b=c.querySelector('.ch-acc .acc[data-switch$=":wb"]');
-      return {sw:b?b.getAttribute('data-switch'):null};
-    })()`);
-    if (afterReload && afterReload.sw) {
-      await click(cdp, '[data-switch="' + afterReload.sw + '"]');
-      await wait(260);
-      const reloadOpts = await ev(`(function(){
-        var m=document.querySelector('.menu'); if(!m) return null;
-        var bs=m.querySelectorAll('button[data-pick]'); var arr=[];
-        for(var i=0;i<bs.length;i++) arr.push(bs[i].getAttribute('data-pick'));
-        return arr;
-      })()`);
-      check('刷新页面后新账号仍是可点标签', Array.isArray(reloadOpts) && reloadOpts.indexOf(NEWACC) >= 0, JSON.stringify(reloadOpts));
-      await key(cdp, 'Escape');
-      await wait(150);
-    } else {
-      check('刷新页面后新账号仍是可点标签', false, '刷新后找不到账号胶囊');
-    }
-
-    // ---------- 4. Esc 取消不写库 ----------
-    await click(cdp, '[data-switch="' + accInfo.sw + '"]');
-    await wait(220);
-    await click(cdp, '.menu [data-acc-input]');
-    await wait(220);
-    await click(cdp, '.menu.acc-menu input');
-    await wait(100);
+    // ---------- 6. 改名：预填旧名，改完当前指针跟着走 ----------
+    const rid = (pool2.filter(a => a['账号名'] === 'WB-测试号')[0] || {})._id;
+    await click(cdp, '.acc-panel [data-acc-rename="' + rid + '"]');
+    await wait(240);
+    const renameVal = await ev(`(function(){var i=document.querySelector('.acc-panel [data-acc-field]');return i?i.value:null})()`);
+    check('改名输入框预填旧名', renameVal === 'WB-测试号', JSON.stringify(renameVal));
+    await click(cdp, '.acc-panel [data-acc-field]');
     await ctrlA(cdp);
-    await cdp.send('Input.insertText', { text: 'should-not-save' });
+    await cdp.send('Input.insertText', { text: 'WB-测试号2' });
     await wait(120);
-    await key(cdp, 'Escape');
-    await wait(500);
-    const afterEsc = await ev(`(function(){
-      var b=document.querySelector('.col[data-machine-id] .ch-acc .acc[data-switch$=":wb"]');
-      return b?b.querySelector('.an').textContent.trim():null;
-    })()`);
-    check('Esc 取消后胶囊值不变', afterEsc === NEWACC, afterEsc);
-    const dbM2 = await getJSON('/api/query?db=machines');
-    const rec2 = (dbM2.results || []).filter(r => r._id === mid)[0];
-    check('Esc 取消未写库', rec2 && rec2['WorkBuddy账号'] === NEWACC, rec2 ? String(rec2['WorkBuddy账号']) : '无记录');
+    await key(cdp, 'Enter');
+    await wait(800);
+    const d3 = await getJSON('/api/query?db=accounts');
+    const renamed = (d3.results || []).filter(a => a._id === rid)[0] || {};
+    check('改名已落库', renamed['账号名'] === 'WB-测试号2', String(renamed['账号名']));
+    check('改名后仍是当前', renamed['当前'] === true, String(renamed['当前']));
+    const pill3 = await ev(`(function(){var b=document.querySelector('${PILL}');return b?b.querySelector('.an').textContent.trim():null})()`);
+    check('胶囊同步新名字', pill3 === 'WB-测试号2', pill3);
 
-    // ---------- 5. 预设选项仍可用 ----------
-    await click(cdp, '[data-switch="' + accInfo.sw + '"]');
-    await wait(220);
-    const picked = await ev(`(function(){
-      var ms=document.querySelectorAll('.menu');
-      var m=ms[ms.length-1]; if(!m) return null;
-      var bs=m.querySelectorAll('button[data-pick]');
-      for(var i=0;i<bs.length;i++){ if(bs[i].textContent.replace(/\\s+/g,' ').trim().indexOf('未登录')>=0) return bs[i].getAttribute('data-pick'); }
-      return null;
-    })()`);
-    if (picked) {
-      await click(cdp, '[data-pick="' + picked + '"]');
-      await wait(600);
-      const afterPick = await ev(`(function(){
-        var b=document.querySelector('.col[data-machine-id] .ch-acc .acc[data-switch$=":wb"]');
-        return b?b.querySelector('.an').textContent.trim():null;
-      })()`);
-      check('预设项「未登录」仍可用', afterPick === '未登录', afterPick);
-    } else {
-      check('预设项「未登录」仍可用', false, '菜单里没找到 data-pick=未登录');
+    // ---------- 7. 删除当前账号：确认后从列表移除，当前顺延 ----------
+    await click(cdp, '.acc-panel [data-acc-del="' + rid + '"]');
+    await wait(300);
+    const confirmOn = await ev(`(function(){var m=document.getElementById('confirmModal');return !!(m&&m.classList.contains('on'))})()`);
+    check('删除前有确认框', confirmOn === true, String(confirmOn));
+    await click(cdp, '#cOk');
+    await wait(900);
+    const rows4 = await ev(rowsExpr());
+    check('删除后该号消失', Array.isArray(rows4) && rows4.join('/').indexOf('WB-测试号2') < 0, JSON.stringify(rows4));
+    check('删除后当前顺延到剩下的号', Array.isArray(rows4) && rows4.length === 2 && rows4.filter(r => r.slice(-1) === '*').length === 1,
+      JSON.stringify(rows4));
+    const d4 = await getJSON('/api/query?db=accounts');
+    const pool4 = (d4.results || []).filter(a => a['所属电脑'] === '台式机-家' && a['平台'] === 'WorkBuddy');
+    check('库里也只剩 2 条', pool4.length === 2, pool4.map(a => a['账号名']).join('/'));
+
+    // ---------- 8. 清除登录态：账号留着，当前置空 ----------
+    const clearBtn = await ev(`(function(){return !!document.querySelector('.acc-panel [data-acc-clear]')})()`);
+    check('有当前账号时提供「清除登录态」', clearBtn === true, String(clearBtn));
+    if (clearBtn) {
+      await click(cdp, '.acc-panel [data-acc-clear]');
+      await wait(800);
+      const pill4 = await ev(`(function(){var b=document.querySelector('${PILL}');if(!b)return null;var c=b.querySelector('.cnt');return {name:b.querySelector('.an').textContent.trim(),cnt:c?c.textContent.trim():'',empty:b.classList.contains('empty')}})()`);
+      check('清除后胶囊显示未登录', pill4 && pill4.name === '未登录' && pill4.empty, pill4 && pill4.name);
+      check('清除后角标仍在（账号没丢）', pill4 && pill4.cnt === '2', pill4 && pill4.cnt);
+      const d5 = await getJSON('/api/query?db=accounts');
+      const pool5 = (d5.results || []).filter(a => a['所属电脑'] === '台式机-家' && a['平台'] === 'WorkBuddy');
+      check('清除后账号仍有 2 条、当前为 0', pool5.length === 2 && pool5.filter(a => a['当前'] === true).length === 0,
+        pool5.map(a => a['账号名'] + (a['当前'] ? '*' : '')).join('/'));
+      const m5 = await getJSON('/api/query?db=machines');
+      const mac5 = (m5.results || []).filter(m => m['机器名'] === '台式机-家')[0] || {};
+      check('机器表派生字段变空', mac5['WorkBuddy账号'] === '', JSON.stringify(mac5['WorkBuddy账号']));
     }
+
+    // ---------- 9. 别的电脑不受影响 ----------
+    const d6 = await getJSON('/api/query?db=accounts');
+    const other = (d6.results || []).filter(a => a['所属电脑'] === '笔记本' && a['平台'] === 'WorkBuddy');
+    check('另一台电脑的账号没被波及', other.length === 1 && other[0]['账号名'] === 'WB-副号' && other[0]['当前'] === true,
+      other.map(a => a['账号名'] + (a['当前'] ? '*' : '')).join('/'));
+
+    // ---------- 10. 面板不混入别的电脑的账号 ----------
+    await key(cdp, 'Escape');
+    await wait(200);
+    await click(cdp, '.col[data-machine-id="m2"] .ch-acc .acc[data-switch="m2:wb"]');
+    await wait(300);
+    const rows6 = await ev(rowsExpr());
+    check('另一台电脑的面板只列自己的号', JSON.stringify(rows6) === JSON.stringify(['WB-副号*']), JSON.stringify(rows6));
   } catch (e) {
     check('执行未抛错', false, e && e.message);
     console.error(e);

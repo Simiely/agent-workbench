@@ -9,7 +9,7 @@
 | 前缀 | 归属 | 用途 |
 |---|---|---|
 | `data-mact` | **机器菜单**（列头 kebab 菜单） | 机器动作（v1.0.2 起只剩 `delete`） |
-| `data-acc-input` | **账号输入入口**（账号下拉菜单内） | 打开「输入其他账号…」输入框 |
+| `data-acc-*` | **账号面板**（列头账号胶囊弹出层） | 切换当前 / 新增 / 改名 / 删除 / 清除登录态 |
 | `data-mid` | 机器菜单配套 | 目标机器 id |
 | `data-mb` | **管理栏**（批量操作） | 批量删除/移动/改优先级等 |
 | `data-act` | 任务卡操作区 | 卡片级动作 |
@@ -41,8 +41,14 @@
 |---|---|---|
 | `data-mid` | 机器 id | 机器菜单项、列容器 |
 | `data-mact` | 机器菜单动作：`delete`（v1.0.2 起；`rename`/`place`/`left`/`right` 已随菜单项下线，代码分支保留但无入口） | 机器菜单项（1 个） |
-| `data-acc-input` | 账号自由输入入口，值形如 `<机器id>:wb` / `<机器id>:trae` | 账号下拉菜单底部 |
-| `data-acc-save` / `data-acc-cancel` | 账号输入框的保存 / 取消 | 账号输入菜单按钮 |
+| `data-switch` | 打开账号面板，值形如 `<机器id>:wb` / `<机器id>:trae` | 列头账号胶囊 |
+| `data-acc-panel` | 账号面板容器标记，值同 `data-switch`（重绘时按它找回容器） | 面板根节点 |
+| `data-acc-cur` | 把该行设为当前账号（点当前行不做动作） | 面板里的账号行 |
+| `data-acc-rename` | 进入改名态，值是账号 id | 行内 ✎ |
+| `data-acc-del` | 删除该账号（走确认框，值是账号 id） | 行内 ✕ |
+| `data-acc-add` | 进入新增态（输入框为空，不预填当前值） | 面板底部 |
+| `data-acc-clear` | 清除登录态：账号保留、当前置空 | 面板底部（有当前账号时才出现） |
+| `data-acc-field` / `data-acc-save` / `data-acc-cancel` | 新增/改名输入框、保存、取消 | 面板输入区 |
 | `data-machine` | 机器名（文本） | 列容器 |
 | `data-machine-id` | 机器 id | 列容器 |
 | `data-machine-menu` | 打开机器菜单的触发元素 | 列头 |

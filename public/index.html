@@ -503,11 +503,31 @@
   .menu button:hover { background: var(--accent-soft); color: var(--accent); }
   .menu .pick { width: 5px; height: 5px; border-radius: 50%; background: var(--border-strong); flex: none; }
   .menu .pick.cur { background: var(--accent); }
-  /* 账号自由输入（列头账号胶囊 → 输入其他账号…） */
-  .menu.acc-menu { min-width: 234px; }
-  .acc-form { padding: 2px 8px 7px; }
+  .acc .cnt { font-size: 9px; color: var(--text-3); border: 1px solid var(--border); border-radius: 5px; padding: 0 3px; line-height: 12px; }
+  /* 账号面板：列头胶囊 → 切换 / 新增 / 改名 / 删除。
+     z-index 压在确认弹窗（44）之下，删除确认时不会被面板挡住。 */
+  .menu.acc-panel { min-width: 246px; max-width: 302px; z-index: 43; padding: 5px 5px 6px; }
+  .acc-list { max-height: 258px; overflow-y: auto; }
+  .acc-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; }
+  .acc-row:hover { background: var(--accent-soft); }
+  .acc-row.on { background: var(--accent-soft); }
+  .acc-row .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border-strong); flex: none; }
+  .acc-row.on .dot { background: var(--accent); }
+  .acc-row .nm { flex: 1; min-width: 0; font-size: 12px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .acc-row .tag { font-size: 9.5px; color: var(--accent); flex: none; }
+  .acc-row .ops { display: flex; gap: 1px; flex: none; opacity: 0; transition: opacity .12s; }
+  .acc-row:hover .ops, .acc-row.on .ops { opacity: 1; }
+  .acc-ico { width: 20px; height: 20px; border-radius: 5px; color: var(--text-3); font-size: 11px; display: grid; place-items: center; }
+  .acc-ico:hover { background: var(--panel); color: var(--text); }
+  .acc-ico.danger:hover { color: #F0736F; }
+  .acc-empty { padding: 6px 9px 9px; font-size: 11.5px; color: var(--text-3); line-height: 1.65; }
+  .acc-foot { border-top: 1px solid var(--border); margin-top: 4px; padding: 5px 3px 1px; }
+  .acc-foot button { width: 100%; color: var(--text-2); }
+  .acc-foot button + button { margin-top: 2px; color: var(--text-3); }
+  .acc-foot button:hover { color: var(--accent); }
+  .acc-form { padding: 3px 8px 5px; }
   .acc-form .inline-input { width: 100%; height: 27px; font-size: 12px; }
-  .acc-form-btns { display: flex; gap: 6px; padding: 0 8px 4px; }
+  .acc-form-btns { display: flex; gap: 6px; padding: 6px 0 2px; }
   .acc-form-btns button { flex: 1; justify-content: center; padding: 6px 8px; }
   .acc-form-btns button.primary { background: var(--accent); color: #fff; }
   .acc-form-btns button.primary:hover { filter: brightness(1.07); color: #fff; }
@@ -824,7 +844,7 @@
     </svg>
   </button>
   <button class="ghost-btn" id="manageBtn" title="批量选择与操作">管理</button>
-  <button class="ghost-btn" id="aiGuideBtn" title="AI 写入指南：三张表的字段契约与示例">🤖 指南</button>
+  <button class="ghost-btn" id="aiGuideBtn" title="AI 写入指南：四张表的字段契约与示例">🤖 指南</button>
   <button class="btn-primary" id="addBtn" title="新增">
     <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-width="2.2" viewBox="0 0 24 24" width="12"><path d="M12 5v14M5 12h14"/></svg>
     新增
@@ -947,12 +967,14 @@
 
   var DATABASE_ID = 'tasks'; // Agent 任务台账
   var DB_MACHINE = 'machines'; // 机器登录态
+  var DB_ACC = 'accounts'; // 登录账号（一台电脑 × 一个平台可以有多个号）
   var DB_GITHUB = 'github'; // GitHub 同步记录
 
   var F = {
     t: { title: '任务标题', status: '状态', prio: '优先级', machine: '所在电脑', dir: '目录',
          progress: '进度', todos: '待办', handoff: '交接内容', updated: '更新时间', order: '排序' },
     m: { name: '机器名', place: '位置', wb: 'WorkBuddy账号', trae: 'TRAE账号', confirmed: '最后确认', order: '排序' },
+    a: { name: '账号名', plat: '平台', mach: '所属电脑', cur: '当前', note: '备注', at: '最后确认', order: '排序' },
     g: { time: '同步时间', machine: '电脑', account: 'GitHub账号', repo: '仓库', content: '内容', versions: '同步版本', result: '是否同步', archived: '仓库归档' }
   };
   var ST_DOING = '进行中', ST_DONE = '已完成';
@@ -1001,6 +1023,7 @@ var db = localDb();
 
   var S = {
     machines: [],
+    accounts: [],   // 登录账号表：一台电脑 × 一个平台可以有多条，至多一条「当前」
     tasks: [],
     gh: [],
     ghFilter: { machine: '', unsync: false },
@@ -1110,6 +1133,12 @@ var db = localDb();
     }, cb);
   }
 
+  function loadAccounts(cb) {
+    paged(function (cursor) {
+      return db.query({ databaseId: DB_ACC, pageSize: 200, startCursor: cursor });
+    }, cb);
+  }
+
   function readOpts(schema, key, fieldName) {
     var props = (schema && schema.properties) || [];
     for (var i = 0; i < props.length; i++) {
@@ -1137,12 +1166,15 @@ var db = localDb();
     }).then(function () {
       loadMachines( function (ms, e1) {
         S.machines = ms;
-        loadTasks( function (ts, e2) {
-          S.tasks = ts;
-          loadGithub( function (gh, e3) {
-            S.gh = gh;
-            S.ready = true;
-            cb(e1 || e2 || e3);
+        loadAccounts( function (accs, e2) {
+          S.accounts = accs;
+          loadTasks( function (ts, e3) {
+            S.tasks = ts;
+            loadGithub( function (gh, e4) {
+              S.gh = gh;
+              S.ready = true;
+              cb(e1 || e2 || e3 || e4);
+            });
           });
         });
       });
@@ -1268,14 +1300,49 @@ var db = localDb();
       '<' + '/div>';
   }
 
+  // 账号池：一台电脑 × 一个平台可以有多条，至多一条「当前」
+  function accPlat(key) { return key === 'wb' ? 'WorkBuddy' : 'TRAE'; }
+
+  function accPool(machineName, plat) {
+    var out = [];
+    for (var i = 0; i < S.accounts.length; i++) {
+      var a = S.accounts[i];
+      if (txt(a[F.a.mach]) === machineName && txt(a[F.a.plat]) === plat) out.push(a);
+    }
+    out.sort(function (x, y) {
+      var ox = typeof x[F.a.order] === 'number' ? x[F.a.order] : 9999;
+      var oy = typeof y[F.a.order] === 'number' ? y[F.a.order] : 9999;
+      return ox - oy;
+    });
+    return out;
+  }
+
+  function currentAcc(machineName, plat) {
+    var p = accPool(machineName, plat);
+    for (var i = 0; i < p.length; i++) if (p[i][F.a.cur] === true) return p[i];
+    return null;
+  }
+
+  function findAcc(id) {
+    for (var i = 0; i < S.accounts.length; i++) if (S.accounts[i]._id === id) return S.accounts[i];
+    return null;
+  }
+
   function accPill(m, key) {
-    var field = key === 'wb' ? F.m.wb : F.m.trae;
-    var val = txt(m[field]);
+    var plat = accPlat(key);
+    var name = txt(m[F.m.name]);
     var label = key === 'wb' ? 'WB' : 'TRAE';
+    var cur = currentAcc(name, plat);
+    // 账号表是唯一真相：没有「当前」就是未登录，不能拿机器记录里的旧派生值兜底，
+    // 否则清除登录态后胶囊还挂着上一个名字（数据已经空了）
+    var val = cur ? txt(cur[F.a.name]) : (S.ready ? '' : txt(m[key === 'wb' ? F.m.wb : F.m.trae]));
+    var n = accPool(name, plat).length;
     var empty = (!val || val === '未登录');
-    return '<button class="acc ' + (empty ? 'empty' : '') + '" data-switch="' + escapeHtml(m._id) + ':' + key + '">' +
+    return '<button class="acc ' + (empty ? 'empty' : '') + '" data-switch="' + escapeHtml(m._id) + ':' + key + '"' +
+      ' title="' + (empty ? '登记这个平台登录过的账号' : '切换 / 管理账号') + '">' +
       '<span class="led"></span><span class="pf">' + label + '<' + '/span>' +
-      '<span class="an">' + (empty ? '未登录' : escapeHtml(val)) + '</span></button>';
+      '<span class="an">' + (empty ? '未登录' : escapeHtml(val)) + '</span>' +
+      ((n > 1 || (n && empty)) ? '<span class="cnt">' + n + '</span>' : '') + '</button>';
   }
 
   function cardHTML(t) {
@@ -2746,10 +2813,19 @@ var db = localDb();
       { name: '机器登录态', id: DB_MACHINE, key: 'machines', fields: [
         { n: '机器名', t: 'text', req: 1, d: '唯一标识，任务的「所在电脑」引用它' },
         { n: '位置', t: 'text', req: 0, d: '家 / 随身 等位置标签' },
-        { n: 'WorkBuddy账号', t: 'text', req: 0, d: '该机登录的 WorkBuddy 账号' },
-        { n: 'TRAE账号', t: 'text', req: 0, d: '该机登录的 TRAE 账号' },
+        { n: 'WorkBuddy账号', t: 'text', req: 0, d: '派生只读 = 该机当前的 WorkBuddy 账号（真相在「登录账号」表）' },
+        { n: 'TRAE账号', t: 'text', req: 0, d: '派生只读 = 该机当前的 TRAE 账号（真相在「登录账号」表）' },
         { n: '最后确认', t: 'date', req: 0, d: '最近一次确认登录态的时间' },
         { n: '排序', t: 'number', req: 0, d: '看板列的顺序，小的在前' }
+      ]},
+      { name: '登录账号', id: DB_ACC, key: 'accounts', fields: [
+        { n: '账号名', t: 'text', req: 1, d: '如 坤坤 / 小黄，同一台电脑同一平台内不重名' },
+        { n: '平台', t: 'select', req: 1, d: '一个账号只属于一个平台', en: 'WorkBuddy,TRAE' },
+        { n: '所属电脑', t: 'text', req: 1, d: '必须与机器表的「机器名」一致' },
+        { n: '当前', t: 'checkbox', req: 0, d: '同一台电脑同一平台至多一条为 true；都为 false = 未登录但已登记' },
+        { n: '备注', t: 'text', req: 0, d: '公司号 / 个人号 之类' },
+        { n: '最后确认', t: 'date', req: 0, d: '最近一次确认或切换的时间' },
+        { n: '排序', t: 'number', req: 0, d: '面板里的顺序，小的在前' }
       ]},
       { name: 'GitHub 同步记录', id: DB_GITHUB, key: 'github', fields: [
         { n: '同步时间', t: 'date', req: 1, d: '这次同步的时间（未同步的版本填该版本完成时间）' },
@@ -2764,6 +2840,8 @@ var db = localDb();
     ],
     rules: [
       '写任务前先读机器表，「所在电脑」必须是已登记的机器名；没有就先登记电脑，否则任务会落进「未识别电脑」兜底列',
+      '一台电脑可以登录多个账号：多号写在「登录账号」表（平台 + 所属电脑 + 当前），同一台机同一平台只允许一条「当前」',
+      '机器表上的 WorkBuddy账号 / TRAE账号 是派生只读值；往这两个字段写 = 把那个号设为当前（库里没有会自动补一条）',
       '枚举值严格照抄：状态=进行中/已完成，优先级=P0/P1/P2，是否同步=已同步/未同步；旧的「结果」字段已不存在',
       '待办只认行首的 [ ] 与 [x]，不要用 - [ ] 或 ● 之类',
       '每次写入都带上「更新时间」，否则卡片会被判为「久未动」',
@@ -2805,11 +2883,14 @@ var db = localDb();
     if (!ms.length) {
       return '<div class="ai-note ai-warn">还没有登记任何电脑。AI 无从知道「所在电脑」该填什么——先在「新增 → 添加电脑」里登记（或直接在下面的输入框写死），否则它写出来的任务会全部落进「未识别电脑」兜底列。</div>';
     }
-    var h = '<table class="ai-table"><tr><th>机器名（填这个）</th><th>位置</th><th>WorkBuddy</th><th>TRAE</th><th>最后确认</th></tr>';
+    var h = '<table class="ai-table"><tr><th>机器名（填这个）</th><th>位置</th><th>WorkBuddy（当前）</th><th>TRAE（当前）</th><th>账号数</th><th>最后确认</th></tr>';
     for (var i = 0; i < ms.length; i++) {
       var m = ms[i];
-      h += '<tr><td>' + escapeHtml(txt(m[F.m.name])) + '</td><td>' + escapeHtml(txt(m[F.m.place]) || '—') + '</td>' +
+      var nm = txt(m[F.m.name]);
+      var nAcc = accPool(nm, 'WorkBuddy').length + accPool(nm, 'TRAE').length;
+      h += '<tr><td>' + escapeHtml(nm) + '</td><td>' + escapeHtml(txt(m[F.m.place]) || '—') + '</td>' +
         '<td>' + escapeHtml(txt(m[F.m.wb]) || '—') + '</td><td>' + escapeHtml(txt(m[F.m.trae]) || '—') + '</td>' +
+        '<td>' + nAcc + '</td>' +
         '<td>' + (m[F.m.confirmed] ? escapeHtml(rel(m[F.m.confirmed])) : '—') + '</td></tr>';
     }
     return h + '</table>';
@@ -3069,26 +3150,142 @@ var db = localDb();
   }
 
 
-  function setAccount(machineId, key, val) {
-    var m = findMachine(machineId);
-    if (!m) return;
-    var field = key === 'wb' ? F.m.wb : F.m.trae;
-    var props = {};
-    props[field] = { select: val };
-    props[F.m.confirmed] = { date: new Date().toISOString() };
-    m[field] = val;
-    m[F.m.confirmed] = props[F.m.confirmed].date;
+  // 账号变动都算一次「确认登录态」，机器表的最后确认跟着走
+  function touchMachine(machineName) {
+    var now = new Date().toISOString();
+    for (var i = 0; i < S.machines.length; i++) {
+      var m = S.machines[i];
+      if (txt(m[F.m.name]) !== machineName) continue;
+      m[F.m.confirmed] = now;
+      db.updateRecord({ databaseId: DB_MACHINE, recordId: m._id, properties: { '最后确认': { date: now } } })
+        .catch(function (e) { console.error('[workbench] 最后确认更新失败', e); });
+      return;
+    }
+  }
+
+  // 设为当前：同池其他账号全部取消，服务端也会再兜一次
+  function setCurrentAcc(id) {
+    var a = findAcc(id);
+    if (!a) return;
+    var mach = txt(a[F.a.mach]), plat = txt(a[F.a.plat]);
+    var prev = currentAcc(mach, plat);
+    if (prev && prev._id === id) return; // 已经是当前，重复点不做动作，也不关面板
+    var now = new Date().toISOString();
+    a[F.a.cur] = true;
+    a[F.a.at] = now;
+    if (prev) prev[F.a.cur] = false;
     render();
-    db.updateRecord({ databaseId: DB_MACHINE, recordId: machineId, properties: props })
-      .then(function () { toast(m[F.m.name] + ' → ' + val); })
+    paintAccPanel();
+    var jobs = [db.updateRecord({ databaseId: DB_ACC, recordId: id,
+      properties: { '当前': { checkbox: true }, '最后确认': { date: now } } })];
+    if (prev) jobs.push(db.updateRecord({ databaseId: DB_ACC, recordId: prev._id,
+      properties: { '当前': { checkbox: false } } }));
+    Promise.all(jobs).then(function () {
+      touchMachine(mach);
+      toast(mach + ' → ' + txt(a[F.a.name]));
+    }).catch(function (e) {
+      console.error('[workbench] 切换账号失败', e);
+      toast('切换失败，正在回滚');
+      loadAccounts(function (accs) { S.accounts = accs; render(); paintAccPanel(); });
+    });
+  }
+
+  // 新增账号：只往池里加一条，绝不动已有的号
+  function addAcc(machineName, plat, name) {
+    var pool = accPool(machineName, plat);
+    for (var i = 0; i < pool.length; i++) {
+      if (txt(pool[i][F.a.name]) === name) { toast('这台电脑已经有同名账号了'); return; }
+    }
+    var noCurrent = !currentAcc(machineName, plat);
+    var order = 1;
+    for (var j = 0; j < pool.length; j++) {
+      if (typeof pool[j][F.a.order] === 'number' && pool[j][F.a.order] >= order) order = pool[j][F.a.order] + 1;
+    }
+    var now = new Date().toISOString();
+    var props = {};
+    props[F.a.name] = { text: name };
+    props[F.a.plat] = { select: plat };
+    props[F.a.mach] = { text: machineName };
+    props[F.a.order] = { number: order };
+    if (noCurrent) { props[F.a.cur] = { checkbox: true }; props[F.a.at] = { date: now }; }
+    accUI.mode = 'list';
+    paintAccPanel();
+    db.addRecord({ databaseId: DB_ACC, properties: props }).then(function (r) {
+      var rec = { _id: (r && (r.id || r._id)) };
+      rec[F.a.name] = name;
+      rec[F.a.plat] = plat;
+      rec[F.a.mach] = machineName;
+      rec[F.a.order] = order;
+      rec[F.a.cur] = !!noCurrent;
+      rec[F.a.at] = noCurrent ? now : '';
+      S.accounts.push(rec);
+      render();
+      paintAccPanel();
+      touchMachine(machineName);
+      toast(noCurrent ? ('已添加 ' + name + '（当前）') : ('已添加 ' + name));
+    }).catch(function (e) {
+      console.error('[workbench] 添加账号失败', e);
+      toast('添加失败：' + ((e && e.message) || '网络错误'));
+      loadAccounts(function (accs) { S.accounts = accs; render(); paintAccPanel(); });
+    });
+  }
+
+  function renameAcc(a, name) {
+    var old = txt(a[F.a.name]);
+    if (old === name) { accUI.mode = 'list'; paintAccPanel(); return; }
+    a[F.a.name] = name;
+    accUI.mode = 'list';
+    render();
+    paintAccPanel();
+    db.updateRecord({ databaseId: DB_ACC, recordId: a._id, properties: { '账号名': { text: name } } })
+      .then(function () { touchMachine(txt(a[F.a.mach])); toast(old + ' → ' + name); })
       .catch(function (e) {
-        console.error('[workbench] 账号切换失败', e);
-        toast('切换失败，正在回滚');
-        loadMachines( function (ms) {
-          S.machines = ms;
-          render();
-        });
+        console.error('[workbench] 账号改名失败', e);
+        a[F.a.name] = old;
+        render();
+        paintAccPanel();
+        toast('改名失败');
       });
+  }
+
+  function confirmDelAcc(id) {
+    var a = findAcc(id);
+    if (!a) return;
+    var nm = txt(a[F.a.name]);
+    var isCur = a[F.a.cur] === true;
+    showConfirm('删除账号', '「' + nm + '」会从这台电脑的账号列表里移除。' +
+      (isCur ? '它正在使用中，删除后会自动切到列表里的下一个账号。' : ''), function () { doDelAcc(id); });
+  }
+
+  // 确认框的「确定」在面板外，点它会顺带收起面板；删完把面板重新打开，别让人再点一次
+  function reopenAccPanel() {
+    if (!accUI.mid) return;
+    var btn = document.querySelector('[data-switch="' + accUI.mid + ':' + accUI.key + '"]');
+    if (btn) openAccPanel(btn, accUI.mid, accUI.key);
+  }
+
+  function doDelAcc(id) {
+    var a = findAcc(id);
+    if (!a) return;
+    var nm = txt(a[F.a.name]), mach = txt(a[F.a.mach]);
+    S.accounts = S.accounts.filter(function (x) { return x._id !== id; });
+    render();
+    paintAccPanel();
+    db.deleteRecord({ databaseId: DB_ACC, recordId: id }).then(function () {
+      // 当前账号被删时由服务端顺延下一条，这里重新拉一次，避免本地和服务端各算一套
+      return new Promise(function (res) {
+        loadAccounts(function (accs) { S.accounts = accs; res(); });
+      });
+    }).then(function () {
+      render();
+      reopenAccPanel();
+      touchMachine(mach);
+      toast('已删除 ' + nm);
+    }).catch(function (e) {
+      console.error('[workbench] 删除账号失败', e);
+      toast('删除失败');
+      loadAccounts(function (accs) { S.accounts = accs; render(); reopenAccPanel(); });
+    });
   }
 
   function delTask() {
@@ -3117,8 +3314,11 @@ var db = localDb();
     for (var i = 0; i < S.machines.length; i++) {
       if (txt(S.machines[i][F.m.name]) === txt(t[F.t.machine])) { m = S.machines[i]; break; }
     }
-    var wb = m ? (txt(m[F.m.wb]) || '未登录') : '—';
-    var trae = m ? (txt(m[F.m.trae]) || '未登录') : '—';
+    var machineName = txt(t[F.t.machine]);
+    var wbCur = m ? currentAcc(machineName, 'WorkBuddy') : null;
+    var traeCur = m ? currentAcc(machineName, 'TRAE') : null;
+    var wb = m ? (wbCur ? txt(wbCur[F.a.name]) : (txt(m[F.m.wb]) || '未登录')) : '—';
+    var trae = m ? (traeCur ? txt(traeCur[F.a.name]) : (txt(m[F.m.trae]) || '未登录')) : '—';
     var pend = [];
     var list = parseTodos(t[F.t.todos]);
     for (var j = 0; j < list.length; j++) if (!list[j].done) pend.push(list[j].text);
@@ -3160,96 +3360,184 @@ var db = localDb();
     document.body.removeChild(ta);
   }
 
-  // 账号可选值 = schema 枚举 ∪ 机器表里出现过的值（去重，保持出现顺序）。
-  // 必须每次打开菜单现算：schema 里账号是 text 类型没有枚举，光靠 schema 列表永远是空的，
-  // 录入的新账号也就永远点不到。现算之后，任一台机器输过的账号立刻成为其他机器的可点标签。
-  function accountOptions(key) {
-    var field = key === 'wb' ? F.m.wb : F.m.trae;
-    var seen = {}, out = [];
-    function add(v) {
-      v = txt(v);
-      if (!v || seen[v]) return;
-      seen[v] = 1;
-      out.push(v);
-    }
-    var base = key === 'wb' ? S.opts.wb : S.opts.trae;
-    for (var i = 0; i < base.length; i++) add(base[i]);
-    for (var j = 0; j < S.machines.length; j++) add(S.machines[j][field]);
-    if (!seen['未登录']) out.push('未登录'); // 始终留一个「清空」出口
-    return out;
-  }
+  /* ===================== 账号面板：切换 / 新增 / 改名 / 删除 ===================== */
+  // 四种操作都在同一层里完成，不再有「点一下就把某个号指派给这台机」的隐式写入：
+  // 点账号行 = 设为当前；✎ = 只改名；✕ = 删一条；＋ = 往池里加一条（空输入框，不预填）。
+  var accUI = { mid: '', key: '', mode: 'list', editId: '', draft: '' };
 
-  function openSwitchMenu(btn, machineId, key) {
+  function openAccPanel(btn, machineId, key) {
     closeMenus();
     var m = findMachine(machineId);
     if (!m) return;
-    var field = key === 'wb' ? F.m.wb : F.m.trae;
-    var cur = txt(m[field]);
-    var list = accountOptions(key);
+    accUI = { mid: machineId, key: key, mode: 'list', editId: '', draft: '' };
     var rect = btn.getBoundingClientRect();
     var menu = document.createElement('div');
-    menu.className = 'menu';
-    menu.style.left = Math.max(12, Math.min(rect.left, window.innerWidth - 196)) + 'px';
+    menu.className = 'menu acc-panel';
+    menu.setAttribute('data-acc-panel', machineId + ':' + key);
+    menu.style.left = Math.max(12, Math.min(rect.left, window.innerWidth - 316)) + 'px';
     menu.style.top = (rect.bottom + 6) + 'px';
-    var html = '<div class="mh">' + (key === 'wb' ? 'WorkBuddy' : 'TRAE') + ' 账号</div>';
-    for (var i = 0; i < list.length; i++) {
-      html += '<button data-pick="' + escapeHtml(list[i]) + '" data-machine="' + escapeHtml(machineId) + '" data-key="' + key + '">' +
-        '<span class="pick ' + (list[i] === cur ? 'cur' : '') + '"></span>' + escapeHtml(list[i]) +
-        (list[i] === cur ? '<span style="margin-left:auto;font-size:9.5px;color:var(--accent)">当前</span>' : '') + '<' + '/button>';
-    }
-    // 枚举里没有的账号（第一次录入的名字）走这里写：写库后它就成了所有机器的可点标签
-    html += '<button data-acc-input="' + escapeHtml(machineId) + ':' + key + '">' +
-      '<span class="pick"></span>输入其他账号…<' + '/button>';
-    menu.innerHTML = html;
     document.body.appendChild(menu);
+    paintAccPanel();
   }
-  // 账号自由输入：预设列表里没有的账号（首次录入、临时换号）从这里写
-  function openAccInputMenu(machineId, key) {
-    closeMenus();
-    var m = findMachine(machineId);
-    if (!m) return;
-    var field = key === 'wb' ? F.m.wb : F.m.trae;
-    var cur = txt(m[field]);
-    if (cur === '未登录') cur = '';
-    var anchor = document.querySelector('[data-switch="' + machineId + ':' + key + '"]');
-    var r = anchor ? anchor.getBoundingClientRect() : { left: 24, bottom: 96 };
-    var menu = document.createElement('div');
-    menu.className = 'menu acc-menu';
-    menu.style.left = Math.max(12, Math.min(r.left, window.innerWidth - 252)) + 'px';
-    menu.style.top = (r.bottom + 6) + 'px';
-    menu.innerHTML =
-      '<div class="mh">' + (key === 'wb' ? 'WorkBuddy' : 'TRAE') + ' 账号 · ' + escapeHtml(txt(m[F.m.name])) + '</div>' +
-      '<div class="acc-form"><input class="inline-input" type="text" maxlength="80" placeholder="账号名 / 邮箱" value="' + escapeHtml(cur) + '"></div>' +
-      '<div class="acc-form-btns"><button data-acc-cancel>取消</button><button class="primary" data-acc-save="1">保存</button></div>';
-    document.body.appendChild(menu);
 
-    var input = menu.querySelector('input');
-    var settled = false;
-    function commit() {
-      if (settled) return;
-      settled = true;
-      var v = input.value.replace(/^\s+|\s+$/g, '');
-      closeMenus();
-      if (!v) { toast('账号名不能为空'); return; }
-      if (v === txt(m[field])) return;
-      setAccount(machineId, key, v);
+  // 其他电脑用过的账号名只作输入建议：点了是填进输入框，不会写库
+  function accSuggestHTML(machineName, plat) {
+    var seen = {}, out = '';
+    function add(v) {
+      v = txt(v);
+      if (!v || v === '未登录' || seen[v]) return;
+      seen[v] = 1;
+      out += '<option value="' + escapeHtml(v) + '"><' + '/option>';
     }
-    function cancel() {
-      if (settled) return;
-      settled = true;
-      closeMenus();
+    for (var i = 0; i < S.accounts.length; i++) {
+      var a = S.accounts[i];
+      if (txt(a[F.a.plat]) !== plat) continue;
+      if (txt(a[F.a.mach]) === machineName) continue;
+      add(a[F.a.name]);
     }
-    input.focus();
-    input.select();
-    input.addEventListener('click', function (e) { e.stopPropagation(); });
-    input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') { e.preventDefault(); commit(); }
-      else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
-    });
-    var sv = menu.querySelector('[data-acc-save]');
-    if (sv) sv.addEventListener('click', function (e) { e.stopPropagation(); commit(); });
-    var cc = menu.querySelector('[data-acc-cancel]');
-    if (cc) cc.addEventListener('click', function (e) { e.stopPropagation(); cancel(); });
+    return out ? '<datalist id="accSuggest">' + out + '<' + '/datalist>' : '';
+  }
+
+  function accRowHTML(a) {
+    var on = a[F.a.cur] === true;
+    return '<div class="acc-row' + (on ? ' on' : '') + '" data-acc-cur="' + escapeHtml(a._id) + '"' +
+        ' title="' + (on ? '当前账号' : '点一下设为当前账号') + '">' +
+      '<span class="dot"></span>' +
+      '<span class="nm">' + escapeHtml(txt(a[F.a.name])) + '<' + '/span>' +
+      (on ? '<span class="tag">当前</span>' : '') +
+      '<span class="ops">' +
+        '<button class="acc-ico" data-acc-rename="' + escapeHtml(a._id) + '" title="改名">✎</button>' +
+        '<button class="acc-ico danger" data-acc-del="' + escapeHtml(a._id) + '" title="删除">✕</button>' +
+      '<' + '/span>' +
+    '<' + '/div>';
+  }
+
+  function paintAccPanel() {
+    var menu = document.querySelector('[data-acc-panel="' + accUI.mid + ':' + accUI.key + '"]');
+    if (!menu) return;
+    var m = findMachine(accUI.mid);
+    if (!m) { closeMenus(); return; }
+    var plat = accPlat(accUI.key);
+    var machineName = txt(m[F.m.name]);
+    var pool = accPool(machineName, plat);
+    var platLabel = accUI.key === 'wb' ? 'WorkBuddy' : 'TRAE';
+
+    var body;
+    if (!pool.length) {
+      body = '<div class="acc-empty">这台电脑还没登记 ' + platLabel +
+        ' 账号。点下面「＋ 新增账号」把登录过的号记下来，一台机可以记多个。</div>';
+    } else {
+      body = '<div class="acc-list">';
+      for (var i = 0; i < pool.length; i++) body += accRowHTML(pool[i]);
+      body += '<' + '/div>';
+    }
+
+    var foot;
+    if (accUI.mode === 'add' || accUI.mode === 'rename') {
+      var sug = accSuggestHTML(machineName, plat);
+      foot = '<div class="acc-form">' +
+          '<input class="inline-input" type="text" maxlength="80" autocomplete="off" spellcheck="false"' +
+            (sug ? ' list="accSuggest"' : '') +
+            ' placeholder="账号名 / 邮箱" value="' + escapeHtml(accUI.draft) + '" data-acc-field>' +
+          sug +
+          '<div class="acc-form-btns">' +
+            '<button data-acc-cancel>取消</button>' +
+            '<button class="primary" data-acc-save="1">' + (accUI.mode === 'rename' ? '保存' : '添加') + '</button>' +
+          '<' + '/div>' +
+        '<' + '/div>';
+    } else {
+      var hasCur = !!currentAcc(machineName, plat);
+      foot = '<div class="acc-foot">' +
+        '<button data-acc-add="' + escapeHtml(accUI.mid) + ':' + accUI.key + '">＋ 新增账号</button>' +
+        (hasCur ? '<button data-acc-clear="' + escapeHtml(accUI.mid) + ':' + accUI.key + '">清除登录态</button>' : '') +
+      '<' + '/div>';
+    }
+
+    menu.innerHTML = '<div class="mh">' + platLabel + ' 账号 · ' + escapeHtml(machineName) +
+      '<' + '/div>' + body + foot;
+
+    // 贴到视口下沿时往上翻，避免面板被裁掉
+    var anchor = document.querySelector('[data-switch="' + accUI.mid + ':' + accUI.key + '"]');
+    if (anchor) {
+      var r = anchor.getBoundingClientRect();
+      var h = menu.offsetHeight;
+      var top = r.bottom + 6;
+      if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - 6 - h);
+      menu.style.top = top + 'px';
+      menu.style.left = Math.max(12, Math.min(r.left, window.innerWidth - menu.offsetWidth - 12)) + 'px';
+    }
+
+    if (accUI.mode !== 'list') {
+      var input = menu.querySelector('[data-acc-field]');
+      if (input) {
+        input.addEventListener('click', function (e) { e.stopPropagation(); });
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); commitAccForm(); }
+          else if (e.key === 'Escape') { e.preventDefault(); cancelAccForm(); }
+        });
+        input.focus();
+        try { input.select(); } catch (err) {}
+      }
+    }
+  }
+
+  // 清除登录态：账号仍登记着，但当前没在用（等值于「这台机现在没登这个平台」）
+  function clearCurrentAcc() {
+    var m = findMachine(accUI.mid);
+    if (!m) return;
+    var mach = txt(m[F.m.name]), plat = accPlat(accUI.key);
+    var cur = currentAcc(mach, plat);
+    if (!cur) return;
+    cur[F.a.cur] = false;
+    render();
+    paintAccPanel();
+    db.updateRecord({ databaseId: DB_ACC, recordId: cur._id, properties: { '当前': { checkbox: false } } })
+      .then(function () { touchMachine(mach); toast('已清除登录态，账号仍在列表里'); })
+      .catch(function (e) {
+        console.error('[workbench] 清除登录态失败', e);
+        toast('清除失败');
+        loadAccounts(function (accs) { S.accounts = accs; render(); paintAccPanel(); });
+      });
+  }
+
+  function startAccAdd() {    if (!accUI.mid) return;
+    accUI.mode = 'add';
+    accUI.editId = '';
+    accUI.draft = '';
+    paintAccPanel();
+  }
+
+  function startAccRename(id) {
+    var a = findAcc(id);
+    if (!a) return;
+    accUI.mode = 'rename';
+    accUI.editId = id;
+    accUI.draft = txt(a[F.a.name]);
+    paintAccPanel();
+  }
+
+  function cancelAccForm() {
+    accUI.mode = 'list';
+    accUI.editId = '';
+    accUI.draft = '';
+    paintAccPanel();
+  }
+
+  function commitAccForm() {
+    var menu = document.querySelector('[data-acc-panel="' + accUI.mid + ':' + accUI.key + '"]');
+    var m = findMachine(accUI.mid);
+    if (!menu || !m) return;
+    var input = menu.querySelector('[data-acc-field]');
+    var v = input ? input.value.replace(/^\s+|\s+$/g, '') : '';
+    if (!v) { toast('账号名不能为空'); if (input) input.focus(); return; }
+    if (/[\r\n]/.test(v)) { toast('账号名不能换行'); if (input) input.focus(); return; }
+    if (accUI.mode === 'rename') {
+      var a = findAcc(accUI.editId);
+      if (!a) { cancelAccForm(); return; }
+      renameAcc(a, v);
+    } else {
+      addAcc(txt(m[F.m.name]), accPlat(accUI.key), v);
+    }
   }
 
   function closeMenus() {
@@ -3485,24 +3773,54 @@ var db = localDb();
       }
     }
 
+    // ── 列头账号胶囊 → 账号面板（切换 / 新增 / 改名 / 删除 都在面板里）──
     var sw = el.closest ? el.closest('[data-switch]') : null;
     if (sw) {
       e.stopPropagation();
       var parts = sw.getAttribute('data-switch').split(':');
-      openSwitchMenu(sw, parts[0], parts[1]);
+      openAccPanel(sw, parts[0], parts[1]);
       return;
     }
-    var accIn = el.closest ? el.closest('[data-acc-input]') : null;
-    if (accIn) {
+    var accRen = el.closest ? el.closest('[data-acc-rename]') : null;
+    if (accRen) {
       e.stopPropagation();
-      var ap = accIn.getAttribute('data-acc-input').split(':');
-      openAccInputMenu(ap[0], ap[1]);
+      startAccRename(accRen.getAttribute('data-acc-rename'));
       return;
     }
-    var pick = el.closest ? el.closest('[data-pick]') : null;
-    if (pick) {
-      closeMenus();
-      setAccount(pick.getAttribute('data-machine'), pick.getAttribute('data-key'), pick.getAttribute('data-pick'));
+    var accDelBtn = el.closest ? el.closest('[data-acc-del]') : null;
+    if (accDelBtn) {
+      e.stopPropagation();
+      confirmDelAcc(accDelBtn.getAttribute('data-acc-del'));
+      return;
+    }
+    var accCurRow = el.closest ? el.closest('[data-acc-cur]') : null;
+    if (accCurRow) {
+      e.stopPropagation();
+      setCurrentAcc(accCurRow.getAttribute('data-acc-cur'));
+      return;
+    }
+    var accAddBtn = el.closest ? el.closest('[data-acc-add]') : null;
+    if (accAddBtn) {
+      e.stopPropagation();
+      startAccAdd();
+      return;
+    }
+    var accClearBtn = el.closest ? el.closest('[data-acc-clear]') : null;
+    if (accClearBtn) {
+      e.stopPropagation();
+      clearCurrentAcc();
+      return;
+    }
+    var accSaveBtn = el.closest ? el.closest('[data-acc-save]') : null;
+    if (accSaveBtn) {
+      e.stopPropagation();
+      commitAccForm();
+      return;
+    }
+    var accCancelBtn = el.closest ? el.closest('[data-acc-cancel]') : null;
+    if (accCancelBtn) {
+      e.stopPropagation();
+      cancelAccForm();
       return;
     }
     var ed = el.closest ? el.closest('[data-edit]') : null;

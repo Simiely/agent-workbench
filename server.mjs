@@ -1,5 +1,5 @@
 // Agent 工作台 · tools-center 本地版
-// 零依赖：静态托管 public/ + 三张表的 JSON 文件存储（tasks / machines / github）
+// 零依赖：静态托管 public/ + 四张表的 JSON 文件存储（tasks / machines / accounts / github）
 // 数据独立存放：平台注入 CAP_STORAGE_DIR 时用它；本地直跑时落在仓库外的
 // ../agent-workbench-data/（数据与代码分离，仓库永远不带数据）。
 // 表结构与字段名和资料库版完全一致，前端业务代码零改动。
@@ -14,7 +14,7 @@ const port = parseInt(process.argv[2] || process.env.PORT || "8151", 10);
 const storageDir = process.env.CAP_STORAGE_DIR || path.join(__dirname, "..", "agent-workbench-data");
 const dataFile = path.join(storageDir, "db.json");
 const publicDir = path.join(__dirname, "public");
-// --reseed：把三张表重置为内置演示数据（先备份旧文件）。
+// --reseed：把四张表重置为内置演示数据（先备份旧文件）。
 // 只想看效果时用：node server.mjs 8151 --reseed；日常使用不需要，首启即是空壳。
 const RESEED = process.argv.includes("--reseed");
 
@@ -60,6 +60,21 @@ const SCHEMAS = {
       { name: "排序", type: "number" },
     ],
   },
+  // 登录账号：一台电脑 × 一个平台可以有多个账号，其中至多一条「当前」。
+  // machines 表的 WorkBuddy账号 / TRAE账号 不再落盘，读接口按本表实时派生，
+  // 老契约（直接写机器表的账号字段）由写入侧翻译成一次「设为当前」。
+  accounts: {
+    label: "登录账号",
+    properties: [
+      { name: "账号名", type: "text" },
+      { name: "平台", type: "select", config: { options: [{ text: "WorkBuddy" }, { text: "TRAE" }] } },
+      { name: "所属电脑", type: "text" },
+      { name: "当前", type: "checkbox" },
+      { name: "备注", type: "text" },
+      { name: "最后确认", type: "date" },
+      { name: "排序", type: "number" },
+    ],
+  },
   github: {
     label: "GitHub 同步记录",
     properties: [
@@ -75,6 +90,152 @@ const SCHEMAS = {
   },
 };
 
+/* ===================== 登录账号：派生、迁移与不变量 ===================== */
+// 一台电脑 × 一个平台 = 一个账号池，池里至多一条「当前」。
+// 机器表上的账号字段是派生值（只读），真相在 accounts 表。
+const PLATFORMS = ["WorkBuddy", "TRAE"];
+const MACHINE_ACC_FIELD = { WorkBuddy: "WorkBuddy账号", TRAE: "TRAE账号" };
+const ACC = { name: "账号名", plat: "平台", mach: "所属电脑", cur: "当前", note: "备注", at: "最后确认", order: "排序" };
+
+function accOrder(a) {
+  return typeof a[ACC.order] === "number" ? a[ACC.order] : 9999;
+}
+
+// 某台机某个平台的账号，按「排序」升序（没有排序的排后面，保持写入顺序）
+function machineAccounts(d, machineName, platform) {
+  return (d.accounts || [])
+    .filter((a) => a[ACC.mach] === machineName && a[ACC.plat] === platform)
+    .sort((x, y) => accOrder(x) - accOrder(y));
+}
+
+// 当前账号：只认显式的「当前」标记。一条都没标 = 未登录（账号仍留在池里，只是没在用）
+function currentAccountOf(d, machineName, platform) {
+  const list = machineAccounts(d, machineName, platform);
+  return list.find((a) => a[ACC.cur] === true) || null;
+}
+
+function nextAccOrder(d, machineName, platform) {
+  const list = machineAccounts(d, machineName, platform);
+  let max = 0;
+  for (const a of list) if (typeof a[ACC.order] === "number" && a[ACC.order] > max) max = a[ACC.order];
+  return max + 1;
+}
+
+// 把同池的其他账号置为「非当前」
+function markCurrent(d, machineName, platform, winnerId) {
+  for (const a of machineAccounts(d, machineName, platform)) a[ACC.cur] = a._id === winnerId;
+}
+
+// 读接口派生：机器记录的账号字段 = 当前账号（不落盘）
+function deriveMachine(d, m) {
+  const out = { ...m };
+  for (const p of PLATFORMS) {
+    const cur = currentAccountOf(d, m["机器名"], p);
+    out[MACHINE_ACC_FIELD[p]] = cur ? (cur[ACC.name] || "") : "";
+  }
+  return out;
+}
+
+// 老契约兼容：agent 直接写机器表的账号字段 = 把那个号设为当前（库里没有就补一条）
+function applyMachineAccountWrite(d, machineName, properties) {
+  if (!machineName) return;
+  for (const p of PLATFORMS) {
+    const f = MACHINE_ACC_FIELD[p];
+    if (!(f in properties)) continue;
+    const raw = unwrap(properties[f]);
+    const v = String(raw == null ? "" : raw).trim();
+    delete properties[f];
+    const list = machineAccounts(d, machineName, p);
+    if (!v || v === "未登录") {
+      for (const a of list) a[ACC.cur] = false;
+      continue;
+    }
+    let hit = list.find((a) => String(a[ACC.name] || "").trim() === v);
+    if (!hit) {
+      hit = {
+        _id: newId(), [ACC.name]: v, [ACC.plat]: p, [ACC.mach]: machineName,
+        [ACC.cur]: true, [ACC.note]: "", [ACC.at]: new Date().toISOString(),
+        [ACC.order]: nextAccOrder(d, machineName, p),
+      };
+      d.accounts.push(hit);
+    }
+    markCurrent(d, machineName, p, hit._id);
+  }
+}
+
+// 一次性迁移：机器表里的单值账号 → accounts 表一条「当前」
+// 幂等：靠 db._meta.accountsMigrated 标记 + 同名同机同平台去重
+function migrateAccounts(d) {
+  d.accounts = Array.isArray(d.accounts) ? d.accounts : [];
+  if (d._meta && d._meta.accountsMigrated) return false;
+  let added = 0;
+  for (const m of d.machines || []) {
+    const machineName = String(m["机器名"] || "").trim();
+    if (!machineName) continue;
+    for (const p of PLATFORMS) {
+      const v = String(m[MACHINE_ACC_FIELD[p]] || "").trim();
+      if (!v || v === "未登录") continue;
+      if (machineAccounts(d, machineName, p).some((a) => String(a[ACC.name] || "").trim() === v)) continue;
+      d.accounts.push({
+        _id: newId(), [ACC.name]: v, [ACC.plat]: p, [ACC.mach]: machineName,
+        [ACC.cur]: true, [ACC.note]: "", [ACC.at]: m["最后确认"] || "",
+        [ACC.order]: nextAccOrder(d, machineName, p),
+      });
+      added++;
+    }
+  }
+  // 机器表不再存账号字段（改为派生），清掉旧值避免两份真相
+  for (const m of d.machines || []) {
+    delete m[MACHINE_ACC_FIELD.WorkBuddy];
+    delete m[MACHINE_ACC_FIELD.TRAE];
+  }
+  d._meta = { ...(d._meta || {}), accountsMigrated: new Date().toISOString() };
+  return true;
+}
+
+// 账号池里没有「当前」时顺延第一条（删掉当前账号后不能让整台机变成未登录）
+function ensureCurrent(d, machineName, platform) {
+  const list = machineAccounts(d, machineName, platform);
+  if (!list.length) return;
+  if (list.some((a) => a[ACC.cur] === true)) return;
+  list[0][ACC.cur] = true;
+}
+
+// 账号记录校验 + 建记录时的默认值（PATCH 只校验传入的字段，不动没传的）
+function normalizeAccount(d, rec, opts) {
+  const isNew = !!(opts && opts.isNew);
+  const selfId = opts && opts.selfId;
+  if (isNew || ACC.name in rec) {
+    const name = String(rec[ACC.name] || "").trim();
+    if (!name) return "账号名不能为空";
+    rec[ACC.name] = name;
+  }
+  if (isNew || ACC.mach in rec) {
+    const mach = String(rec[ACC.mach] || "").trim();
+    if (!mach) return "所属电脑不能为空";
+    rec[ACC.mach] = mach;
+  }
+  if (isNew || ACC.plat in rec) {
+    const p = rec[ACC.plat];
+    if (p !== "WorkBuddy" && p !== "TRAE") return "平台只能是 WorkBuddy / TRAE";
+    rec[ACC.plat] = p;
+  }
+  if (ACC.name in rec && rec[ACC.mach] && rec[ACC.plat]) {
+    const name = String(rec[ACC.name] || "").trim();
+    const dup = machineAccounts(d, rec[ACC.mach], rec[ACC.plat])
+      .some((a) => a._id !== selfId && String(a[ACC.name] || "").trim() === name);
+    if (dup) return "这台电脑在这个平台下已有同名账号";
+  }
+  if (!isNew) return null;
+  if (typeof rec[ACC.order] !== "number") rec[ACC.order] = nextAccOrder(d, rec[ACC.mach], rec[ACC.plat]);
+  if (typeof rec[ACC.cur] !== "boolean") rec[ACC.cur] = false;
+  if (!rec[ACC.note]) rec[ACC.note] = "";
+  if (!rec[ACC.at]) rec[ACC.at] = new Date().toISOString();
+  // 池里还没有「在用」的账号：新加的这条自动成为当前，否则录完还是显示未登录
+  if (!machineAccounts(d, rec[ACC.mach], rec[ACC.plat]).some((a) => a[ACC.cur] === true)) rec[ACC.cur] = true;
+  return null;
+}
+
 function seed() {
   const daysAgo = (n, h = 10) => {
     const d = new Date(Date.now() - n * 86400000);
@@ -83,10 +244,20 @@ function seed() {
   };
   return {
     machines: [
-      { _id: "m1", "机器名": "台式机-家", "位置": "家", "WorkBuddy账号": "WB-主号", "TRAE账号": "TRAE-主号", "最后确认": daysAgo(0), "排序": 1 },
-      { _id: "m2", "机器名": "笔记本", "位置": "随身", "WorkBuddy账号": "WB-副号", "TRAE账号": "TRAE-副号", "最后确认": daysAgo(1), "排序": 2 },
-      { _id: "m3", "机器名": "N100-小主机", "位置": "客厅", "WorkBuddy账号": "WB-主号", "TRAE账号": "", "最后确认": daysAgo(6), "排序": 3 },
+      { _id: "m1", "机器名": "台式机-家", "位置": "家", "最后确认": daysAgo(0), "排序": 1 },
+      { _id: "m2", "机器名": "笔记本", "位置": "随身", "最后确认": daysAgo(1), "排序": 2 },
+      { _id: "m3", "机器名": "N100-小主机", "位置": "客厅", "最后确认": daysAgo(6), "排序": 3 },
     ],
+    // 演示「一台机多个号」：台式机-家 的 WorkBuddy 有主号 + 备用号，当前 = 主号
+    accounts: [
+      { _id: "a1", "账号名": "WB-主号", "平台": "WorkBuddy", "所属电脑": "台式机-家", "当前": true, "备注": "公司号", "最后确认": daysAgo(0), "排序": 1 },
+      { _id: "a2", "账号名": "WB-备用号", "平台": "WorkBuddy", "所属电脑": "台式机-家", "当前": false, "备注": "个人号", "最后确认": daysAgo(20), "排序": 2 },
+      { _id: "a3", "账号名": "TRAE-主号", "平台": "TRAE", "所属电脑": "台式机-家", "当前": true, "备注": "", "最后确认": daysAgo(0), "排序": 1 },
+      { _id: "a4", "账号名": "WB-副号", "平台": "WorkBuddy", "所属电脑": "笔记本", "当前": true, "备注": "", "最后确认": daysAgo(1), "排序": 1 },
+      { _id: "a5", "账号名": "TRAE-副号", "平台": "TRAE", "所属电脑": "笔记本", "当前": true, "备注": "", "最后确认": daysAgo(1), "排序": 1 },
+      { _id: "a6", "账号名": "WB-主号", "平台": "WorkBuddy", "所属电脑": "N100-小主机", "当前": true, "备注": "", "最后确认": daysAgo(6), "排序": 1 },
+    ],
+    _meta: { accountsMigrated: daysAgo(0) },
     tasks: [
       { _id: "t1", "任务标题": "ae-tools v1.5.8 发布联调", "状态": "进行中", "优先级": "P1", "所在电脑": "台式机-家",
         "目录": "D:\\ae-tools", "进度": "CHANGELOG / panel README / 测试文件三件套已同步",
@@ -147,24 +318,33 @@ function seed() {
   };
 }
 
+// --reseed 只在进程启动后的第一次读库生效；否则每个请求都会重新播种，
+// 演示模式下的任何录入（新增账号、改任务）都会被下一次读取抹掉。
+let reseedPending = RESEED;
+
 function loadDb() {
-  if (RESEED) {
+  if (reseedPending) {
+    reseedPending = false;
     const d = seed();
+    for (const k of Object.keys(SCHEMAS)) if (!Array.isArray(d[k])) d[k] = [];
     saveDb(d);
-    console.log("reseeded: " + Object.keys(d).map(k => k + "=" + d[k].length).join(", "));
+    console.log("reseeded: " + Object.keys(SCHEMAS).map(k => k + "=" + d[k].length).join(", "));
     return d;
   }
+  let d;
   try {
-    const d = JSON.parse(fs.readFileSync(dataFile, "utf8"));
-    for (const k of Object.keys(SCHEMAS)) if (!Array.isArray(d[k])) d[k] = [];
-    return d;
+    d = JSON.parse(fs.readFileSync(dataFile, "utf8"));
   } catch {
-    // 首次启动 = 空壳：三张表全空，不预置任何演示数据（想看效果用 --reseed）
-    const d = {};
+    // 首次启动 = 空壳：四张表全空，不预置任何演示数据（想看效果用 --reseed）
+    d = {};
     for (const k of Object.keys(SCHEMAS)) d[k] = [];
     saveDb(d);
     return d;
   }
+  for (const k of Object.keys(SCHEMAS)) if (!Array.isArray(d[k])) d[k] = [];
+  // 老库首启：机器表的单值账号搬进 accounts 表（幂等，写盘一次）
+  if (migrateAccounts(d)) saveDb(d);
+  return d;
 }
 
 function backupDb() {
@@ -291,10 +471,19 @@ const server = http.createServer(async (req, res) => {
         machines: [
           { name: "机器名", type: "text", required: true, desc: "唯一标识" },
           { name: "位置", type: "text", required: false, desc: "家 / 随身" },
-          { name: "WorkBuddy账号", type: "text", required: false },
-          { name: "TRAE账号", type: "text", required: false },
+          { name: "WorkBuddy账号", type: "text", required: false, desc: "派生只读 = 该机当前 WorkBuddy 账号；写入等于「设为当前」" },
+          { name: "TRAE账号", type: "text", required: false, desc: "派生只读 = 该机当前 TRAE 账号；写入等于「设为当前」" },
           { name: "最后确认", type: "date", required: false },
           { name: "排序", type: "number", required: false },
+        ],
+        accounts: [
+          { name: "账号名", type: "text", required: true, desc: "如 坤坤 / 小黄" },
+          { name: "平台", type: "select", required: true, options: ["WorkBuddy", "TRAE"], desc: "一个账号只属于一个平台" },
+          { name: "所属电脑", type: "text", required: true, desc: "必须与机器表「机器名」一致" },
+          { name: "当前", type: "checkbox", required: false, desc: "同一台电脑同一平台至多一条为 true" },
+          { name: "备注", type: "text", required: false, desc: "公司号 / 个人号 之类" },
+          { name: "最后确认", type: "date", required: false, desc: "最近一次确认或切换的时间" },
+          { name: "排序", type: "number", required: false, desc: "面板内顺序，小的在前" },
         ],
         github: [
           { name: "同步时间", type: "date", required: true },
@@ -312,20 +501,26 @@ const server = http.createServer(async (req, res) => {
         databases: {
           tasks: { databaseId: "tasks", title: "任务台账", fields: fields.tasks },
           machines: { databaseId: "machines", title: "机器登录态", fields: fields.machines },
+          accounts: { databaseId: "accounts", title: "登录账号", fields: fields.accounts },
           github: { databaseId: "github", title: "GitHub 同步记录", fields: fields.github },
         },
         // 实时机器清单：写「所在电脑」时只能用这里的名字
-        machines: (live.machines || []).map((m) => ({
-          机器名: m["机器名"] || "",
-          位置: m["位置"] || "",
-          WorkBuddy账号: m["WorkBuddy账号"] || "",
-          TRAE账号: m["TRAE账号"] || "",
-        })),
+        machines: (live.machines || []).map((m) => {
+          const d = deriveMachine(live, m);
+          return {
+            机器名: d["机器名"] || "",
+            位置: d["位置"] || "",
+            WorkBuddy账号: d["WorkBuddy账号"] || "",
+            TRAE账号: d["TRAE账号"] || "",
+            账号数: (live.accounts || []).filter((a) => a["所属电脑"] === m["机器名"]).length,
+          };
+        }),
         rules: [
           "写任务前先读机器表，「所在电脑」必须是已登记的机器名",
           "枚举值严格照抄：状态=进行中/已完成，优先级=P0/P1/P2，是否同步=已同步/未同步",
           "待办只认行首的 [ ] 与 [x]",
           "每次写入都带「更新时间」",
+          "机器表上的 WorkBuddy账号 / TRAE账号 是派生值（当前账号）；要登记多个账号，往 accounts 表加行，并用「当前」标记唯一在用的那条",
         ],
         schema: SCHEMAS,
       });
@@ -339,16 +534,32 @@ const server = http.createServer(async (req, res) => {
     if (p === "/api/query") {
       if (!SCHEMAS[dbKey]) return json(res, { error: "unknown db" }, 400);
       // 全量返回（个人工具量级够用）；分页字段保留 SDK 形状
-      return json(res, { results: loadDb()[dbKey] || [], hasMore: false, nextCursor: null });
+      const d = loadDb();
+      let rows = d[dbKey] || [];
+      // 机器表的账号字段按 accounts 表实时派生，库里不存第二份真相
+      if (dbKey === "machines") rows = rows.map((m) => deriveMachine(d, m));
+      return json(res, { results: rows, hasMore: false, nextCursor: null });
     }
 
     if (p === "/api/records" && req.method === "POST") {
       const body = await readJson(req);
       if (!SCHEMAS[body.db]) return json(res, { error: "unknown db" }, 400);
       const d = loadDb();
+      const props = body.properties || {};
+      // 老契约：agent 直接往机器表写账号字段 → 翻译成账号表的一次「设为当前」
+      if (body.db === "machines") {
+        applyMachineAccountWrite(d, String(unwrap(props["机器名"]) || "").trim(), props);
+      }
       const rec = { _id: newId() };
-      for (const [k, v] of Object.entries(body.properties || {})) rec[k] = unwrap(v);
+      for (const [k, v] of Object.entries(props)) rec[k] = unwrap(v);
+      if (body.db === "accounts") {
+        const err = normalizeAccount(d, rec, { isNew: true });
+        if (err) return json(res, { error: err }, 400);
+      }
       d[body.db].push(rec);
+      if (body.db === "accounts" && rec[ACC.cur] === true) {
+        markCurrent(d, rec[ACC.mach], rec[ACC.plat], rec._id);
+      }
       saveDb(d);
       return json(res, { id: rec._id });
     }
@@ -366,8 +577,44 @@ const server = http.createServer(async (req, res) => {
       const bucket = d[key] || [];
       const i = bucket.findIndex((r) => r._id === id);
       if (i < 0) return json(res, { error: "record not found" }, 404);
+
       if (req.method === "PATCH") {
-        for (const [k, v] of Object.entries(patch.properties || {})) bucket[i][k] = unwrap(v);
+        const props = patch.properties || {};
+        if (key === "machines") {
+          const oldName = String(bucket[i]["机器名"] || "").trim();
+          const newName = ("机器名" in props) ? String(unwrap(props["机器名"]) || "").trim() : oldName;
+          // 电脑改名：账号池跟着搬，否则账号会认错电脑变成孤儿
+          if (newName && newName !== oldName) {
+            for (const a of d.accounts || []) if (a[ACC.mach] === oldName) a[ACC.mach] = newName;
+          }
+          applyMachineAccountWrite(d, newName || oldName, props);
+        }
+        if (key === "accounts") {
+          const prevMach = bucket[i][ACC.mach], prevPlat = bucket[i][ACC.plat];
+          for (const [k, v] of Object.entries(props)) bucket[i][k] = unwrap(v);
+          const err = normalizeAccount(d, bucket[i], { selfId: id });
+          if (err) return json(res, { error: err }, 400);
+          if (bucket[i][ACC.cur] === true) markCurrent(d, bucket[i][ACC.mach], bucket[i][ACC.plat], id);
+          if (prevMach !== bucket[i][ACC.mach] || prevPlat !== bucket[i][ACC.plat]) {
+            ensureCurrent(d, prevMach, prevPlat);
+          }
+        } else {
+          for (const [k, v] of Object.entries(props)) bucket[i][k] = unwrap(v);
+        }
+        saveDb(d);
+        return json(res, {});
+      }
+
+      if (key === "accounts") {
+        const gone = bucket[i];
+        d[key] = bucket.filter((r) => r._id !== id);
+        // 删掉的是当前账号：同池顺延第一条，整机不该因此变成未登录
+        ensureCurrent(d, gone[ACC.mach], gone[ACC.plat]);
+      } else if (key === "machines") {
+        const gone = bucket[i];
+        // 删电脑连带删掉它的账号，避免账号表留孤儿
+        d.accounts = (d.accounts || []).filter((a) => a[ACC.mach] !== gone["机器名"]);
+        d[key] = bucket.filter((r) => r._id !== id);
       } else {
         d[key] = bucket.filter((r) => r._id !== id);
       }
