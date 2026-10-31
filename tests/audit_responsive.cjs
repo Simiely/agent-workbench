@@ -129,28 +129,148 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const s3 = await cdp.send('Page.captureScreenshot', { format: 'png' });
     fs.writeFileSync(OUT + '-phone-gh.png', Buffer.from(s3.data, 'base64'));
 
-    // 抽屉在手机上是底部弹层
+    // 回看板页
     await cdp.evalJson(`(function(){
       var b = document.querySelector('#tabbar [data-page="board"]'); if (b) b.click();
       return 1;
     })()`);
     await sleep(400);
-    await cdp.evalJson(`(function(){
-      var c = document.querySelector('#board .card');
-      if (c) c.click();
-      return 1;
-    })()`);
+
+    // ---------- 3. 手机：弹窗统一居中形态 ----------
+    await cdp.evalJson(`(function(){var c=document.querySelector('#board .card');if(c)c.click();return 1})()`);
     await sleep(600);
     const dr = await cdp.evalJson(`(function(){
       var d = document.querySelector('#drawer');
       var r = d.getBoundingClientRect();
-      return { on: d.classList.contains('on'), bottom: Math.round(r.bottom), vh: window.innerHeight,
-               width: Math.round(r.width), vw: window.innerWidth };
+      return { on: d.classList.contains('on'),
+        cx: Math.round((r.left + r.right) / 2), cy: Math.round((r.top + r.bottom) / 2),
+        vw: window.innerWidth, vh: window.innerHeight, w: Math.round(r.width) };
     })()`);
-    check('手机上抽屉是底部弹层', dr.on && Math.abs(dr.bottom - dr.vh) <= 2 && dr.width >= dr.vw - 2,
+    check('手机上弹窗仍是居中形态', dr.on && Math.abs(dr.cx - dr.vw / 2) < 3 && Math.abs(dr.cy - dr.vh / 2) < 3,
       JSON.stringify(dr));
+    await cdp.evalJson(`(function(){var b=document.querySelector('#closeDrawer');if(b)b.click();return 1})()`);
+    await sleep(400);
+
+    // ---------- 4. 中间键 = AI 指南，且弹窗只留「选电脑 + 复制」 ----------
+    const aiBtn = await cdp.evalJson(`(function(){
+      var b = document.querySelector('#tabAi');
+      if (!b) return null;
+      var items = [].map.call(document.querySelectorAll('#tabbar .tb-item'), function(x){ return x.textContent.trim(); });
+      return { text: b.textContent.trim(), items: items,
+               hasAdd: !!document.querySelector('#tabAdd'), hasManage: !!document.querySelector('#tabManage') };
+    })()`);
+    check('中间键是 AI 指南', aiBtn && aiBtn.text.indexOf('AI') >= 0, JSON.stringify(aiBtn));
+    check('＋新增 / 管理 已移出底部栏', aiBtn && !aiBtn.hasAdd && !aiBtn.hasManage, JSON.stringify(aiBtn));
+
+    await cdp.evalJson(`(function(){document.querySelector('#tabAi').click();return 1})()`);
+    await sleep(600);
+    const ai = await cdp.evalJson(`(function(){
+      var d = document.querySelector('#aiDrawer');
+      var r = d.getBoundingClientRect();
+      var vis = [].filter.call(d.querySelectorAll('.ai-sec'), function(x){ return getComputedStyle(x).display !== 'none'; });
+      return { on: d.classList.contains('on'),
+        centered: Math.abs((r.left + r.right) / 2 - window.innerWidth / 2) < 3,
+        sections: vis.length,
+        pickShown: (function(){var p=d.querySelector('.ai-sec-pick');return p?getComputedStyle(p).display!=='none':false})(),
+        hasSelect: !!d.querySelector('#aiMachine'),
+        copyShown: getComputedStyle(document.querySelector('#aiCopy')).display !== 'none',
+        copyExShown: getComputedStyle(document.querySelector('#aiCopyEx')).display !== 'none',
+        fullToggle: getComputedStyle(document.querySelector('#aiFull')).display !== 'none'
+      };
+    })()`);
+    check('AI 指南弹窗居中打开', ai.on && ai.centered, JSON.stringify(ai));
+    check('手机上只留「选电脑 + 复制」', ai.pickShown && ai.hasSelect && ai.copyShown && !ai.copyExShown && ai.sections === 1,
+      JSON.stringify(ai));
+    check('完整契约可按需展开', ai.fullToggle);
+    const sAi = await cdp.send('Page.captureScreenshot', { format: 'png' });
+    fs.writeFileSync(OUT + '-phone-ai.png', Buffer.from(sAi.data, 'base64'));
+    await cdp.evalJson(`(function(){var b=document.querySelector('#aiClose');if(b)b.click();return 1})()`);
+    await sleep(300);
+
+    // ---------- 5. 更多：新增三项 / 管理 / 主题 ----------
+    await cdp.evalJson(`(function(){document.querySelector('#tabMore').click();return 1})()`);
+    await sleep(400);
+    const more = await cdp.evalJson(`(function(){
+      var m = document.querySelector('[data-tbmenu]');
+      if (!m) return null;
+      var r = m.getBoundingClientRect();
+      return { items: [].map.call(m.querySelectorAll('button'), function(b){
+          return b.getAttribute('data-add') || b.getAttribute('data-tbact');
+        }),
+        inView: r.left >= 0 && r.right <= window.innerWidth && r.top >= 0 && r.bottom <= window.innerHeight };
+    })()`);
+    check('更多菜单含 新增×3 / 管理 / 主题',
+      more && JSON.stringify(more.items) === JSON.stringify(['task', 'gh', 'machine', 'manage', 'theme']),
+      JSON.stringify(more));
+    check('更多菜单没有被裁到屏幕外', more && more.inView, JSON.stringify(more));
+
+    // 点「＋ 新建任务」→ 居中弹出任务表单
+    await cdp.evalJson(`(function(){
+      var b = document.querySelector('[data-tbmenu] [data-add="task"]');
+      if (b) b.click();
+      return 1;
+    })()`);
+    await sleep(600);
+    const tf = await cdp.evalJson(`(function(){
+      var d = document.querySelector('#drawer');
+      var r = d.getBoundingClientRect();
+      return { on: d.classList.contains('on'),
+        centered: Math.abs((r.left + r.right) / 2 - window.innerWidth / 2) < 3
+               && Math.abs((r.top + r.bottom) / 2 - window.innerHeight / 2) < 3,
+        title: (document.querySelector('#drawerTitle') || {}).textContent || '' };
+    })()`);
+    check('点「＋新建任务」弹出居中表单', tf.on && tf.centered, JSON.stringify(tf));
+    await cdp.evalJson(`(function(){var b=document.querySelector('#closeDrawer');if(b)b.click();return 1})()`);
+    await sleep(300);
+
+    // 点「管理」→ 进入管理模式（卡片出现勾选框）
+    await cdp.evalJson(`(function(){document.querySelector('#tabMore').click();return 1})()`);
+    await sleep(300);
+    await cdp.evalJson(`(function(){
+      var b = document.querySelector('[data-tbmenu] [data-tbact="manage"]');
+      if (b) b.click();
+      return 1;
+    })()`);
+    await sleep(500);
+    const mg = await cdp.evalJson(`(function(){
+      var box = document.querySelector('#board .card .sel-box');
+      var bar = document.querySelector('.manage-bar');
+      return { manage: document.body.classList.contains('manage') || !!document.querySelector('.app.manage'),
+        selShown: box ? getComputedStyle(box).display !== 'none' : false,
+        barShown: bar ? getComputedStyle(bar).visibility !== 'hidden' && bar.classList.contains('on') : false };
+    })()`);
+    check('点「管理」进入管理模式', mg.manage && mg.selShown, JSON.stringify(mg));
+    await cdp.evalJson(`(function(){
+      var b = document.querySelector('#tabMore'); if (b) b.click();
+      return 1;
+    })()`);
+    await sleep(300);
+    await cdp.evalJson(`(function(){
+      var b = document.querySelector('[data-tbmenu] [data-tbact="manage"]');
+      if (b) b.click();
+      return 1;
+    })()`);
+    await sleep(400);
+
+    // ---------- 6. 账号胶囊面板不被裁 ----------
+    const acc = await cdp.evalJson(`(function(){
+      var p = document.querySelector('.ch-acc .acc[data-switch]');
+      if (!p) return null;
+      p.click();
+      return 1;
+    })()`);
+    await sleep(500);
+    const accR = await cdp.evalJson(`(function(){
+      var m = document.querySelector('[data-acc-panel]');
+      if (!m) return null;
+      var r = m.getBoundingClientRect();
+      return { inView: r.left >= 0 && r.right <= window.innerWidth + 1 && r.top >= 0 && r.bottom <= window.innerHeight + 1,
+        rect: [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)] };
+    })()`);
+    check('账号面板完整落在屏幕内', accR && accR.inView, JSON.stringify(accR));
+
     const s4 = await cdp.send('Page.captureScreenshot', { format: 'png' });
-    fs.writeFileSync(OUT + '-phone-drawer.png', Buffer.from(s4.data, 'base64'));
+    fs.writeFileSync(OUT + '-phone-acc.png', Buffer.from(s4.data, 'base64'));
   } catch (e) {
     check('执行未抛错', false, e && e.message);
     console.error(e);

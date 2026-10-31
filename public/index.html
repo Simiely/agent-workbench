@@ -845,6 +845,7 @@
 
   /* ===== 底部 T-bar（窄屏分页）：宽屏隐藏，≤760px 接管导航与主操作 ===== */
   .tabbar { display: none; }
+  #aiFull { display: none; }
   .tb-item, .tb-add { -webkit-tap-highlight-color: transparent; }
 
   @media (max-width: 640px) {
@@ -875,22 +876,30 @@
     }
     .tb-item .em { font-size: 16px; line-height: 1; }
     .tb-item.on { color: var(--accent); background: var(--accent-soft); }
-    .tb-add {
-      width: 52px; height: 52px; border-radius: 50%; margin-top: -14px; flex: none;
-      display: grid; place-items: center; background: var(--accent); color: #fff;
-      box-shadow: 0 10px 24px -8px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.3);
+    /* 中间键：AI 指南（＋新增 / 管理 收进「更多」） */
+    .tb-core {
+      min-width: 68px; min-height: 52px; border-radius: 50%; margin-top: -14px; flex: none;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+      background: linear-gradient(145deg, #5B95FF, #2C6BE8); color: #fff; font-size: 10.5px;
+      box-shadow: 0 12px 26px -8px rgba(44,107,232,.95), inset 0 1px 0 rgba(255,255,255,.35);
     }
-    .tb-add:active { transform: scale(.94); }
+    .tb-core .ico { font-size: 19px; line-height: 1; }
+    .tb-core:active { transform: scale(.94); }
 
-    /* 抽屉在窄屏改底部弹层 */
-    .drawer {
-      left: 0; right: 0; top: auto; bottom: 0;
-      width: auto; max-width: none; max-height: 88%;
-      border-radius: 18px 18px 0 0; border-left: 0;
-      transform: translateY(105%);
-    }
-    .drawer.on { transform: translateY(0); }
-    .drawer-foot { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+    /* 弹窗统一居中形态：手机上只把宽度和安全区收一下，不再改底部弹层 */
+    .drawer, .modal { width: min(680px, 94vw); max-height: min(86vh, 780px); }
+    .drawer-foot, .modal-foot { padding-bottom: 12px; }
+
+    /* AI 指南弹窗在手机上只要「选电脑 + 复制」，完整契约按需展开 */
+    #aiFull { display: inline-flex; }
+    #aiDrawer .ai-sec:not(.ai-sec-pick) { display: none; }
+    #aiDrawer .ai-machlist { display: none; }
+    #aiDrawer.ai-full .ai-sec { display: block; }
+    #aiDrawer.ai-full .ai-machlist { display: block; }
+    #aiCopyEx { display: none; }
+    .ai-pick { flex-wrap: wrap; }
+    .ai-pick select { height: 44px; font-size: 14px; padding: 0 10px; }
+    .ai-pick-tip { flex: 1 1 100%; }
 
     .manage-bar { bottom: calc(74px + env(safe-area-inset-bottom, 0px)); left: 8px; right: 8px; transform: translateY(140%); }
     .manage-bar.on { transform: translateY(0); }
@@ -960,10 +969,9 @@
     <svg fill="none" height="19" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" width="19"><circle cx="7" cy="6" r="2.1"/><circle cx="7" cy="18" r="2.1"/><circle cx="17" cy="9" r="2.1"/><path d="M7 8.1v7.8M9.2 6h4.6a3 3 0 0 1 3 3"/></svg>
     <span>仓库</span>
   </button>
-  <button class="tb-add" id="tabAdd" type="button" title="新增">
-    <svg fill="none" height="23" stroke="currentColor" stroke-linecap="round" stroke-width="2.2" viewBox="0 0 24 24" width="23"><path d="M12 5v14M5 12h14"/></svg>
+  <button class="tb-core" id="tabAi" type="button" title="AI 写入指南：选电脑 + 复制">
+    <span class="ico">🤖</span><span>AI 指南</span>
   </button>
-  <button class="tb-item" id="tabManage" type="button"><span class="em">☰</span><span>管理</span></button>
   <button class="tb-item" id="tabMore" type="button">
     <svg fill="none" height="19" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="19"><circle cx="6" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="18" cy="12" r="1.4" fill="currentColor"/></svg>
     <span>更多</span>
@@ -1025,6 +1033,7 @@
 <aside class="drawer wide" id="aiDrawer">
   <div class="drawer-head">
     <h3>🤖 AI 写入指南</h3>
+    <button class="ghost-btn" id="aiFull" title="展开/收起完整契约" style="height:26px;padding:0 8px;font-size:11.5px">完整契约</button>
     <button class="icon-btn" id="aiClose" style="width:27px; height:27px">
       <svg fill="none" height="12" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
@@ -3050,10 +3059,12 @@ var db = localDb();
     var ms = sortedMachines();
     if (!S.aiMachine && ms.length) S.aiMachine = txt(ms[0][F.m.name]);
     var h = '';
-    h += '<div class="ai-sec"><h4>① 先定电脑<span class="dbid">AI 不知道你的机器叫什么</span></h4>' +
+    h += '<div class="ai-sec ai-sec-pick"><h4>① 先定电脑<span class="dbid">AI 不知道你的机器叫什么</span></h4>' +
       '<div class="ai-pick"><select id="aiMachine">' + aiMachineOptions() + '</select>' +
-      '<span class="ai-pick-tip">选中的机器会写进下面的示例 payload，直接复制给 AI 即可</span></div>' +
-      aiMachineListHTML() + '</div>';
+      '</div>' +
+      '<div class="ai-machlist">' + aiMachineListHTML() + '</div>' +
+      '<div class="ai-pick-tip">选中的机器会写进示例 payload，直接复制给 AI 即可</div>' +
+      '</div>';
     for (var i = 0; i < AI_CONTRACT.dbs.length; i++) h += '<div class="ai-sec">' + aiTable(AI_CONTRACT.dbs[i]) + '</div>';
     h += '<div class="ai-sec"><h4>写入约定</h4><ul class="ai-note">';
     for (var j = 0; j < AI_CONTRACT.rules.length; j++) h += '<li>' + escapeHtml(AI_CONTRACT.rules[j]) + '</li>';
@@ -4040,6 +4051,11 @@ var db = localDb();
   $('aiGuideBtn').addEventListener('click', function (e) { e.stopPropagation(); openAiGuide(); });
   $('aiClose').addEventListener('click', closeAiGuide);
   $('aiMask').addEventListener('click', closeAiGuide);
+  $('aiFull').addEventListener('click', function () {
+    var d = $('aiDrawer');
+    var on = d.classList.toggle('ai-full');
+    this.textContent = on ? '收起契约' : '完整契约';
+  });
   $('aiCopy').addEventListener('click', function () { copyText(aiMarkdown(), '契约已复制（含已登记电脑清单）'); });
   $('aiCopyEx').addEventListener('click', function () { copyText(JSON.stringify(aiExample(), null, 2), '示例 payload 已复制（已填好电脑名）'); });
   $('aiBody').addEventListener('change', function (e) {
@@ -4387,28 +4403,26 @@ var db = localDb();
         setPage(this.getAttribute('data-page'));
       });
     }
-    var addBtn2 = $('tabAdd');
-    if (addBtn2) addBtn2.addEventListener('click', function (e) {
-      e.stopPropagation();
-      var a = $('addBtn');
-      if (a) openAddMenu(a);
-    });
-    var mg = $('tabManage');
-    if (mg) mg.addEventListener('click', function (e) {
-      e.stopPropagation(); setManage(!S.manage);
-      this.classList.toggle('on', S.manage);
-    });
+    // 中间键：AI 指南（选电脑 → 复制，一步到位）
+    var ai = $('tabAi');
+    if (ai) ai.addEventListener('click', function (e) { e.stopPropagation(); closeMenus(); openAiGuide(); });
+
+    // 更多：＋新增三项（复用 data-add，走现有分发）/ 管理 / 主题
     var mo = $('tabMore');
     if (mo) mo.addEventListener('click', function (e) {
       e.stopPropagation(); closeMenus();
       var menu = document.createElement('div');
       menu.className = 'menu';
       menu.setAttribute('data-tbmenu', '1');
-      menu.innerHTML = '<button data-tbact="ai">🤖 AI 指南<' + '/button>' +
+      menu.innerHTML =
+        '<button data-add="task">＋ 新建任务<' + '/button>' +
+        '<button data-add="gh">＋ 记录一次同步<' + '/button>' +
+        '<button data-add="machine">＋ 添加电脑<' + '/button>' +
+        '<button data-tbact="manage">' + (S.manage ? '✓ 退出管理' : '☰ 管理') + '<' + '/button>' +
         '<button data-tbact="theme">切换主题<' + '/button>';
       document.body.appendChild(menu);
       var r = mo.getBoundingClientRect(), mr = menu.getBoundingClientRect();
-      menu.style.left = Math.max(8, Math.min(r.left - 30, window.innerWidth - mr.width - 8)) + 'px';
+      menu.style.left = Math.max(8, Math.min(r.right - mr.width, window.innerWidth - mr.width - 8)) + 'px';
       menu.style.top = Math.max(8, r.top - mr.height - 8) + 'px';
     });
     document.addEventListener('click', function (e) {
@@ -4416,7 +4430,11 @@ var db = localDb();
       if (!m || !m.closest('[data-tbmenu]')) return;
       var k = m.getAttribute('data-tbact');
       closeMenus();
-      if (k === 'ai') openAiGuide();
+      if (k === 'manage') {
+        setManage(!S.manage);
+        var top = $('manageBtn');
+        if (top) top.classList.toggle('on', S.manage);
+      }
       if (k === 'theme') { var t = $('themeBtn'); if (t) t.click(); }
     });
     // 窄屏下点小标题就是切页（宽屏仍是放大/还原，见 bindPaneMax）
