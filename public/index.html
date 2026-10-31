@@ -624,8 +624,11 @@
   }
   .gi-range:hover { color: var(--text); background: var(--panel-3); }
   .gi-range.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
-  .gi-open { font-size: 10.5px; color: var(--text-3); white-space: nowrap; transition: .15s; }
-  .gh-intensity:hover .gi-open { color: var(--accent); }
+  /* 右侧日期标签：替代原来的「点开看全年日历」按钮（全年日历仍可点面板打开，这里只报当前区间） */
+  .gi-when {
+    font-size: 11px; color: var(--text-2); white-space: nowrap; font-variant-numeric: tabular-nums;
+    font-weight: 500; letter-spacing: .2px; pointer-events: none;
+  }
   /* 格子区：纵向堆排，每排平分剩余高度 —— 高度自适应，不写死 */
   .gi-rows { flex: 1; display: flex; flex-direction: column; gap: 5px; min-height: 0; }
   .gi-rowblock { flex: 1; display: flex; gap: 7px; min-height: 0; }
@@ -1646,6 +1649,23 @@ var db = localDb();
   }
   function giLevel(n) { return n === 0 ? 0 : n === 1 ? 1 : n === 2 ? 2 : n === 3 ? 3 : 4; }
 
+  // 头部右侧的区间说明（替代原来那个「点开看全年日历」按钮）：
+  //   本周   → 10月 第5周     （第几周按该月天数算，1~7 为第 1 周）
+  //   本月   → 10月           （当前是第几个月）
+  //   近3个月 → 8月~10月       （跨年时起点补年份）
+  function giRangeLabel(range) {
+    var today = new Date();
+    var mo = today.getMonth() + 1;
+    if (range === 'week') return mo + '月 第' + Math.ceil(today.getDate() / 7) + '周';
+    if (range === 'month') return mo + '月';
+    var rows = giRangeRows('q3');
+    if (!rows.length) return '';
+    var a = new Date(rows[0].start), b = new Date(rows[rows.length - 1].end);
+    var s = (a.getMonth() + 1) + '月';
+    if (a.getFullYear() !== b.getFullYear()) s = a.getFullYear() + '年' + s;
+    return s + '~' + (b.getMonth() + 1) + '月';
+  }
+
   // 数字自适应：格子有多大数字就多大（短边的约 45%，夹在 9~20px），写入面板级 CSS 变量。
   // 拖动分隔条 / 放大本栏 / 窗口缩放都会经 ResizeObserver 重新触发。
   function fitGiNum() {
@@ -1676,7 +1696,7 @@ var db = localDb();
         '<button class="gi-range' + (S.ghIntensityRange === 'month' ? ' on' : '') + '" data-gi-range="month">本月</button>' +
         '<button class="gi-range' + (S.ghIntensityRange === 'q3' ? ' on' : '') + '" data-gi-range="q3">近3个月</button>' +
       '<' + '/div>' +
-      '<span class="gi-open">点开看全年日历 ›</span>' +
+      '<span class="gi-when">' + escapeHtml(giRangeLabel(S.ghIntensityRange)) + '</span>' +
       '<' + '/div>';
 
     var map = ghDailyMap();

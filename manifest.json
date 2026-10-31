@@ -1,7 +1,7 @@
 {
   "id": "agent-workbench",
   "name": "Agent 工作台",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "desc": "任务台账 / 机器登录态 / GitHub 同步记录三表工作台，本地 JSON 存储",
   "group": "工作台",
   "icon": "🗂️",

@@ -117,6 +117,8 @@ async function escKey(cdp) {
         排标签: Array.prototype.map.call(document.querySelectorAll('#ghIntensity .gi-rowlabel'),function(s){return s.textContent.trim();}),
         数字字号: (function(){var i=document.querySelector('#ghIntensity .gi-cell i');return i?Math.round(parseFloat(getComputedStyle(i).fontSize)):null;})(),
         格子高: Math.round(cells[0].getBoundingClientRect().height),
+        区间标签: (function(){var w=document.querySelector('#ghIntensity .gi-when');return w?w.textContent.trim():null;})(),
+        旧按钮已删: !document.querySelector('#ghIntensity .gi-open') && document.getElementById('ghIntensity').textContent.indexOf('点开看全年日历')<0,
         面板高: Math.round(document.getElementById('ghIntensity').getBoundingClientRect().height),
         kpi占位: (function(){var k=document.querySelector('#summary .kpis');return k.offsetHeight+12;})()
       };
@@ -126,6 +128,10 @@ async function escKey(cdp) {
     check('开发强度：横轴日期旧→新升序', head.时间升序);
     check('开发强度：日期写在方块内（每格一个小日期、旧日期轴已删）', head.格内日期数 === head.格子数 && head.格内日期正确 && head.旧日期轴已删, head.格内日期数 + '/' + head.格子数 + ' 格带日期');
     check('开发强度：有更新的格子写数字、零格与未来格不写', head.有数字格 > 0 && head.零格无数字 && head.未来格无数字, head.有数字格 + ' 格带数字');
+    // v1.0.3：「点开看全年日历」按钮去掉，原位改成区间日期
+    var expMonth = (new Date().getMonth() + 1) + '月';
+    check('头部：全年日历按钮已删、原位显示本月月份', head.旧按钮已删 && head.区间标签 === expMonth, head.区间标签);
+    check('头部：区间标签是纯文本、不可点（pointer-events: none）', await ev(`(function(){var w=document.querySelector('#ghIntensity .gi-when');return w?getComputedStyle(w).pointerEvents:'none';})()`) === 'none');
     check('开发强度：格子撑满面板、数字字号自适应（格高 ≥ 30px 且字号 ≥ 12px）', head.格子高 >= 30 && head.数字字号 >= 12, '格高 ' + head.格子高 + 'px / 字号 ' + head.数字字号 + 'px');
 
     // ---------- 4. 范围切换：本周（1 排 7 个大方块）/ 近3个月（3 排自然月）----------
@@ -144,10 +150,13 @@ async function escKey(cdp) {
                排标签: Array.prototype.map.call(document.querySelectorAll('#ghIntensity .gi-rowlabel'),function(s){return s.textContent.trim();}),
                首列: first, 末列: last,
                周一起: first===k(mon), 周日止: last===k(sun),
+               区间标签: (function(){var w=document.querySelector('#ghIntensity .gi-when');return w?w.textContent.trim():null;})(),
+               期望标签: (function(){var t=new Date();return (t.getMonth()+1)+'月 第'+Math.ceil(t.getDate()/7)+'周';})(),
                首格宽: Math.round(cs[0].getBoundingClientRect().width),
                数字字号: (function(){var i=document.querySelector('#ghIntensity .gi-cell i');return i?Math.round(parseFloat(getComputedStyle(i).fontSize)):null;})() };
     })()`);
     check('范围切换：本周 → 1 排恒 7 格（周一~周日完整周）、大方块大数字', rw.格子 === 7 && rw.排数 === 1 && rw.周一起 && rw.周日止 && rw.首格宽 >= 60 && rw.数字字号 >= 16, rw.格子 + ' 格 ' + rw.首列 + '~' + rw.末列 + ' / 首格 ' + rw.首格宽 + 'px / 字号 ' + rw.数字字号 + 'px');
+    check('范围切换：本周 → 右侧显示「几月 第几周」', rw.区间标签 === rw.期望标签, rw.区间标签 + '（期望 ' + rw.期望标签 + '）');
     await ev('(function(){document.querySelector(\'[data-gi-range="q3"]\').click();return 1})()');
     await wait(400);
     const rq = await ev(`(function(){
@@ -164,11 +173,14 @@ async function escKey(cdp) {
                排标签: Array.prototype.map.call(document.querySelectorAll('#ghIntensity .gi-rowlabel'),function(s){return s.textContent.trim();}),
                高亮: (document.querySelector('[data-gi-range="q3"]')||{}).className.indexOf('on')>=0,
                数字格: document.querySelectorAll('#ghIntensity .gi-cell i').length,
+               区间标签: (function(){var w=document.querySelector('#ghIntensity .gi-when');return w?w.textContent.trim():null;})(),
+               期望区间标签: (function(){var t=new Date();var a=new Date(t.getFullYear(),t.getMonth()-2,1);var b=new Date(t.getFullYear(),t.getMonth()+1,0);var s=(a.getMonth()+1)+'月';if(a.getFullYear()!==b.getFullYear())s=a.getFullYear()+'年'+s;return s+'~'+(b.getMonth()+1)+'月';})(),
                期望格数: total, 期望标签: labels };
     })()`);
     check('范围切换：近3个月 → 3 排自然月（格子数=3 个月天数和）、按钮高亮、有数字',
       rq.排数 === 3 && rq.格子 === rq.期望格数 && rq.高亮 && rq.数字格 > 0 && JSON.stringify(rq.排标签) === JSON.stringify(rq.期望标签),
       rq.排标签.join('/') + ' / ' + rq.格子 + ' 格（期望 ' + rq.期望格数 + '）');
+    check('范围切换：近3个月 → 右侧显示「几月~几月」', rq.区间标签 === rq.期望区间标签, rq.区间标签 + '（期望 ' + rq.期望区间标签 + '）');
     await ev('(function(){document.querySelector(\'[data-gi-range="month"]\').click();return 1})()');
     await wait(400);
 
