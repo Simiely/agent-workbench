@@ -90,9 +90,72 @@ const SCHEMAS = {
       { name: "同步版本", type: "text" },
       { name: "是否同步", type: "select", config: { options: [{ text: "已同步" }, { text: "未同步" }] } },
       { name: "仓库归档", type: "checkbox" },
+      // 仓库级置顶：任意一条记录勾上即视为置顶（与「仓库归档」同一套口径，不另建表）
+      { name: "仓库置顶", type: "checkbox" },
     ],
   },
 };
+
+/* ===================== 写入校验 ===================== */
+// 契约里写了「必填 / 枚举」，就必须在服务端兑现。AI 写入不经过表单，
+// 只靠前端校验等于没有校验：脏数据会直接落盘，看板再靠兜底列来收拾。
+const REQUIRED = {
+  // 只强制「身份 / 枚举」这类缺了就说不清是谁的字段；
+  // 时间戳与可空的描述字段由 applyDefaults 补默认值，而不是直接拒写。
+  tasks: ["任务标题", "状态", "优先级", "所在电脑"],
+  machines: ["机器名"],
+  accounts: ["账号名", "平台", "所属电脑"],
+  github: ["电脑", "仓库"],
+};
+const ENUMS = {
+  tasks: { 状态: ["进行中", "已完成"], 优先级: ["P0", "P1", "P2"] },
+  accounts: { 平台: ["WorkBuddy", "TRAE"] },
+  github: { 是否同步: ["已同步", "未同步"] },
+};
+
+function blank(v) {
+  if (v === null || v === undefined) return true;
+  if (typeof v === "string") return !v.trim();
+  return false;
+}
+
+// 缺省值：时间戳与状态缺了就补一个合理默认，比 400 拒写更贴合实际写入习惯
+function applyDefaults(dbKey, rec, isNew) {
+  if (!isNew) return;
+  const now = new Date().toISOString();
+  if (dbKey === "tasks" && blank(rec["更新时间"])) rec["更新时间"] = now;
+  if (dbKey === "github") {
+    if (blank(rec["同步时间"])) rec["同步时间"] = now;
+    if (blank(rec["是否同步"])) rec["是否同步"] = "已同步";
+  }
+}
+
+// 返回中文错误文案；通过返回 null。
+// isNew 校验全部必填；PATCH 只校验「这次真正传了的字段」（fields），
+// 否则一条历史脏记录连改个位置都会被永久拒写。
+function checkRecord(d, dbKey, rec, opts) {
+  const isNew = !!(opts && opts.isNew);
+  const selfId = opts && opts.selfId;
+  const touched = opts && opts.fields;
+  const inScope = (f) => isNew || (touched && touched.includes(f));
+  const required = REQUIRED[dbKey] || [];
+  for (const f of required) {
+    if (!inScope(f)) continue;
+    if (blank(rec[f])) return `${f}不能为空`;
+  }
+  const enums = ENUMS[dbKey] || {};
+  for (const field of Object.keys(enums)) {
+    if (!inScope(field) || blank(rec[field])) continue;
+    if (!enums[field].includes(rec[field])) return `${field}只能是 ${enums[field].join(" / ")}`;
+  }
+  // 机器名必须唯一：重名会让「所在电脑」指向两台机，任务列与账号池都会错乱
+  if (dbKey === "machines" && inScope("机器名")) {
+    const name = String(rec["机器名"] || "").trim();
+    const dup = (d.machines || []).some((m) => m._id !== selfId && String(m["机器名"] || "").trim() === name);
+    if (dup) return "已经有同名电脑了";
+  }
+  return null;
+}
 
 /* ===================== 登录账号：派生、迁移与不变量 ===================== */
 // 一台电脑 × 一个平台 = 一个账号池，池里至多一条「当前」。
@@ -325,6 +388,14 @@ function seed() {
 // --reseed 只在进程启动后的第一次读库生效；否则每个请求都会重新播种，
 // 演示模式下的任何录入（新增账号、改任务）都会被下一次读取抹掉。
 let reseedPending = RESEED;
+// 最近一次「读库异常」的原因：/health 会带出来，便于平台侧排查（损坏、权限）
+let lastDbError = "";
+
+function emptyDb() {
+  const d = {};
+  for (const k of Object.keys(SCHEMAS)) d[k] = [];
+  return d;
+}
 
 function loadDb() {
   if (reseedPending) {
@@ -335,15 +406,30 @@ function loadDb() {
     console.log("reseeded: " + Object.keys(SCHEMAS).map(k => k + "=" + d[k].length).join(", "));
     return d;
   }
+  let raw;
+  try {
+    raw = fs.readFileSync(dataFile, "utf8");
+  } catch (e) {
+    // 「读不到」不等于「没有」：权限/占用这类错误如果当成空库，下一次写盘就把真数据覆盖了
+    if (e.code !== "ENOENT") throw new Error("读取数据库失败（" + e.message + "）");
+    // 首次启动 = 空壳：四张表全空，不预置任何演示数据（想看效果用 --reseed）
+    const d0 = emptyDb();
+    saveDb(d0);
+    return d0;
+  }
   let d;
   try {
-    d = JSON.parse(fs.readFileSync(dataFile, "utf8"));
-  } catch {
-    // 首次启动 = 空壳：四张表全空，不预置任何演示数据（想看效果用 --reseed）
-    d = {};
-    for (const k of Object.keys(SCHEMAS)) d[k] = [];
-    saveDb(d);
-    return d;
+    d = JSON.parse(raw);
+  } catch (e) {
+    // 解析失败：先把损坏原文完整留一份，再按空壳继续 —— 绝不就地覆盖
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const bad = path.join(storageDir, "db.corrupt-" + stamp + ".json");
+    try { fs.writeFileSync(bad, raw); } catch (e2) { /* 留档失败不阻断启动 */ }
+    lastDbError = "数据库 JSON 损坏，原文已另存为 " + path.basename(bad) + "，已按空库启动";
+    console.error("⚠ " + lastDbError);
+    const d1 = emptyDb();
+    saveDb(d1);
+    return d1;
   }
   for (const k of Object.keys(SCHEMAS)) if (!Array.isArray(d[k])) d[k] = [];
   // 老库首启：机器表的单值账号搬进 accounts 表（幂等，写盘一次）
@@ -410,14 +496,28 @@ function readJson(req) {
   });
 }
 
-function serveStatic(res, pathname) {
+function serveStatic(req, res, pathname) {
   let rel = decodeURIComponent(pathname);
   if (rel === "/" || rel === "") rel = "/index.html";
   const abs = path.normalize(path.join(publicDir, rel));
   if (!abs.startsWith(publicDir)) { res.writeHead(403); return res.end("forbidden"); }
+  let st;
+  try {
+    st = fs.statSync(abs);
+    if (!st.isFile()) throw new Error("not a file");
+  } catch (e) { res.writeHead(404); return res.end("not found"); }
+  // 页面是单个 200KB 大文件：带上 ETag 走协商缓存，刷新时命中 304 就不用重新传一遍
+  const etag = 'W/"' + st.size.toString(16) + "-" + Math.floor(st.mtimeMs).toString(16) + '"';
+  const headers = {
+    "Content-Type": MIME[path.extname(abs)] || "application/octet-stream",
+    "Cache-Control": "no-cache",
+    "ETag": etag,
+    "Last-Modified": st.mtime.toUTCString(),
+  };
+  if (req.headers["if-none-match"] === etag) { res.writeHead(304, headers); return res.end(); }
   let data;
-  try { data = fs.readFileSync(abs); } catch { res.writeHead(404); return res.end("not found"); }
-  res.writeHead(200, { "Content-Type": MIME[path.extname(abs)] || "application/octet-stream" });
+  try { data = fs.readFileSync(abs); } catch (e) { res.writeHead(404); return res.end("not found"); }
+  res.writeHead(200, headers);
   res.end(data);
 }
 
@@ -429,7 +529,8 @@ const server = http.createServer(async (req, res) => {
     const dbKey = u.searchParams.get("db") || "";
 
     if (p === "/health") return json(res, { ok: true, tool: "agent-workbench", version: APP_VERSION,
-      storage: { ok: storageOk, dir: storageDir, error: storageErr || undefined } });
+      storage: { ok: storageOk, dir: storageDir, error: storageErr || undefined },
+      db: { error: lastDbError || undefined } });
 
     // 备份：列出 / 恢复（误删可回滚）
     if (p === "/api/backup" && req.method === "GET") {
@@ -445,7 +546,15 @@ const server = http.createServer(async (req, res) => {
       try { files = fs.readdirSync(dir).filter((f) => f.startsWith("db-") && f.endsWith(".json")).sort().reverse(); } catch (e) {}
       const pick = file && files.includes(file) ? file : files[0];
       if (!pick) return json(res, { error: "没有可用备份" }, 404);
-      fs.copyFileSync(path.join(dir, pick), dataFile);
+      const src = path.join(dir, pick);
+      // 恢复前先把「当前库」备份一份：否则一键回滚会把现在的数据直接冲掉
+      backupDb();
+      let parsed;
+      try { parsed = JSON.parse(fs.readFileSync(src, "utf8")); }
+      catch (e) { return json(res, { error: "备份文件不是合法 JSON：" + pick }, 400); }
+      const broken = Object.keys(SCHEMAS).filter((k) => !Array.isArray(parsed[k]));
+      if (broken.length) return json(res, { error: "备份文件缺表：" + broken.join("/") }, 400);
+      fs.copyFileSync(src, dataFile);
       return json(res, { ok: true, restored: pick });
     }
 
@@ -467,10 +576,10 @@ const server = http.createServer(async (req, res) => {
           { name: "优先级", type: "select", required: true, options: ["P0", "P1", "P2"], desc: "P0 最急 → P2 不急" },
           { name: "所在电脑", type: "text", required: true, desc: "必须与机器表「机器名」完全一致，否则落入未识别电脑列" },
           { name: "目录", type: "text", required: false, desc: "绝对路径" },
-          { name: "进度", type: "text", required: true, desc: "一句话写当前进展" },
+          { name: "进度", type: "text", required: false, desc: "一句话写当前进展；留空则卡片不显示进度行" },
           { name: "待办", type: "text", required: false, desc: "一行一条，[x] 已完成 / [ ] 未完成" },
           { name: "交接内容", type: "text", required: false, desc: "给下一个接手的 agent" },
-          { name: "更新时间", type: "date", required: true, desc: "ISO 8601" },
+          { name: "更新时间", type: "date", required: false, desc: "ISO 8601；省略时服务端自动补当前时间" },
           { name: "排序", type: "number", required: false, desc: "同列内顺序，小的在前" },
         ],
         machines: [
@@ -491,14 +600,15 @@ const server = http.createServer(async (req, res) => {
           { name: "排序", type: "number", required: false, desc: "面板内顺序，小的在前" },
         ],
         github: [
-          { name: "同步时间", type: "date", required: true },
+          { name: "同步时间", type: "date", required: false, desc: "省略时服务端补当前时间" },
           { name: "电脑", type: "text", required: true },
           { name: "GitHub账号", type: "text", required: false },
           { name: "仓库", type: "text", required: true, desc: "owner/repo" },
-          { name: "内容", type: "text", required: true },
+          { name: "内容", type: "text", required: false },
           { name: "同步版本", type: "text", required: false },
-          { name: "是否同步", type: "select", required: true, options: ["已同步", "未同步"], desc: "未同步 = 本地有版本还没推" },
+          { name: "是否同步", type: "select", required: false, options: ["已同步", "未同步"], desc: "缺省「已同步」；未同步 = 本地有版本还没推" },
           { name: "仓库归档", type: "checkbox", required: false, desc: "仓库级归档标记" },
+          { name: "仓库置顶", type: "checkbox", required: false, desc: "仓库级置顶：任一条记录勾上即置顶；置顶卡按更新时间排序排在最前" },
         ],
       };
       const live = loadDb();
@@ -557,9 +667,15 @@ const server = http.createServer(async (req, res) => {
       }
       const rec = { _id: newId() };
       for (const [k, v] of Object.entries(props)) rec[k] = unwrap(v);
+      // 身份字段统一去空白：否则「台式机-家 」与「台式机-家」会被当成两台机 / 两列
+      if (body.db === "machines" && typeof rec["机器名"] === "string") rec["机器名"] = rec["机器名"].trim();
+      if (body.db === "tasks" && typeof rec["所在电脑"] === "string") rec["所在电脑"] = rec["所在电脑"].trim();
+      applyDefaults(body.db, rec, true);
+      const err = checkRecord(d, body.db, rec, { isNew: true });
+      if (err) return json(res, { error: err }, 400);
       if (body.db === "accounts") {
-        const err = normalizeAccount(d, rec, { isNew: true });
-        if (err) return json(res, { error: err }, 400);
+        const aerr = normalizeAccount(d, rec, { isNew: true });
+        if (aerr) return json(res, { error: aerr }, 400);
       }
       d[body.db].push(rec);
       if (body.db === "accounts" && rec[ACC.cur] === true) {
@@ -606,6 +722,8 @@ const server = http.createServer(async (req, res) => {
         } else {
           for (const [k, v] of Object.entries(props)) bucket[i][k] = unwrap(v);
         }
+        const verr = checkRecord(d, key, bucket[i], { selfId: id, fields: Object.keys(props) });
+        if (verr) return json(res, { error: verr }, 400);
         saveDb(d);
         return json(res, {});
       }
@@ -628,7 +746,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (p.startsWith("/api/")) return json(res, { error: "not found" }, 404);
-    return serveStatic(res, p);
+    return serveStatic(req, res, p);
   } catch (e) {
     return json(res, { error: e.message }, 500);
   }

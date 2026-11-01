@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html data-theme="warm-dark" lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 工作台 · 暖色原型 v3</title>
+<style>
+  /* ============================================================
+     原型稿：只用来定「观感 + 层级」，不含真实数据逻辑。
+     三条设计原则：
+       1. 无边框：靠「纸面 + 阴影 + 间距」分区，不画线
+       2. 居家暖色：奶油底 + 纸白面 + 陶土色主色 + 鼠尾草绿点缀
+       3. 全屏铺满：不留外框，内容直接坐在背景上
+     ============================================================ */
+  :root[data-theme="warm-light"] {
+    --bg: #F4EEE4;
+    --bg-2: #EDE5D8;
+    --surface: #FFFCF6;
+    --surface-2: #F6EFE4;
+    --surface-3: #EDE3D4;
+    --text: #2C2621;
+    --text-2: #6E6357;
+    --text-3: #9C8F80;
+    --accent: #C0603F;
+    --accent-2: #A94E30;
+    --accent-soft: rgba(192, 96, 63, .10);
+    --done: #5C7F58;
+    --done-soft: rgba(92, 127, 88, .12);
+    --warn: #BE8A35;
+    --danger: #AF4640;
+    --shadow-sm: 0 1px 2px rgba(88, 62, 36, .06), 0 4px 12px rgba(88, 62, 36, .06);
+    --shadow-md: 0 8px 28px rgba(88, 62, 36, .10);
+    --shadow-lg: 0 24px 70px rgba(70, 48, 26, .18);
+    --hairline: rgba(120, 92, 62, .12);
+    --mask: rgba(58, 44, 30, .34);
+    /* 实心按钮：浅色主题用深陶土底 + 白字 */
+    --btn-bg: #C0603F;
+    --btn-bg-hover: #A94E30;
+    --btn-fg: #FFF8F2;
+    /* 热力 4 档（0 档用 surface-2） */
+    --h1: rgba(192, 96, 63, .20);
+    --h2: rgba(192, 96, 63, .38);
+    --h3: rgba(192, 96, 63, .58);
+    --h4: #C0603F;
+  }
+  :root[data-theme="warm-dark"] {
+    --bg: #191512;
+    --bg-2: #201B17;
+    --surface: #221D19;
+    --surface-2: #2A2420;
+    --surface-3: #332B25;
+    --text: #F1E9DD;
+    --text-2: #B5A695;
+    --text-3: #807264;
+    --accent: #E08362;
+    --accent-2: #EFA184;
+    --accent-soft: rgba(224, 131, 98, .14);
+    --done: #8FB884;
+    --done-soft: rgba(143, 184, 132, .14);
+    --warn: #D9A451;
+    --danger: #E07A72;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.3), 0 6px 16px rgba(0,0,0,.28);
+    --shadow-md: 0 10px 32px rgba(0,0,0,.34);
+    --shadow-lg: 0 28px 80px rgba(0,0,0,.5);
+    --hairline: rgba(255, 236, 214, .07);
+    --mask: rgba(10, 8, 6, .55);
+    /* 暖黑：强调色偏亮，实心按钮改用「亮底深字」，白字在 #E08362 上对比度不够 */
+    --btn-bg: #E08362;
+    --btn-bg-hover: #EFA184;
+    --btn-fg: #241A14;
+    --h1: rgba(224, 131, 98, .18);
+    --h2: rgba(224, 131, 98, .36);
+    --h3: rgba(224, 131, 98, .56);
+    --h4: #E08362;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 14px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    transition: background .3s, color .3s;
+  }
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+  input { font: inherit; color: inherit; }
+
+  /* ── 顶栏：不画线，只靠留白与一个胶囊搜索框 ── */
+  .topbar { flex: none; display: flex; align-items: center; gap: 14px; padding: 18px 26px 10px; }
+  .brand { display: flex; align-items: baseline; gap: 9px; }
+  .brand h1 { font-size: 15.5px; font-weight: 650; letter-spacing: .3px; }
+  .brand .ver {
+    font-size: 10.5px; color: var(--text-3); font-variant-numeric: tabular-nums;
+    background: var(--surface-2); border-radius: 99px; padding: 1px 8px;
+  }
+  .spacer { flex: 1; }
+  .search {
+    display: flex; align-items: center; gap: 8px; width: 320px; height: 36px;
+    background: var(--surface); border-radius: 99px; padding: 0 14px; box-shadow: var(--shadow-sm);
+  }
+  .search svg { flex: none; opacity: .45; }
+  .search input { flex: 1; background: none; border: none; outline: none; font-size: 12.5px; }
+  .search input::placeholder { color: var(--text-3); }
+  .pill-btn {
+    height: 36px; padding: 0 14px; border-radius: 99px; background: var(--surface);
+    color: var(--text-2); font-size: 12.5px; box-shadow: var(--shadow-sm);
+    display: inline-flex; align-items: center; gap: 7px; transition: .18s;
+  }
+  .pill-btn:hover { color: var(--text); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+  .pill-btn.primary { background: var(--btn-bg); color: var(--btn-fg); }
+  .pill-btn.primary:hover { background: var(--btn-bg-hover); }
+  .icon-btn {
+    width: 36px; height: 36px; border-radius: 50%; background: var(--surface);
+    box-shadow: var(--shadow-sm); color: var(--text-2);
+    display: grid; place-items: center; transition: .18s;
+  }
+  .icon-btn:hover { color: var(--text); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+  /* ── 主区：两块「纸面」直接铺满，25px 中缝 ── */
+  main { flex: 1; min-height: 0; display: grid; grid-template-columns: 58% 1fr; gap: 18px; padding: 6px 26px 22px; }
+  .pane {
+    min-width: 0; min-height: 0; display: flex; flex-direction: column;
+    background: var(--surface); border-radius: 22px; box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+  .pane-head { flex: none; padding: 20px 22px 12px; }
+  .pane-title { display: flex; align-items: center; gap: 10px; }
+  .pane-title h2 { font-size: 15px; font-weight: 650; letter-spacing: .2px; }
+  .pane-title .count { font-size: 11.5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+  /* 分段：不是重边框的 tab，是「软胶囊」滑块 */
+  .segments { display: inline-flex; gap: 4px; margin-top: 13px; padding: 3px; background: var(--surface-2); border-radius: 99px; }
+  .segments button {
+    padding: 5px 13px; border-radius: 99px; font-size: 12px; color: var(--text-2); transition: .18s;
+  }
+  .segments button.on { background: var(--surface); color: var(--text); font-weight: 550; box-shadow: var(--shadow-sm); }
+
+  /* KPI：从「四个大卡片」降为一行轻量数字，把视觉让给任务本身 */
+  .kpis { display: flex; gap: 18px; margin-top: 14px; flex-wrap: wrap; }
+  .kpi { display: flex; align-items: baseline; gap: 6px; font-size: 12px; color: var(--text-3); }
+  .kpi b { font-size: 17px; font-weight: 620; color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: .2px; }
+  .kpi .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 2px; align-self: center; }
+  .kpi.alert b { color: var(--accent); }
+  .kpi.warn b { color: var(--warn); }
+  .kpi.done b { color: var(--done); }
+
+  /* ── 任务列：列头无边框，卡片无边框 ── */
+  .board { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 214px), 1fr)); gap: 12px; padding: 4px 18px 18px; overflow-y: auto; }
+  .col { display: flex; flex-direction: column; min-height: 0; background: var(--surface-2); border-radius: 16px; }
+  .col-head { flex: none; padding: 13px 14px 9px; }
+  .col-title { display: flex; align-items: center; gap: 7px; }
+  .col-title .name { font-size: 13px; font-weight: 600; }
+  .col-title .n { font-size: 11px; color: var(--text-3); margin-left: auto; font-variant-numeric: tabular-nums; }
+  .acc-row { display: flex; gap: 6px; margin-top: 8px; }
+  .acc {
+    display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px;
+    border-radius: 99px; background: var(--surface); font-size: 10.5px; color: var(--text-2);
+    box-shadow: var(--shadow-sm);
+  }
+  .acc .led { width: 5px; height: 5px; border-radius: 50%; background: var(--done); }
+  .acc.empty .led { background: var(--text-3); }
+  .col-body { flex: 1; min-height: 0; overflow-y: auto; padding: 3px 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+
+  .card {
+    background: var(--surface); border-radius: 13px; padding: 12px 13px 11px;
+    box-shadow: var(--shadow-sm); transition: .18s; cursor: pointer;
+    position: relative;
+  }
+  .card:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+  .card::before {
+    content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px;
+    border-radius: 0 3px 3px 0; background: transparent;
+  }
+  .card.p0::before { background: var(--accent); }
+  .card h3 { font-size: 12.8px; font-weight: 600; line-height: 1.42; letter-spacing: .1px; }
+  .meta { display: flex; align-items: center; gap: 7px; margin-top: 7px; flex-wrap: wrap; font-size: 10.5px; color: var(--text-3); }
+  .tag { padding: 1px 7px; border-radius: 99px; background: var(--surface-2); color: var(--text-2); }
+  .tag.p0 { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .tag.p1 { background: var(--surface-3); color: var(--text-2); }
+  .prog { margin-top: 8px; font-size: 11.5px; color: var(--text-2); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+  .todo-line { display: flex; align-items: center; gap: 8px; margin-top: 9px; }
+  .bar { flex: 1; height: 4px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: 99px; background: var(--done); }
+  .todo-line span { font-size: 10.5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .stale { color: var(--accent); }
+
+  /* ── 右侧 GitHub 看板 ── */
+  .gh-stats { display: flex; gap: 16px; margin-top: 14px; flex-wrap: wrap; }
+  .gh-stats .kpi b { font-size: 16px; }
+  .heat-block { margin-top: 16px; }
+  .heat-head { display: flex; align-items: center; gap: 10px; }
+  .heat-head h3 { font-size: 12px; font-weight: 600; color: var(--text-2); }
+  .heat-head .ranges { margin-left: auto; display: inline-flex; gap: 3px; padding: 2px; background: var(--surface-2); border-radius: 99px; }
+  .heat-head .ranges button { padding: 3px 9px; border-radius: 99px; font-size: 10.5px; color: var(--text-3); }
+  .heat-head .ranges button.on { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
+  .heat { display: grid; grid-template-columns: repeat(14, 1fr); grid-auto-rows: 13px; gap: 5px; margin-top: 10px; }
+  .heat i { display: block; border-radius: 6px; background: var(--surface-2); }
+  .heat .l1 { background: var(--h1); }
+  .heat .l2 { background: var(--h2); }
+  .heat .l3 { background: var(--h3); }
+  .heat .l4 { background: var(--h4); }
+  .heat .future { background: transparent; box-shadow: inset 0 0 0 1px var(--hairline); }
+
+  .gh-list { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 22px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .repo { background: var(--surface-2); border-radius: 15px; padding: 13px 14px; box-shadow: var(--shadow-sm); }
+  .repo-head { display: flex; align-items: baseline; gap: 8px; }
+  .repo-head .name { font-size: 12.8px; font-weight: 600; }
+  .repo-head .badge { font-size: 10px; padding: 1px 7px; border-radius: 99px; background: var(--surface); color: var(--text-3); }
+  .repo-head .badge.un { background: var(--accent-soft); color: var(--accent); }
+  .repo-head .n { margin-left: auto; font-size: 10.5px; color: var(--text-3); }
+  .repo-sub { margin-top: 4px; font-size: 10.5px; color: var(--text-3); }
+  .vers { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+  .vers span { font-size: 10px; padding: 1px 7px; border-radius: 99px; background: var(--surface); color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .entry { display: grid; grid-template-columns: 74px 96px 1fr auto; gap: 10px; align-items: center; margin-top: 8px; font-size: 10.8px; color: var(--text-3); }
+  .entry .ok { color: var(--done); }
+  .entry .un { color: var(--accent); }
+  .entry .txt { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ── 弹窗：居中纸面，无横线分区 ── */
+  .mask {
+    position: fixed; inset: 0; z-index: 50; background: var(--mask); backdrop-filter: blur(10px) saturate(110%);
+    opacity: 0; pointer-events: none; transition: opacity .22s;
+  }
+  .mask.on { opacity: 1; pointer-events: auto; }
+  .sheet {
+    position: fixed; left: 50%; top: 50%; z-index: 60; width: min(720px, 92vw); max-height: 80vh;
+    transform: translate(-50%, -50%) scale(.94); opacity: 0; pointer-events: none;
+    background: var(--surface); border-radius: 24px; box-shadow: var(--shadow-lg);
+    display: flex; flex-direction: column; overflow: hidden;
+    transition: transform .34s cubic-bezier(.32,.72,0,1), opacity .34s cubic-bezier(.32,.72,0,1);
+  }
+  .sheet.on { transform: translate(-50%, -50%) scale(1); opacity: 1; pointer-events: auto; }
+  .sheet-head { flex: none; display: flex; align-items: flex-start; gap: 12px; padding: 24px 24px 6px; }
+  .sheet-head h2 { font-size: 17px; font-weight: 650; line-height: 1.35; letter-spacing: .2px; }
+  .sheet-head .icon-btn { margin-left: auto; box-shadow: none; background: var(--surface-2); flex: none; }
+  .sheet-body { padding: 6px 24px 18px; overflow-y: auto; }
+  .badges { display: flex; gap: 7px; margin-top: 10px; flex-wrap: wrap; }
+  .sec { margin-top: 18px; }
+  .sec h4 { font-size: 11px; font-weight: 600; color: var(--text-3); letter-spacing: .6px; text-transform: uppercase; margin-bottom: 7px; }
+  .sec p { font-size: 12.5px; color: var(--text-2); line-height: 1.7; }
+  .todos { display: flex; flex-direction: column; gap: 7px; }
+  .todo { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--text-2); }
+  .todo .box { width: 16px; height: 16px; border-radius: 5px; background: var(--surface-3); flex: none; display: grid; place-items: center; color: var(--text-3); font-size: 10px; }
+  .todo.on .box { background: var(--done-soft); color: var(--done); }
+  .todo.on { color: var(--text-3); text-decoration: line-through; }
+  .sheet-foot { flex: none; display: flex; align-items: center; gap: 9px; padding: 14px 24px 22px; }
+  .sheet-foot .danger { margin-left: auto; color: var(--danger); font-size: 12px; }
+
+  .hint {
+    position: fixed; right: 18px; bottom: 10px;
+    font-size: 10.5px; color: var(--text-3); opacity: .8;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── 手机形态（≤760px）：一次只看一页 + 底部 T-bar ──
+     桌面用左右分屏，手机没有横向空间，所以切成「看板 / 仓库」两页，
+     由底部栏切换；中间凸起键是 AI 指南（选中电脑 → 复制，一步到位）。 */
+  .tabbar { display: none; }
+  .menu-row { display: flex; align-items: center; gap: 11px; padding: 14px 2px; font-size: 13px; cursor: pointer; }
+  .menu-row:active { opacity: .6; }
+  .menu-row svg { opacity: .55; flex: none; }
+  .menu-row .tail { margin-left: auto; font-size: 11px; color: var(--text-3); }
+
+  @media (max-width: 760px) {
+    .topbar { flex-wrap: wrap; gap: 9px; padding: 13px 14px 0; }
+    .topbar .spacer,
+    .topbar > .pill-btn:not(.primary),
+    .topbar > .icon-btn { display: none; }
+    .topbar .pill-btn.primary { order: 1; margin-left: auto; height: 34px; }
+    .search { order: 2; flex-basis: 100%; width: 100%; height: 38px; }
+    main {
+      grid-template-columns: 1fr; gap: 0;
+      padding: 10px 12px calc(78px + env(safe-area-inset-bottom));
+    }
+    .pane { border-radius: 20px; }
+    .pane + .pane { display: none; }
+    body[data-page="gh"] > main > .pane:first-child { display: none; }
+    body[data-page="gh"] > main > .pane:last-child { display: flex; }
+    .pane-head { padding: 17px 16px 10px; }
+    .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+    /* 关键：手机上每台电脑的列都按内容高度排（grid 默认会把行拉满，
+       结果卡片超出列高、互相重叠）；列内不再独立滚动，整体由看板滚动 */
+    .board { grid-template-columns: 1fr; grid-auto-rows: max-content; align-content: start; gap: 12px; padding: 2px 14px 16px; }
+    .col { height: auto; }
+    .col-body { flex: none; overflow: visible; }
+    .gh-list { padding: 12px 14px 18px; }
+    .heat { grid-auto-rows: 15px; }
+    /* 同步记录两行排：时间 / 版本 / 状态一行，内容独占第二行，避免窄屏下内容被挤成省略号 */
+    .entry {
+      grid-template-columns: 62px 1fr auto;
+      grid-template-areas: "time ver status" "txt txt txt";
+      row-gap: 3px;
+    }
+    .entry > span:nth-child(1) { grid-area: time; }
+    .entry > span:nth-child(2) { grid-area: ver; }
+    .entry > span:nth-child(3) { grid-area: txt; white-space: normal; }
+    .entry > span:nth-child(4) { grid-area: status; justify-self: end; }
+    .sheet { width: 94vw; max-height: 84vh; border-radius: 22px; }
+    .sheet-head { padding: 20px 18px 4px; }
+    .sheet-body { padding: 4px 18px 14px; }
+    .sheet-foot { padding: 12px 18px calc(16px + env(safe-area-inset-bottom)); }
+    .hint { display: none; }
+
+    .tabbar {
+      display: grid; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+      grid-template-columns: 1fr 1fr 1fr 1fr; align-items: end;
+      padding: 4px 8px calc(4px + env(safe-area-inset-bottom));
+      background: var(--surface); box-shadow: 0 -10px 30px rgba(88, 62, 36, .12);
+    }
+    :root[data-theme="warm-dark"] .tabbar { box-shadow: 0 -10px 30px rgba(0, 0, 0, .5); }
+    .tab {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      min-height: 48px; padding: 7px 0 3px; border-radius: 12px;
+      font-size: 10.5px; color: var(--text-3);
+    }
+    .tab.on { color: var(--accent); }
+    .tab-guide {
+      width: 56px; height: 56px; margin: -26px auto 0; border-radius: 50%;
+      background: var(--btn-bg); color: var(--btn-fg);
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      font-size: 9.5px; box-shadow: 0 10px 22px rgba(169, 78, 48, .34);
+    }
+    .tab-guide svg { margin-top: 9px; }
+  }
+</style>
+</head>
+<body data-page="board">
+
+<div class="topbar">
+  <div class="brand"><h1>Agent 工作台</h1><span class="ver">v1.4.0</span></div>
+  <div class="spacer"></div>
+  <label class="search">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+    <input placeholder="搜索任务标题 / 进度 / 交接…">
+  </label>
+  <button class="pill-btn" onclick="document.getElementById('th').click()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z"/></svg>
+    主题
+  </button>
+  <button class="pill-btn primary">＋ 新建任务</button>
+  <button class="icon-btn" title="更多">⋯</button>
+  <button id="th" style="display:none"></button>
+</div>
+
+<main>
+  <!-- 左：任务看板 -->
+  <section class="pane">
+    <div class="pane-head">
+      <div class="pane-title">
+        <h2>任务看板</h2>
+        <span class="count">5 个进行中 · 3 台电脑</span>
+      </div>
+      <div class="segments">
+        <button class="on">进行中</button>
+        <button>全部</button>
+        <button>已完成</button>
+      </div>
+      <div class="kpis">
+        <span class="kpi"><span class="dot" style="background:var(--text-3)"></span><b>5</b>进行中</span>
+        <span class="kpi alert"><span class="dot" style="background:var(--accent)"></span><b>1</b>需要关注</span>
+        <span class="kpi warn"><span class="dot" style="background:var(--warn)"></span><b>2</b>未勾待办</span>
+        <span class="kpi done"><span class="dot" style="background:var(--done)"></span><b>3</b>已完成</span>
+      </div>
+    </div>
+
+    <div class="board">
+      <div class="col">
+        <div class="col-head">
+          <div class="col-title"><span class="name">台式机 · 家</span><span class="n">3 个进行中</span></div>
+          <div class="acc-row">
+            <span class="acc"><span class="led"></span>WB 主号</span>
+            <span class="acc"><span class="led"></span>TRAE 主号</span>
+          </div>
+        </div>
+        <div class="col-body">
+          <article class="card p0" onclick="openSheet()">
+            <h3>LoginStateSwitcher 12 槽位维护</h3>
+            <div class="meta"><span class="tag p0">P0</span><span class="tag">台式机</span><span>3 天前</span></div>
+            <div class="prog">MultiSwitch 切换正常，GitHub 已同步</div>
+            <div class="todo-line"><div class="bar"><i style="width:50%"></i></div><span>1/2</span></div>
+          </article>
+          <article class="card" onclick="openSheet()">
+            <h3>ae-tools v1.5.8 发布联调</h3>
+            <div class="meta"><span class="tag p1">P1</span><span class="tag">台式机</span><span class="stale">久未动 9 天</span></div>
+            <div class="prog">CHANGELOG / panel README / 测试文件三件套已同步</div>
+            <div class="todo-line"><div class="bar"><i style="width:50%"></i></div><span>2/4</span></div>
+          </article>
+          <article class="card" onclick="openSheet()">
+            <h3>local-llm-playbook 部署方案评估</h3>
+            <div class="meta"><span class="tag p1">P1</span><span class="tag">台式机</span><span>1 天前</span></div>
+            <div class="prog">候选模型对比表已建，待补权重评分</div>
+            <div class="todo-line"><div class="bar"><i style="width:0%"></i></div><span>0/3</span></div>
+          </article>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="col-head">
+          <div class="col-title"><span class="name">笔记本</span><span class="n">1 个进行中</span></div>
+          <div class="acc-row">
+            <span class="acc"><span class="led"></span>WB 副号</span>
+            <span class="acc empty"><span class="led"></span>TRAE 未登录</span>
+          </div>
+        </div>
+        <div class="col-body">
+          <article class="card" onclick="openSheet()">
+            <h3>floorplan 编辑器 v0.3 做减法</h3>
+            <div class="meta"><span class="tag p1">P2</span><span class="tag">笔记本</span><span>2 天前</span></div>
+            <div class="prog">paint/fill/sample/split 已合并成多步流程</div>
+            <div class="todo-line"><div class="bar"><i style="width:0%"></i></div><span>0/3</span></div>
+          </article>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="col-head">
+          <div class="col-title"><span class="name">N100 · 小主机</span><span class="n">0 个进行中</span></div>
+          <div class="acc-row"><span class="acc"><span class="led"></span>WB 主号</span></div>
+        </div>
+        <div class="col-body">
+          <div style="padding:16px 6px; font-size:11.5px; color:var(--text-3); text-align:center; line-height:1.7">
+            这台电脑下没有进行中的任务<br>
+            <span style="color:var(--text-2)">切到「全部」能看见 1 个已完成</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 右：GitHub 仓库 -->
+  <section class="pane">
+    <div class="pane-head">
+      <div class="pane-title"><h2>仓库</h2><span class="count">8 个仓库 · 最后同步 3 小时前</span></div>
+      <div class="gh-stats">
+        <span class="kpi"><b>8</b>仓库</span>
+        <span class="kpi"><b>12</b>近 30 天</span>
+        <span class="kpi alert"><b>3</b>未同步</span>
+        <span class="kpi"><b>1</b>已归档</span>
+      </div>
+      <div class="heat-block">
+        <div class="heat-head">
+          <h3>开发强度 · 每天更新的仓库数</h3>
+          <div class="ranges"><button class="on">本周</button><button>本月</button><button>近 3 月</button></div>
+        </div>
+        <div class="heat">
+          <i></i><i class="l1"></i><i></i><i class="l3"></i><i class="l2"></i><i></i><i class="l1"></i>
+          <i class="l2"></i><i class="l4"></i><i class="l3"></i><i></i><i class="l1"></i><i class="l2"></i><i class="l3"></i>
+          <i></i><i class="l1"></i><i class="l2"></i><i class="l4"></i><i class="l3"></i><i></i><i class="l1"></i>
+          <i class="l2"></i><i></i><i class="l1"></i><i class="l3"></i><i class="l2"></i><i class="future"></i><i class="future"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="gh-list">
+      <article class="repo">
+        <div class="repo-head">
+          <span class="name">Simiely/ae-tools</span>
+          <span class="badge un">1 条未同步</span>
+          <span class="n">4 条记录</span>
+        </div>
+        <div class="repo-sub">最近 2026-11-01 09:20 · 3 小时前 · 台式机 · @Simiely</div>
+        <div class="vers"><span>v1.5.8</span><span>v1.5.7</span><span>v1.5.6</span><span>v1.5.9</span></div>
+        <div class="entry"><span>11-01 09:20</span><span>v1.5.8</span><span class="txt">CHANGELOG + panel README + 测试文件</span><span class="ok">已同步</span></div>
+        <div class="entry"><span>10-31 16:10</span><span>v1.5.7</span><span class="txt">MountainSpectrum 控制点驱动重构</span><span class="ok">已同步</span></div>
+        <div class="entry"><span>10-30 11:30</span><span>v1.5.6</span><span class="txt">低频工具合并，本地先攒着</span><span class="un">未同步</span></div>
+      </article>
+
+      <article class="repo">
+        <div class="repo-head">
+          <span class="name">Simiely/knowledge-base</span>
+          <span class="badge">2 条记录</span>
+          <span class="n">2 条记录</span>
+        </div>
+        <div class="repo-sub">最近 10-30 18:40 · 2 天前 · 笔记本 · @Simiely</div>
+        <div class="vers"><span>v0.1.0</span><span>v0.2.0</span></div>
+        <div class="entry"><span>10-30 18:40</span><span>v0.1.0</span><span class="txt">README 先行</span><span class="ok">已同步</span></div>
+      </article>
+
+      <article class="repo">
+        <div class="repo-head">
+          <span class="name">Simiely/home-inventory</span>
+          <span class="badge un">1 条未同步</span>
+          <span class="n">2 条记录</span>
+        </div>
+        <div class="repo-sub">最近 10-28 20:00 · 4 天前 · 笔记本 · @Simiely</div>
+        <div class="vers"><span>v0.3.0</span><span>v0.3.1</span></div>
+      </article>
+    </div>
+  </section>
+</main>
+
+<div class="hint">原型稿 · 默认暖黑 · 点任务卡看弹窗 · 手机宽度下切底部 T-bar</div>
+
+<nav class="tabbar" id="tabbar">
+  <button class="tab on" data-page="board">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/></svg>
+    看板
+  </button>
+  <button class="tab" data-page="gh">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="6" r="2.6"/><circle cx="6" cy="18" r="2.6"/><circle cx="18" cy="12" r="2.6"/><path d="M6 8.6v6.8M8.6 18h2.4a4 4 0 0 0 4-4v-.6"/></svg>
+    仓库
+  </button>
+  <button class="tab-guide" id="tabGuide">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h10M4 18h7"/><circle cx="18" cy="16" r="4"/></svg>
+    指南
+  </button>
+  <button class="tab" id="tabMore">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+    更多
+  </button>
+</nav>
+
+<!-- 弹窗原型（内容由 JS 按类型填充） -->
+<div class="mask" id="mask" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-head">
+    <h2 id="sheetTitle">任务详情</h2>
+    <button class="icon-btn" onclick="closeSheet()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="sheet-body" id="sheetBody"></div>
+  <div class="sheet-foot" id="sheetFoot"></div>
+</div>
+
+<script>
+  var TASK_BODY =
+    '<div class="badges">' +
+      '<span class="tag p0">P0</span><span class="tag">进行中</span>' +
+      '<span class="tag">台式机 · 家</span><span class="tag">更新于 10-29</span>' +
+    '</div>' +
+    '<div class="sec"><h4>当前进度</h4><p>MultiSwitch 切换正常，GitHub 已同步；剩余 WorkBuddy 侧新增账号的槽位登记与 exe 重新打包。</p></div>' +
+    '<div class="sec"><h4>待办 · 1/2</h4><div class="todos">' +
+      '<div class="todo on"><span class="box">✓</span>WorkBuddy 侧新增账号的槽位登记</div>' +
+      '<div class="todo"><span class="box"></span>exe 重新打包</div>' +
+    '</div></div>' +
+    '<div class="sec"><h4>交接内容</h4><p>槽位表在 src/config/slots.json，新增号先登记再打包；回滚点见 CHANGELOG v0.2.9。</p></div>' +
+    '<div class="sec"><h4>目录</h4><p style="font-family:ui-monospace,Consolas,monospace;font-size:12px">C:\\tools\\LoginStateSwitcher</p></div>';
+
+  var SHEETS = {
+    task: {
+      title: 'LoginStateSwitcher 12 槽位维护',
+      body: TASK_BODY,
+      foot: '<button class="pill-btn primary">编辑</button><button class="pill-btn">交接文本</button><button class="danger">删除</button>'
+    },
+    guide: {
+      title: 'AI 写入指南',
+      body:
+        '<div class="sec"><h4>先定电脑</h4><p>台式机 · 家 ／ 笔记本 ／ N100 · 小主机。「所在电脑」只能填这几个名字。</p></div>' +
+        '<div class="sec"><h4>四张表</h4><p>tasks（任务）· machines（机器）· accounts（登录账号）· github（同步记录）</p></div>' +
+        '<div class="sec"><h4>写入约定</h4><p>枚举照抄：状态 = 进行中 / 已完成，优先级 = P0 / P1 / P2；待办只认行首的 [ ] 与 [x]；每次写入都带更新时间。</p></div>',
+      foot: '<button class="pill-btn primary" onclick="closeSheet()">复制契约</button><button class="pill-btn" onclick="closeSheet()">关闭</button>'
+    },
+    more: {
+      title: '更多',
+      body:
+        '<div class="menu-row">＋ 新建任务</div>' +
+        '<div class="menu-row">＋ 记录一次同步</div>' +
+        '<div class="menu-row">＋ 添加电脑</div>' +
+        '<div class="menu-row" onclick="openSheet(\'guide\')">AI 写入指南<span class="tail">›</span></div>' +
+        '<div class="menu-row" onclick="toggleTheme()">切换主题<span class="tail" id="themeTail">暖白</span></div>',
+      foot: '<button class="pill-btn" onclick="closeSheet()">关闭</button>'
+    }
+  };
+
+  function openSheet(kind) {
+    var cfg = SHEETS[kind || 'task'];
+    document.getElementById('sheetTitle').textContent = cfg.title;
+    document.getElementById('sheetBody').innerHTML = cfg.body;
+    document.getElementById('sheetFoot').innerHTML = cfg.foot;
+    document.getElementById('mask').classList.add('on');
+    document.getElementById('sheet').classList.add('on');
+  }
+  function closeSheet() {
+    document.getElementById('mask').classList.remove('on');
+    document.getElementById('sheet').classList.remove('on');
+  }
+  function toggleTheme() {
+    var cur = document.documentElement.getAttribute('data-theme');
+    var next = cur === 'warm-light' ? 'warm-dark' : 'warm-light';
+    document.documentElement.setAttribute('data-theme', next);
+    var tail = document.getElementById('themeTail');
+    if (tail) tail.textContent = next === 'warm-dark' ? '暖白' : '暖黑';
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeSheet();
+  });
+  document.getElementById('th').addEventListener('click', toggleTheme);
+
+  // 手机分页：底部 T-bar 切「看板 / 仓库」
+  var tabs = document.querySelectorAll('.tabbar .tab[data-page]');
+  function setPage(p) {
+    document.body.setAttribute('data-page', p);
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].classList.toggle('on', tabs[i].getAttribute('data-page') === p);
+    }
+  }
+  for (var i = 0; i < tabs.length; i++) {
+    (function (t) {
+      t.addEventListener('click', function () { setPage(t.getAttribute('data-page')); });
+    })(tabs[i]);
+  }
+  document.getElementById('tabGuide').addEventListener('click', function () { openSheet('guide'); });
+  document.getElementById('tabMore').addEventListener('click', function () { openSheet('more'); });
+
+  // 原型便利：默认暖黑（与线上一致）；?theme=light 预览暖白；?page=gh 直接仓库页；?demo=sheet 直接弹窗
+  (function () {
+    var q = location.search;
+    if (/theme=light/.test(q)) document.documentElement.setAttribute('data-theme', 'warm-light');
+    if (/page=gh/.test(q)) setPage('gh');
+    if (/demo=sheet/.test(q)) openSheet('task');
+  })();
+</script>
+</body>
+</html>

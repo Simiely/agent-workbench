@@ -20,8 +20,19 @@ SCHEMAS = {
     GH: [{"name": "是否同步", "type": "select", "config": {"options": [{"text": "已同步"}, {"text": "未同步"}]}},
          {"name": "仓库归档", "type": "checkbox"}],
 }
-NOW = "2026-10-30T04:00:00Z"
-D9 = "2026-10-21T04:00:00Z"  # 9 天前 → 久未动
+from datetime import datetime, timedelta
+
+
+def _iso(days_ago, extra_sec=0):
+    """相对今天的时间戳（真 UTC 再补 Z）：日期绑死后，日历相关断言每天都会飘。
+    必须用 utcnow：用本地时间补 Z 会被当成 8 小时前的时区偏移，下午 16 点后「今天」会漂到明天。
+    extra_sec 用来躲开 floor 边界（9 天整差几秒会显示成 8 天）。"""
+    return (datetime.utcnow() - timedelta(days=days_ago, seconds=extra_sec)).replace(
+        microsecond=0).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+
+NOW = _iso(0)  # 今天：同日多条记录
+D9 = _iso(9, 60)  # 9 天零 1 分钟前 → floor 后稳定显示「久未动 9 天」
 TASKS = [
     {"_id": "t1", "任务标题": "ae-tools 发布联调", "状态": "进行中", "优先级": "P2", "所在电脑": "台式机-家",
      "目录": "D:\\a", "进度": "三件套已同步", "待办": "[x] 版本号\n[ ] 测试文件", "交接内容": "交接甲",
@@ -42,9 +53,9 @@ GH_RECS = [
      "内容": "同日再次提交同一仓库", "同步版本": "v1.5.8-hotfix", "是否同步": "已同步", "仓库归档": False},
     {"_id": "g1c", "同步时间": NOW, "电脑": "台式机-家", "GitHub账号": "Simiely", "仓库": "Simiely/tools-center",
      "内容": "同日第二个仓库", "同步版本": "v0.8.0", "是否同步": "已同步", "仓库归档": False},
-    {"_id": "g2", "同步时间": "2026-10-29T04:00:00Z", "电脑": "台式机-家", "GitHub账号": "Simiely", "仓库": "Simiely/ae-tools",
+    {"_id": "g2", "同步时间": _iso(1), "电脑": "台式机-家", "GitHub账号": "Simiely", "仓库": "Simiely/ae-tools",
      "内容": "本地攒着", "同步版本": "v1.5.9", "是否同步": "未同步", "仓库归档": False},
-    {"_id": "g3", "同步时间": "2026-10-28T04:00:00Z", "电脑": "笔记本", "GitHub账号": "Simiely", "仓库": "Simiely/knowledge-base",
+    {"_id": "g3", "同步时间": _iso(2), "电脑": "笔记本", "GitHub账号": "Simiely", "仓库": "Simiely/knowledge-base",
      "内容": "定稿归档", "同步版本": "v1.0.0", "是否同步": "已同步", "仓库归档": True},
 ]
 
@@ -77,6 +88,10 @@ TEST = r"""<script>
   function closeDr(){var d=q('.drawer'); if(d&&d.className.indexOf('on')>=0){$('closeDrawer').click();}}
   function colTitles(name){var col=qa('.col').filter(function(c){var n=c.querySelector('.ch-name');return n&&n.textContent===name;})[0];
     return col?Array.prototype.slice.call(col.querySelectorAll('.card .c-title')).map(function(x){return x.textContent;}):null;}
+  // 日历类断言一律换算成不随日期漂移的布尔值：基线里存具体日期，第二天就会假报警。
+  function pad2(n){return (n<10?'0':'')+n;}
+  function dk(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
+  function daysInMonth(y,m){return new Date(y,m+1,0).getDate();}
 
   (async function(){
    try {
@@ -221,7 +236,7 @@ TEST = r"""<script>
     document.dispatchEvent(new MouseEvent('mousemove',{bubbles:true,clientX:rc.left+rc.width*0.40}));
     document.dispatchEvent(new MouseEvent('mouseup',{bubbles:true,clientX:0}));
     await wait(120);
-    R.V5_split['拖到40%']=boardW();
+    R.V5_split['拖到40%']=Math.round(parseFloat(boardW()))+'%'; // 按像素换算会有小数尾巴，只比整数百分比
     R.V5_split['比例已存']=Math.abs(parseFloat(localStorage.getItem('awb.wbSplitPct'))-40)<2;
     // 恢复默认（GitHub 最大化），避免影响后续；applyPaneMax 在页面闭包内，用点击还原
     try{localStorage.removeItem('awb.wbSplitPct');}catch(e){}
@@ -261,11 +276,13 @@ TEST = r"""<script>
       'KPI已归档': kpiNum('#ghKpis','已归档'),
       'KPI在电脑筛选右侧': (function(){var f=q('#ghF_machine'),k=q('#ghKpis');
         if(!f||!k)return null;return k.getBoundingClientRect().left>=f.getBoundingClientRect().right-1;})(),
-      '开发强度格数': qa('#ghIntensity .gi-cell').length,
+      '开发强度格数': qa('#ghIntensity .gi-cell').length === (function(){var t=new Date();return daysInMonth(t.getFullYear(),t.getMonth());})(),
       '开发强度默认本月': (q('#ghIntensity .gi-range.on')||{}).textContent,
-      '开发强度格内日期数': qa('#ghIntensity .gi-cell em').length,
-      '开发强度末列是月末': (function(){var c=qa('#ghIntensity .gi-cell');return c.length?c[c.length-1].getAttribute('data-gi-day'):null;})(),
-      '开发强度同日同仓库只算一次': (function(){var c=qa('#ghIntensity .gi-cell[data-gi-day="2026-10-30"]');
+      '开发强度格内日期数': qa('#ghIntensity .gi-cell em').length === qa('#ghIntensity .gi-cell').length,
+      '开发强度末列是月末': (function(){var c=qa('#ghIntensity .gi-cell');if(!c.length)return false;
+        var d=new Date(c[c.length-1].getAttribute('data-gi-day')+'T00:00:00');
+        return d.getDate()===daysInMonth(d.getFullYear(),d.getMonth());})(),
+      '开发强度同日同仓库只算一次': (function(){var c=qa('#ghIntensity .gi-cell[data-gi-day="'+dk(new Date())+'"]');
         // mock 今天有 3 条记录但只涉及 2 个仓库 → 今天的格子计数应为 2
         return c.length?c[0].getAttribute('data-gi-n'):null;})()==='2',
       '开发强度未来格不写数字': (function(){var c=qa('#ghIntensity .gi-cell.future');
@@ -290,27 +307,38 @@ TEST = r"""<script>
       '切本周格数': qa('#ghIntensity .gi-cell').length,           // 恒 7：周一~周日
       '切本周排数': qa('#ghIntensity .gi-rowblock').length,       // 本周 = 1 排
       '切本周排标签': qa('#ghIntensity .gi-rowlabel').map(function(s){return s.textContent.trim();}),
-      '切本周首列周一': qa('#ghIntensity .gi-cell')[0].getAttribute('data-gi-day'),
+      '切本周首列周一': (function(){var c=qa('#ghIntensity .gi-cell')[0];if(!c)return false;
+        var d=new Date(c.getAttribute('data-gi-day')+'T00:00:00');return d.getDay()===1;})(),
       '切本周按钮高亮': (q('[data-gi-range="week"]')||{}).className.indexOf('on')>=0
     };
     q('[data-gi-range="q3"]').click(); await wait(150);
-    R.V6b_intensity['切近3个月格数']=qa('#ghIntensity .gi-cell').length; // = 近3个自然月天数之和（动态）
+    R.V6b_intensity['切近3个月格数']=(function(){var t=new Date(),n=0;
+      for(var i=2;i>=0;i--){var d=new Date(t.getFullYear(),t.getMonth()-i,1);n+=daysInMonth(d.getFullYear(),d.getMonth());}
+      return qa('#ghIntensity .gi-cell').length===n;})(); // = 近3个自然月天数之和
     R.V6b_intensity['切近3个月排数']=qa('#ghIntensity .gi-rowblock').length; // = 3 排
-    R.V6b_intensity['切近3个月排标签']=qa('#ghIntensity .gi-rowlabel').map(function(s){return s.textContent.trim();});
+    R.V6b_intensity['切近3个月排标签']=(function(){
+      var ls=qa('#ghIntensity .gi-rowlabel').map(function(s){return s.textContent.trim();});
+      if(ls.length!==3)return false;
+      var t=new Date();
+      for(var i=0;i<3;i++){var d=new Date(t.getFullYear(),t.getMonth()-2+i,1);if(ls[i]!==(d.getMonth()+1)+'月')return false;}
+      return true;})();
     q('[data-gi-range="month"]').click(); await wait(150);
-    R.V6b_intensity['切回本月格数']=qa('#ghIntensity .gi-cell').length;
+    R.V6b_intensity['切回本月格数']=(function(){var t=new Date();return qa('#ghIntensity .gi-cell').length===daysInMonth(t.getFullYear(),t.getMonth());})();
     R.V6b_intensity['切回本月排数']=qa('#ghIntensity .gi-rowblock').length; // 本月 = 2 排
     R.V6b_intensity['切回本月排标签']=qa('#ghIntensity .gi-rowlabel').map(function(s){return s.textContent.trim();});
     $('ghIntensity').click(); await wait(250);
     R.V6b_intensity['点面板打开日历']=q('#drawer').className.indexOf('on')>=0;
     R.V6b_intensity['日历标题']=$('drawerTitle').textContent;
     R.V6b_intensity['日历xl加宽']=q('#drawer').className.indexOf('xl')>=0;
-    R.V6b_intensity['日历年份']= (q('#drawerBody .hm-nav b')||{}).textContent;
-    R.V6b_intensity['日历周列数']=qa('#drawerBody .hm-week').length;
-    R.V6b_intensity['日历有日期格子']=qa('#drawerBody .hm[data-hm-day]').length; // 画满整年
+    R.V6b_intensity['日历年份']= (function(){var y=(q('#drawerBody .hm-nav b')||{}).textContent;return String(new Date().getFullYear())===String(y);})();
+    R.V6b_intensity['日历周列数']=(function(){var n=qa('#drawerBody .hm-week').length;return n>=52&&n<=54;})();
+    R.V6b_intensity['日历有日期格子']=(function(){var t=new Date(),n=(new Date(t.getFullYear(),11,31)-new Date(t.getFullYear(),0,1))/86400000+1;
+      return qa('#drawerBody .hm[data-hm-day]').length===n;})(); // 画满整年
     R.V6b_intensity['日历月标签数']=qa('#drawerBody .hm-months span').length;
     R.V6b_intensity['日历数字默认开']= (q('[data-hm-num]')||{}).className||'';
-    R.V6b_intensity['日历数字格数']=qa('#drawerBody .hm i').length;
+    R.V6b_intensity['日历数字格数']=(function(){var t=new Date(),k=0;
+      for(var i=0;i<3;i++){var d=new Date(t.getFullYear(),t.getMonth(),t.getDate()-i);if(d.getFullYear()===t.getFullYear())k++;}
+      return qa('#drawerBody .hm i').length===k;})();
     R.V6b_intensity['日历图例格数']=qa('#drawerBody .hm-legend .hm').length;
     $('closeDrawer').click(); await wait(250);
     R.V6b_intensity['关闭恢复']=q('#drawer').className.indexOf('on')<0;
@@ -365,27 +393,46 @@ TEST = r"""<script>
 
     // ---- V7c 仓库详情：点整张卡 → 居中只读详情 → 点记录行 → 进编辑态 ----
     (function(){
-      // 判定范围 = 整张卡片（跟任务看板同构），所以点的是卡片容器而不是仓库名
-      var repoCard=q('#ghList .repo-card');
-      if(!repoCard){ R.V7c_repo_detail={'跳过':'无仓库卡'}; return; }
-      repoCard.click();
+      var cards=qa('#ghList .repo-card');
+      if(!cards.length){ R.V7c_repo_detail={'跳过':'无仓库卡'}; return; }
       var centered=function(el){
         var r=el.getBoundingClientRect();
         return Math.abs((r.left+r.right)/2 - window.innerWidth/2) < 2
             && Math.abs((r.top+r.bottom)/2 - window.innerHeight/2) < 2;
       };
-      var rows=qa('#drawerBody .rd-row');
+      // 逐张卡检查，而不是只看第一张：卡片先后随「置顶 / 更新时间」变化，
+      // 而且本用例中途会新建一个没有版本号的仓库（new-repo），
+      // 所以断言改成「卡片与详情口径一致」——与顺序无关，也不会因为某仓库没版本号而假红。
+      var total=cards.length, opened=0, cenN=0, ttlN=0, rowN=0, verMismatch=0;
+      for(var i=0;i<total;i++){
+        cards[i].click();
+        if(q('#drawer').className.indexOf('on')>=0){
+          opened++;
+          if(centered(q('#drawer'))) cenN++;
+          if(q('#drawerTitle').textContent.indexOf('/')>0) ttlN++;
+          if(qa('#drawerBody .rd-row').length>0) rowN++;
+          var cvEl=cards[i].querySelector('.repo-vers .gh-ver');
+          var cardHasVer=!!(cvEl && cvEl.textContent.replace(/\\s+/g,'')!=='—');
+          var drawerHasVer=qa('#drawerBody .repo-vers .gh-ver').length>0;
+          if(cardHasVer!==drawerHasVer) verMismatch++;
+        }
+        q('#closeDrawer').click();
+      }
       R.V7c_repo_detail={
-        '弹窗打开': q('#drawer').className.indexOf('on')>=0,
-        '居中形态': centered(q('#drawer')),
-        '标题是仓库名': q('#drawerTitle').textContent.indexOf('/')>0,
-        '有概要徽章': qa('#drawerBody .dt-tag').length>0,
-        '有版本区': qa('#drawerBody .repo-vers .gh-ver').length>0,
-        '有记录行': rows.length>0,
-        '记录同步按钮可见': q('#repoAddBtn').style.display!=='none',
-        '复制链接按钮可见': q('#repoCopyBtn').style.display!=='none',
-        '隐藏保存按钮': q('#saveBtn').style.display==='none'
+        '卡片数': total,
+        '全部能打开': opened===total,
+        '全部居中': cenN===total,
+        '全部标题是仓库名': ttlN===total,
+        '全部有记录行': rowN===total,
+        '版本区与卡片一致': verMismatch===0
       };
+      // 单卡上的按钮与钻取行为（与卡片先后无关，固定取第一张）
+      cards[0].click();
+      var rows=qa('#drawerBody .rd-row');
+      R.V7c_repo_detail['有概要徽章']=qa('#drawerBody .dt-tag').length>0;
+      R.V7c_repo_detail['记录同步按钮可见']=q('#repoAddBtn').style.display!=='none';
+      R.V7c_repo_detail['复制链接按钮可见']=q('#repoCopyBtn').style.display!=='none';
+      R.V7c_repo_detail['隐藏保存按钮']=q('#saveBtn').style.display==='none';
       if(rows.length){
         rows[0].click();
         R.V7c_repo_detail['点记录行进编辑']=!!q('#gf_repo');

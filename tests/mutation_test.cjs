@@ -17,14 +17,14 @@ const MUTATIONS = [
     audit: 'audit_sheet_nav.cjs',
     port: '8290',
     re: /function syncSheetNav\(\) \{[\s\S]{0,200}?\n  \}/,
-    rep: (m) => m.replace(/S\.sheetStack\.length \? '' : 'none'/, "''")
+    rep: (m) => m.replace(/S\.ui\.sheetStack\.length \? '' : 'none'/, "''")
   },
   {
     name: 'backSheet 弹错层（返回内容不对）',
     audit: 'audit_sheet_nav.cjs',
     port: '8291',
-    re: /var prev = S\.sheetStack\.pop\(\);/,
-    rep: () => 'var prev = S.sheetStack[0];'
+    re: /var prev = S\.ui\.sheetStack\.pop\(\);/,
+    rep: () => 'var prev = S.ui.sheetStack[0];'
   },
   {
     name: '返回时不重绘（只弹栈不渲染，内容残留）',
@@ -37,9 +37,9 @@ const MUTATIONS = [
     name: '整卡判定被卡内按钮抢走（点查看全部也开详情）',
     audit: 'audit_repo_card.cjs',
     port: '8293',
-    // 把整卡判定挪到「查看全部 / ＋记录同步 / ⋯菜单」之前 → 卡内按钮会被卡片抢走
-    re: /(var rt = el\.closest \? el\.closest\('\[data-repo-toggle\]'\) : null;)/,
-    rep: (m) => "var roEarly = el.closest ? el.closest('[data-repo-open]') : null;\n    if (roEarly) { gotoSheet({ kind: 'repoDetail', id: null, repo: roEarly.getAttribute('data-repo-open') }, 'root'); return; }\n    " + m
+    // 把整卡判定插到路由表最前面 → 卡内按钮会被卡片抢走
+    re: /var CLICK_ROUTES = \[/,
+    rep: () => "var CLICK_ROUTES = [\n    { sel: '[data-repo-open]', run: function (n) { gotoSheet({ kind: 'repoDetail', id: null, repo: n.getAttribute('data-repo-open') }, 'root'); } },"
   },
   {
     name: '复制链接按钮被删（独立按钮消失）',
@@ -77,6 +77,13 @@ const MUTATIONS = [
     port: '8298',
     re: /function setView\(v\) \{/,
     rep: () => "function setView(v) {\n    if (!VIEW[v]) v = 'doing';"
+  },
+  {
+    name: '状态直改回流（业务函数直接给 S 字段赋值）',
+    audit: 'audit_no_guards.cjs',
+    port: '8300',
+    re: /function setView\(v\) \{/,
+    rep: () => "function setView(v) {\n    S.ui.view = v;"
   },
   {
     name: 'XSS：仓库名不再转义',

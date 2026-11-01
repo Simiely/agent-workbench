@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**：2026-10-31（commit `84ce66c`）登录账号独立成表，v1.1.0
+> 📌 **文档基线**：2026-11-02，v1.5.2（无障碍第一批 + 去装饰阴影 + 场景走查修复）
 > **更新文档/代码后，请更新此行**（日期 + 新 commit hash），并在 CHANGELOG 追加版本
 
 ## 技术栈
@@ -17,6 +17,14 @@
 - **容器 id 改名 = DOM 搬家，事件绑定必须跟着迁**，否则功能静默失效（按钮还在、点不动）
 - **弹窗加宽类 `xl` 只在 `renderSheetLayer` 入口统一 toggle，`closeDrawer` 里同步移除**——在各渲染函数里零散加减会残留
 - **测试绝不读写真实数据目录**（`../agent-workbench-data`）：一律用 `tests/fixture_db.cjs` 夹具 + `tests/_out/storage-<端口>`，server 侧靠 `CAP_STORAGE_DIR` 环境变量隔离
+- **服务端校验是最后一道闸**：`checkRecord()` 查必填/枚举/机器名唯一，`applyDefaults()` 补时间戳；新增字段时三处要同步——`SCHEMAS`、`REQUIRED/ENUMS`、`/api/contract.json`
+- **基线只存不变量**：夹具用相对日期（`_iso(n)`），凡是「今天/本月/第几周」派生出的值，先换算成布尔再进断言
+- **手机断点是 700，不是 640/760**：`--dump-dom` 默认视口 748，断点一旦越过 748，`mk_v16` 的列数断言会被判成手机形态（会假红）
+- **浮层层级顺序**：T-bar 30 < 抽屉遮罩 40 / 抽屉 41 < 确认框遮罩 44 / 确认框 45；改任何一个都要检查弹窗能不能盖住底栏
+- **KPI 高度是开发强度的对齐基准**：`renderGhIntensity` 读 `#summary .kpis` 的实际高度，改 KPI 的 padding/字号会连带影响右栏热力面板高度（`audit_gh_header` 会测）
+- **详情就地编辑的委托顺序**：`[data-dt-set] → [data-dt-menu] → [data-dt-todo] → [data-dt-edit]` 必须排在 `[data-edit]` **之前**，否则被通用行内编辑抢走；单字段保存统一走 `saveTaskField()`（一个字段 + 更新时间），别在渲染函数里直接写库
+- **账号冲突要看 `curOthers` 而不是 `others`**：`others` 只代表「别的电脑登记过这个号」，`curOthers` 才是「别的电脑也在用」。胶囊标红只在「本机当前就是这个号」时触发
+- **顶栏电脑选择存 `localStorage('awb.aiMachine')`**：机器被删/改名要能退回第一台并纠正存储值，否则下拉会显示一个不存在的电脑
 
 ## 约定
 
@@ -39,3 +47,5 @@ node tests/shot_intensity.cjs 8282 out.png   # 开发强度实拍（需先起一
 - DOM 属性契约：@docs/DOM-ATTRIBUTES.md
 - 架构与扩展指南：@docs/ARCHITECTURE.md
 - 关键问题与方案：@DEVELOPMENT.md
+- 重构计划 + 注意事项 + 排障手册：@docs/REFACTOR-PLAN.md
+- 待办清单（P1/P2/P3 + 验收口径）：@docs/TODO.md

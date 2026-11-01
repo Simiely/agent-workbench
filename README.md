@@ -6,11 +6,11 @@
 
 ## 功能
 
-- **任务看板**：按电脑分列、KPI 点击过滤（默认「进行中」）、卡面瘦身（标题/元数据/进度一句话/待办进度条）、抽屉勾选待办、跨列拖拽改所属电脑、行内编辑、管理模式批量操作
+- **任务看板**：按电脑分列、KPI 点击过滤（默认「进行中」）、卡面瘦身（标题/元数据/进度一句话/待办进度条）、**详情就地编辑**（点文字改标题/进度/交接/目录，点胶囊改状态/优先级，点待办直接勾选）、跨列拖拽改所属电脑、行内编辑、管理模式批量操作
 - **登录账号**：一台电脑 × 一个平台可以登记多个账号，列头胶囊显示当前账号与账号数；点开面板可切换当前、新增、改名、删除，也能「清除登录态」（账号留着、当前置空）
 - **GitHub 看板**：仓库聚合卡（未同步 = 本地有版本还没推、仓库级归档标签）、KPI 未同步筛选、仓库详情弹窗
 - **开发强度**：多排方块格子热力（本周 1 排 / 本月 2 排 / 近3个月 3 排），格内写日期与更新数，字号随格子自适应；点开全年日历热力弹窗（按年切换、数字开关）
-- **通用**：弹窗栈导航（Esc 逐层退）、中缝拖拽记忆、双区独立折叠记忆、深浅主题
+- **通用**：暖黑 / 暖白双主题（默认暖黑）、手机单页 + 底部 T-bar、弹窗栈导航（Esc 逐层退）、中缝拖拽记忆、双区独立折叠记忆
 
 ## 本地跑
 
@@ -25,7 +25,7 @@ node server.mjs 8151 --reseed   # 重置为内置演示数据（先自动备份�
 ## 测试
 
 ```bash
-python tests/run_all.py          # 全部：5 套件回归（298 项断言）+ e2e（10 项）+ 9 个体检脚本
+python tests/run_all.py          # 全部：5 套件回归（298 项断言）+ e2e（10 项）+ 11 个体检脚本
 python tests/run_all.py mk_v16   # 只跑单个套件
 python tests/run_all.py --bless  # 重建断言基线快照
 node tests/e2e_local.cjs 8159    # 只跑本地版 e2e
@@ -42,7 +42,8 @@ node tests/e2e_local.cjs 8159    # 只跑本地版 e2e
 
 - `runtime: node`，`entry: server.mjs`，`port: 8151`，`health: /health`
 - `capabilities: ["storage"]` —— 数据目录由平台注入 `CAP_STORAGE_DIR`（随平台备份），本地直跑时落仓库外 `../agent-workbench-data/`
-- API 请求前缀跟随页面路径：平台反代 `/tool/agent-workbench/` 下自动带前缀（不加前缀会打到平台根 404）；`/health` 会返回存储目录可写性，便于平台侧排查
+- API 请求前缀跟随页面路径：平台反代 `/tool/agent-workbench/` 下自动带前缀（不加前缀会打到平台根 404）；`/health` 会返回存储目录可写性与最近一次读库异常，便于平台侧排查
+- 写入校验在服务端：必填字段为空、枚举值不在取值表内返回 `400` + 中文原因；`/api/backup` 提供备份列表与恢复（恢复前先备份当前库）
 
 ## 数据层
 
@@ -57,6 +58,8 @@ node tests/e2e_local.cjs 8159    # 只跑本地版 e2e
 | `deleteRecord({databaseId, recordId})` | `DELETE /api/records/:id?db=` |
 
 - 四张表用语义化 key：`tasks` / `machines` / `accounts` / `github`
+- **写入只走一层 `Repo`**：页面用 `Repo.<表>.update / create / remove`（如 `Repo.tasks.update(id, props)`），
+  上面的 `addRecord / updateRecord / deleteRecord` 只出现在 `Repo` 内部（共 3 处），不在业务函数里散落
 - `accounts` 是账号真相：一台电脑 × 一个平台可以多条，同池至多一条 `当前`
 - 机器表的 `WorkBuddy账号` / `TRAE账号` 是**派生只读**（= 当前账号），存储里不留第二份
 - 字段用 `{text}/{select}/{date}/{number}` 包裹值格式，schema 由服务端下发
@@ -77,7 +80,7 @@ agent-workbench/
   tests/
     run_all.py          # 统一入口
     mk_*.py             # 各功能套件
-    audit_*.cjs         # 真实浏览器体检脚本（9 个）
+    audit_*.cjs         # 真实浏览器体检脚本（run_all 里跑 11 个）
     fixture_db.cjs      # 测试数据夹具（相对日期种子，与真实数据隔离）
     e2e_local.cjs       # 端到端（真实 server + 真实 fetch）
     cdp.cjs             # 零依赖 CDP 客户端
@@ -91,6 +94,7 @@ agent-workbench/
 | 架构 / 数据流 / 扩展指南 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | DOM 属性契约 | [docs/DOM-ATTRIBUTES.md](docs/DOM-ATTRIBUTES.md) |
 | AI 协作规则 | [AGENTS.md](AGENTS.md) |
+| 重构计划 / 注意事项 / 排障 | [docs/REFACTOR-PLAN.md](docs/REFACTOR-PLAN.md) |
 | 开发者视角（关键问题与方案） | [DEVELOPMENT.md](DEVELOPMENT.md) |
 | 版本历史 | [CHANGELOG.md](CHANGELOG.md) |
 | AI 写入契约 | [contract.md](contract.md) |

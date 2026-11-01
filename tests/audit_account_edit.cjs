@@ -294,6 +294,60 @@ function rowsExpr() {
     const rows8 = await ev(rowsExpr());
     check('解除后本机仍有当前账号（顺延）', Array.isArray(rows8) && rows8.filter(r => r.slice(-1) === '*').length === 1,
       JSON.stringify(rows8));
+
+    // ---------- 14. 电脑改名联动：账号跟着搬 / 胶囊不失效 / GitHub 筛选不残留旧名 / 重名失败不甩锅 ----------
+    // 背景：电脑身份有三份副本（machines 名 / accounts 所属电脑 / github 电脑），
+    // 改名只搬服务端、不重拉客户端，就会出现「账号看起来没了」
+    await ev(`(function(){var s=document.getElementById("ghF_machine");s.value="台式机-家";s.dispatchEvent(new Event("change",{bubbles:true}));return s.value})()`);
+    await wait(250);
+    const filterBefore = await ev(`(function(){return document.getElementById('ghF_machine').value})()`);
+    check('改名前置：GitHub 筛选已选中该电脑', filterBefore === '台式机-家', JSON.stringify(filterBefore));
+
+    await click(cdp, '.col[data-machine-id="m1"] .ch-name');
+    await wait(200);
+    await ctrlA(cdp);
+    await cdp.send('Input.insertText', { text: '台式机-家2' });
+    await wait(120);
+    await key(cdp, 'Enter');
+    await wait(1400);
+
+    const dm = await getJSON('/api/query?db=machines');
+    check('电脑改名已落库', (dm.results || []).some(m => m._id === 'm1' && m['机器名'] === '台式机-家2'),
+      (dm.results || []).map(m => m['机器名']).join('/'));
+    const da = await getJSON('/api/query?db=accounts');
+    check('账号池跟着改名搬过去', (da.results || []).some(a => a['所属电脑'] === '台式机-家2'),
+      (da.results || []).filter(a => a['平台'] === 'WorkBuddy').map(a => a['所属电脑'] + ':' + a['账号名']).join('/'));
+    const cap = await ev(`(function(){
+      var b=document.querySelector('.col[data-machine-id="m1"] .ch-acc .acc[data-switch="m1:wb"]');
+      return b ? b.querySelector('.an').textContent.trim() : null;
+    })()`);
+    check('改名后胶囊仍显示当前账号（不是「未登录」）', !!cap && cap !== '未登录', JSON.stringify(cap));
+    const filterAfter = await ev(`(function(){return document.getElementById('ghF_machine').value})()`);
+    check('改名后 GitHub 筛选不残留旧机名', filterAfter === '', JSON.stringify(filterAfter));
+    const histOpt = await ev(`(function(){
+      var s=document.getElementById('ghF_machine'), out=[];
+      for(var i=0;i<s.options.length;i++) out.push(s.options[i].value);
+      return out;
+    })()`);
+    check('筛选下拉里历史机名仍可选（machines ∪ 记录）', Array.isArray(histOpt) && histOpt.indexOf('台式机-家') >= 0,
+      JSON.stringify(histOpt));
+
+    // 重名改名：服务端 400。内存任务不能先被改成别人的机名，否则整列任务会「跑」到另一台电脑
+    const cntM1Before = await ev(`(function(){return document.querySelectorAll('.col[data-machine-id="m1"] .card').length})()`);
+    await click(cdp, '.col[data-machine-id="m1"] .ch-name');
+    await wait(200);
+    await ctrlA(cdp);
+    await cdp.send('Input.insertText', { text: '笔记本' });
+    await wait(120);
+    await key(cdp, 'Enter');
+    await wait(1400);
+    const dm2 = await getJSON('/api/query?db=machines');
+    check('重名改名被服务端拒绝', !(dm2.results || []).some(m => m._id === 'm1' && m['机器名'] === '笔记本'),
+      (dm2.results || []).map(m => m['机器名']).join('/'));
+    const cntM1After = await ev(`(function(){return document.querySelectorAll('.col[data-machine-id="m1"] .card').length})()`);
+    check('改名失败后任务没被甩到别的列', cntM1After === cntM1Before, cntM1Before + ' → ' + cntM1After);
+    const nameShown = await ev(`(function(){var n=document.querySelector('.col[data-machine-id="m1"] .ch-name');return n?n.textContent.trim():null})()`);
+    check('改名失败后列头仍是旧名', nameShown === '台式机-家2', JSON.stringify(nameShown));
   } catch (e) {
     check('执行未抛错', false, e && e.message);
     console.error(e);

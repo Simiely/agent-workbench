@@ -114,7 +114,16 @@ const ROOT = path.dirname(__dirname);
       problems.push('仍残留 centered 变体（所有弹窗应统一居中形态）');
     }
 
-    // 7. 运行时验证：视图表能覆盖所有可能的视图值
+    // 7. 状态写入必须走 setter（防回流）：源码里不允许再出现对 S 字段的直接赋值
+    //    只查赋值，不查 === 比较；先剥掉注释，避免注释里的示例文字被误判。
+    //    声明块只有「字段: 值」，没有 S. 前缀，天然不会被命中。
+    const codeOnly = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\r\n]*/g, '');
+    const sAssign = codeOnly.match(/S\.\w+(?:\.\w+)?\s*=[^=]/g) || [];
+    if (sAssign.length) {
+      problems.push('仍有 ' + sAssign.length + ' 处 S 字段直接赋值（应走 setData / setUi / setSel）: ' + sAssign.slice(0, 6).join(' | '));
+    }
+
+    // 8. 运行时验证：视图表能覆盖所有可能的视图值
     const runtime = await cdp.evalJson(`(function(){
       // 从页面里读不到 IIFE 内的 VIEW，改为验证外部可观察的行为
       var out={};

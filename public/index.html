@@ -8,54 +8,70 @@
 <title>Agent 工作台</title>
 <style>
   :root[data-theme="dark"] {
-    --bg: #0C0D10;
-    --panel: #12141A;
-    --panel-2: #1A1D24;
-    --panel-3: #232730;
-    --border: #22262E;
-    --border-strong: #343A45;
-    --text: #E8EAED;
-    --text-2: #9AA1AC;
-    --text-3: #666E7B;
-    --accent: #4F8CFF;
-    --accent-soft: rgba(79,140,255,.13);
-    --done: #33C89A;
-    --done-soft: rgba(51,200,154,.12);
-    --warn: #F0A22E;
-    --danger: #F2555A;
-    --danger-soft: rgba(242,85,90,.13);
-    --shadow: 0 14px 44px rgba(0,0,0,.55);
-    /* 弹窗（居中 sheet）配色：深色下是深色磨砂玻璃 */
-    --mask-bg: rgba(8, 10, 14, .58);
-    --mask-bg-solid: rgba(8, 10, 14, .9);
-    --sheet-bg: rgba(22, 26, 33, .92);
-    --sheet-border: rgba(255, 255, 255, .09);
-    --sheet-shadow: 0 24px 64px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.4);
+    /* 暖黑：默认主题。暗底 + 纸面 + 陶土主色，避免纯黑纯灰的「机房感」 */
+    --bg: #191512;
+    --panel: #221D19;
+    --panel-2: #2A2420;
+    --panel-3: #332B25;
+    --border: rgba(255, 236, 214, .07);
+    --border-strong: rgba(255, 236, 214, .14);
+    --text: #F1E9DD;
+    --text-2: #B5A695;
+    --text-3: #807264;
+    --accent: #E08362;
+    --accent-soft: rgba(224, 131, 98, .14);
+    --done: #8FB884;
+    --done-soft: rgba(143, 184, 132, .14);
+    --ok: #8FB884;
+    --ok-soft: rgba(143, 184, 132, .14);
+    --warn: #D9A451;
+    --warn-soft: rgba(217, 164, 81, .14);
+    --danger: #E07A72;
+    --danger-soft: rgba(224, 122, 114, .14);
+    --shadow: none; /* 装饰阴影一律去掉：大范围投影让页面发灰，只保留 0 模糊的焦点/选中描边 */
+    /* 实心按钮：暖黑下用「亮底深字」，白字在 #E08362 上只有 2.6:1 */
+    --btn-bg: #E08362;
+    --btn-bg-hover: #EFA184;
+    --btn-fg: #241A14;
+    /* 弹窗（居中 sheet）配色：深色下是暖色磨砂玻璃 */
+    --mask-bg: rgba(10, 8, 6, .55);
+    --mask-bg-solid: rgba(10, 8, 6, .92);
+    --sheet-bg: rgba(34, 29, 25, .94);
+    --sheet-border: rgba(255, 236, 214, .09);
+    --sheet-shadow: none; /* 弹窗也去掉大投影，靠遮罩与圆角分层 */
   }
   :root[data-theme="light"] {
-    --bg: #F3F4F7;
-    --panel: #FFFFFF;
-    --panel-2: #F5F7FA;
-    --panel-3: #E9ECF1;
-    --border: #E2E6EC;
-    --border-strong: #CCD2DB;
-    --text: #101319;
-    --text-2: #576070;
-    --text-3: #8A93A1;
-    --accent: #2563EB;
-    --accent-soft: rgba(37,99,235,.09);
-    --done: #059669;
-    --done-soft: rgba(5,150,105,.10);
-    --warn: #C2740A;
-    --danger: #D92D20;
-    --danger-soft: rgba(217,45,32,.09);
-    --shadow: 0 14px 40px rgba(16,24,40,.13);
-    /* 弹窗（居中 sheet）配色：浅色下是白色磨砂玻璃 */
-    --mask-bg: rgba(16, 24, 40, .38);
-    --mask-bg-solid: rgba(16, 24, 40, .82);
-    --sheet-bg: rgba(255, 255, 255, .92);
-    --sheet-border: rgba(16, 24, 40, .1);
-    --sheet-shadow: 0 24px 64px rgba(16,24,40,.18), 0 2px 8px rgba(16,24,40,.1);
+    /* 暖白：奶油底 + 纸白面，读起来像纸不做成玻璃 */
+    --bg: #F4EEE4;
+    --panel: #FFFCF6;
+    --panel-2: #F6EFE4;
+    --panel-3: #EDE3D4;
+    --border: rgba(120, 92, 62, .12);
+    --border-strong: rgba(120, 92, 62, .22);
+    --text: #2C2621;
+    --text-2: #6E6357;
+    --text-3: #9C8F80;
+    --accent: #C0603F;
+    --accent-soft: rgba(192, 96, 63, .10);
+    --done: #5C7F58;
+    --done-soft: rgba(92, 127, 88, .12);
+    --ok: #5C7F58;
+    --ok-soft: rgba(92, 127, 88, .12);
+    --warn: #BE8A35;
+    --warn-soft: rgba(190, 138, 53, .13);
+    --danger: #AF4640;
+    --danger-soft: rgba(175, 70, 64, .10);
+    --shadow: none; /* 同暖黑：装饰阴影全部去掉 */
+    /* 实心按钮：暖白下用深陶土底 + 白字 */
+    --btn-bg: #C0603F;
+    --btn-bg-hover: #A94E30;
+    --btn-fg: #FFF8F2;
+    /* 弹窗（居中 sheet）配色：浅色下是暖白磨砂玻璃 */
+    --mask-bg: rgba(58, 44, 30, .34);
+    --mask-bg-solid: rgba(58, 44, 30, .86);
+    --sheet-bg: rgba(255, 252, 246, .94);
+    --sheet-border: rgba(120, 92, 62, .10);
+    --sheet-shadow: none;
   }
   /* ── 浮层动效令牌（与主题无关，全局一套）──
      苹果动效规范：spring 曲线用 cubic-bezier(0.32,0.72,0,1)，进场从容、退场利落。
@@ -86,6 +102,9 @@
   ::-webkit-scrollbar-thumb:hover { background: var(--text-3); background-clip: padding-box; }
   ::-webkit-scrollbar-corner { background: transparent; }
   button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+  /* 键盘焦点：只在键盘操作时显示环（鼠标点击不亮），不覆盖输入框自己的描边方案 */
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .card:focus-visible, .repo-card:focus-visible { outline-offset: 1px; }
   input, textarea, select { font: inherit; color: inherit; }
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 6px; }
@@ -405,7 +424,7 @@
     opacity: 0; pointer-events: none; visibility: hidden;
     border: 1px solid var(--sheet-border); border-radius: 16px;
     background: var(--sheet-bg);
-    box-shadow: var(--sheet-shadow);
+    box-shadow: none;
     transition: transform var(--dur-out) var(--ease-out), opacity var(--dur-out) linear,
                 visibility 0s linear var(--dur-out);
   }
@@ -551,12 +570,6 @@
   }
   @media (max-width: 900px) {
     .row2 { grid-template-columns: 1fr; }
-  }
-  @media (max-width: 640px) {
-    .board { grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
-    .row2 { grid-template-columns: 1fr; }
-    .topbar { flex-wrap: wrap; }
-    .search { width: 100%; order: 3; }
   }
 
   /* ===== 左右分屏：左任务看板 / 右 GitHub 看板，中缝可拖 ===== */
@@ -752,7 +765,7 @@
     background: var(--mask-bg-solid, #1c1c1e); color: #fff;
     font-size: 11px; line-height: 1.5; white-space: nowrap;
     border: 1px solid var(--border-strong);
-    box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    box-shadow: none;
   }
   .hm-tip b { margin-right: 7px; font-variant-numeric: tabular-nums; }
 
@@ -860,52 +873,263 @@
   .pane-top .sec-title { margin-bottom: 10px; }
   .pane-top .gh-intensity { padding: 0 0 8px; }
 
+  /* ============================================================
+     暖色皮肤（默认暖黑）：只改「材质」，不动布局骨架
+     原则：
+       ① 去硬边框 —— 用「纸面 + 阴影 + 间距」分区，只在语义需要时用细描边（孤儿列）
+       ② 两层纸面 —— 页面底 → 窗格（--panel）→ 列/仓库卡（--panel-2）→ 卡片（--panel）
+       ③ 实心按钮统一走 --btn-*：暖黑亮底深字、暖白深底白字，两种主题都保证对比度
+     ============================================================ */
+  .topbar { border-bottom: 0; padding: 18px 26px 10px; flex-wrap: wrap; row-gap: 8px; }
+  main.split { padding: 0 26px 22px; gap: 18px; }
+  .view { background: var(--panel); border-radius: 22px; box-shadow: var(--shadow); padding: 0 22px 36px; }
+  .pane-top { margin: 0 -22px; padding: 18px 22px 10px; background: var(--panel); border-radius: 22px 22px 0 0; }
+
+  .search { border: 0; background: var(--panel-2); border-radius: 99px; height: 36px; padding: 0 14px;
+    width: 300px; flex: 0 1 300px; min-width: 180px; }
+  /* 中等宽度：先收窄快捷指南（去掉「电脑」二字、下拉限宽），别让搜索框被压成 50px */
+  @media (max-width: 1180px) {
+    .ai-quick .lab { display: none; }
+    .ai-quick select { max-width: 96px; }
+    .ai-quick { padding-left: 9px; }
+  }
+  @media (max-width: 1100px) {
+    .topbar #aiGuideBtn .gt { display: none; } /* 指南只留 🤖 图标，完整契约仍可开 */
+    .search { min-width: 200px; }
+  }
+  /* 再窄：搜索整行独占一行，按钮留在上一行 —— 比把搜索压成图标 / 让「新增」单独掉一行更可用 */
+  @media (max-width: 1040px) {
+    .search { order: 9; flex: 1 1 100%; max-width: none; min-width: 0; }
+  }
+  .search:focus-within { box-shadow: inset 0 0 0 1px var(--border-strong); }
+  .icon-btn { border: 0; background: var(--panel-2); border-radius: 50%; box-shadow: none; }
+  .icon-btn:hover { background: var(--panel-3); border: 0; color: var(--text); }
+  .ghost-btn { border: 0; background: var(--panel-2); border-radius: 99px; }
+  .ghost-btn:hover { background: var(--panel-3); border: 0; }
+  .ghost-btn.on { border: 0; background: var(--accent-soft); color: var(--accent); }
+  .btn-primary { background: var(--btn-bg); color: var(--btn-fg); border-radius: 99px; }
+  .btn-primary:hover { background: var(--btn-bg-hover); filter: none; }
+  .btn-ghost { border: 0; background: var(--panel-2); border-radius: 99px; }
+  .btn-ghost:hover { background: var(--panel-3); border: 0; }
+  .btn-ghost.danger { background: transparent; color: var(--danger); }
+  .btn-ghost.danger:hover { background: var(--danger-soft); color: var(--danger); }
+
+  .sec-title { font-size: 13.5px; }
+  .sec-title .mx { border: 0; background: var(--panel-2); }
+  .brand .ver { color: var(--text-2); background: var(--panel-2); border: 0; }
+
+  /* 顶栏快捷指南：下拉选电脑 + 复制契约，不弹窗也能用 */
+  .ai-quick {
+    display: inline-flex; align-items: center; gap: 6px; height: 33px; padding: 0 5px 0 11px;
+    background: var(--panel-2); border-radius: 99px; white-space: nowrap;
+  }
+  .ai-quick .lab { font-size: 10px; letter-spacing: .4px; color: var(--text-3); }
+  .ai-quick select {
+    background: none; border: 0; outline: none; cursor: pointer;
+    font-size: 12px; color: var(--text); max-width: 132px; padding: 0 2px;
+  }
+  .ai-quick select option { background: var(--panel-3); color: var(--text); }
+  .ai-quick button {
+    height: 23px; padding: 0 10px; border-radius: 99px; font-size: 11.5px;
+    background: var(--panel); color: var(--text-2); box-shadow: var(--shadow);
+  }
+  .ai-quick button:hover { color: var(--text); }
+
+  /* KPI 保留 2×2（右侧开发强度按它对齐高度），只去描边、加重数字。
+     auto-fit + 148px 下限：桌面窄栏仍是 2 列，平板/堆叠后自动变 4 列，不拉出一排大空块 */
+  .kpis { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .kpi { background: var(--panel-2); border: 0; border-radius: 16px; }
+  .kpi:hover { background: var(--panel-3); }
+  .kpi.on { background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--accent); }
+  .kpi .num { font-size: 22px; }
+  /* 卡片右上角的小提示在窄瓦片里会被数字挤住，暖色皮肤里不再显示（语义由分段与视图本身表达） */
+  .kpi .hint { display: none; }
+
+  .tabs { background: var(--panel-2); border: 0; border-radius: 99px; }
+  .tabs button { border-radius: 99px; }
+  .tabs button.on { background: var(--panel); color: var(--text); box-shadow: var(--shadow); }
+
+  .col { background: var(--panel-2); border: 0; border-radius: 16px; }
+  .col.col-orphan { background: transparent; border: 1px dashed var(--border-strong); }
+  .col-head { border-bottom: 0; }
+  .acc { background: var(--panel); border: 0; border-radius: 99px; box-shadow: var(--shadow); }
+  .acc .cnt { border: 0; background: var(--panel-2); }
+  /* 一号多机同时登录：胶囊整颗转成告警色（不靠小图标，扫一眼就能看见） */
+  .acc.conflict { background: var(--danger-soft); box-shadow: inset 0 0 0 1px var(--danger); }
+  .acc.conflict .led { background: var(--danger); }
+  .acc.conflict .pf, .acc.conflict .an { color: var(--danger); }
+  .acc.conflict .an { font-weight: 600; }
+  .acc .excl {
+    width: 14px; height: 14px; border-radius: 50%; flex: none;
+    display: grid; place-items: center; font-size: 10px; font-weight: 700; line-height: 1;
+    background: var(--danger); color: var(--panel);
+  }
+  .acc-row .tag.warn { color: var(--danger); font-weight: 600; }
+  .card { background: var(--panel); border: 0; border-radius: 13px; box-shadow: var(--shadow); position: relative; }
+  .card:hover { border: 0; box-shadow: 0 0 0 1px var(--border-strong); }
+  .card.p0 { border-left: 0; }
+  .card.p0::before {
+    content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px;
+    border-radius: 0 3px 3px 0; background: var(--accent);
+  }
+  .card.sel, .repo-entry.sel { border: 0; box-shadow: inset 0 0 0 2px var(--accent); }
+  .sel-box { border: 0; background: var(--panel-3); }
+  .c-actions .mini, .col-empty .mini { border: 0; background: var(--panel-3); }
+  .badge { border: 0; background: var(--panel-3); }
+  .gh-ver { border: 0; background: var(--panel-3); border-radius: 99px; }
+  .prio.p0 { color: var(--danger); background: var(--danger-soft); }
+  .prio.p1 { color: var(--warn); background: var(--warn-soft); }
+  .progress .box, .todo-item .box { border: 0; background: var(--panel-3); }
+  .todo-item .box.on { background: var(--done); color: #12200F; }
+  .inline-input { border: 0; box-shadow: inset 0 0 0 1px var(--accent); background: var(--panel-3); }
+
+  .gh-intensity { background: transparent; border: 0; box-shadow: none; }
+  .gh-filter { border: 0; background: var(--panel-2); border-radius: 99px; height: 32px; }
+  .gh-kpis .kpi:hover { border: 0; background: var(--panel-2); }
+  .gh-kpis .kpi.on { border: 0; background: var(--accent-soft); }
+  .gi-range.on { border: 0; background: var(--accent-soft); }
+  .gi-range:hover { background: var(--panel-3); }
+  .gi-cell.future { border: 0; box-shadow: inset 0 0 0 1px var(--border); }
+
+  .repo-card { background: var(--panel-2); border: 0; border-radius: 16px; box-shadow: var(--shadow); }
+  .repo-card:hover { border: 0; box-shadow: 0 0 0 1px var(--border-strong); }
+  .repo-entries { border-top: 0; padding-top: 6px; }
+  .repo-copy, .repo-count, .archtag { border: 0; background: var(--panel-3); border-radius: 99px; }
+  .repo-pin {
+    flex: none; font-size: 10.5px; color: var(--text-3); white-space: nowrap;
+    border: 0; border-radius: 99px; background: var(--panel-3); padding: 1px 8px;
+  }
+  .repo-pin:hover { color: var(--text); }
+  .repo-pin.on { color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .repo-card.pinned { box-shadow: inset 0 0 0 1px var(--accent); }
+  .repo-head { flex-wrap: wrap; row-gap: 4px; }
+  .repo-del { border: 0; }
+  .rd-row { border-color: transparent; }
+  .rd-row:hover { border-color: transparent; background: var(--panel-3); }
+
+  .drawer, .modal { border: 0; border-radius: 24px; }
+  .drawer-head, .modal-head { border-bottom: 0; padding-bottom: 8px; }
+  .drawer-head h3, .modal-head h3 { font-size: 14px; font-weight: 650; }
+  .drawer-foot { border-top: 0; }
+  .dt-sec { border-top: 0; padding-top: 16px; }
+  .dt-sec:first-child { padding-top: 0; }
+  .dt-tag { border: 0; background: var(--panel-3); border-radius: 99px; }
+  .dt-tag.st-doing { border: 0; background: var(--accent-soft); color: var(--accent); }
+  .dt-tag.st-done { border: 0; background: var(--done-soft); color: var(--done); }
+  /* 详情就地编辑：可改的地方给出「可点」的反馈 */
+  .dt-title[data-dt-edit], .dt-text[data-dt-edit], .dt-path[data-dt-edit] { cursor: text; border-radius: 8px; transition: background .15s; }
+  .dt-title[data-dt-edit]:hover, .dt-text[data-dt-edit]:hover, .dt-path[data-dt-edit]:hover {
+    background: var(--panel-2); box-shadow: 0 0 0 4px var(--panel-2);
+  }
+  .dt-tag[data-dt-menu] { cursor: pointer; font: inherit; }
+  .dt-tag[data-dt-menu]:hover { box-shadow: inset 0 0 0 1px var(--border-strong); }
+  .dt-todo-row[data-dt-todo] { cursor: pointer; border-radius: 8px; padding: 3px 6px; margin: 0 -6px; }
+  .dt-todo-row[data-dt-todo]:hover { background: var(--panel-2); }
+  .dt-tip { font-size: 9.5px; font-weight: 400; color: var(--text-3); margin-left: 7px; }
+  .dt-path.muted { color: var(--text-3); }
+  .dt-edit {
+    width: 100%; font: inherit; color: var(--text); background: var(--panel-3);
+    border: 0; border-radius: 8px; padding: 6px 8px; outline: none;
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  .dt-edit.multi { min-height: 76px; resize: vertical; line-height: 1.7; font-size: 12.5px; }
+  .menu button.cur { color: var(--accent); }
+  .dt-tag.prio-p0 { border: 0; background: var(--danger-soft); color: var(--danger); }
+  .dt-tag.prio-p1 { border: 0; background: var(--warn-soft); color: var(--warn); }
+  .dt-path { border: 0; background: var(--panel-2); }
+  .dt-todo-mark { border: 0; background: var(--panel-3); }
+  .dt-todo-row.done .dt-todo-mark { background: var(--done); color: #12200F; }
+  .field input, .field textarea, .field select { border: 0; background: var(--panel-3); border-radius: 10px; }
+  .field input:focus, .field textarea:focus, .field select:focus { box-shadow: inset 0 0 0 1px var(--accent); }
+  .ai-pick select { border: 0; background: var(--panel-3); }
+  .ai-pre { background: var(--panel-2); }
+
+  .menu { border: 0; border-radius: 16px; box-shadow: none; }
+  .acc-foot { border-top: 0; }
+  .acc-form-btns button.primary { background: var(--btn-bg); color: var(--btn-fg); }
+  .manage-bar { border: 0; border-radius: 18px; box-shadow: none; }
+  .manage-bar .m-group + .m-group { border-left: 0; padding-left: 8px; }
+  .manage-bar button { border: 0; background: var(--panel-2); border-radius: 99px; }
+  .manage-bar button.danger { background: var(--danger-soft); border: 0; }
+  .toast { border: 0; border-radius: 99px; }
+  .hm-navbtn, .hm-numtoggle { border: 0; background: var(--panel-2); }
+  .hm-numtoggle.on { border: 0; background: var(--accent-soft); color: var(--accent); }
+  .hm-tip { border: 0; }
+
   /* ===== 底部 T-bar（窄屏分页）：宽屏隐藏，≤760px 接管导航与主操作 ===== */
   .tabbar { display: none; }
   #aiFull { display: none; }
   .tb-item, .tb-add { -webkit-tap-highlight-color: transparent; }
 
-  @media (max-width: 640px) {
-    .topbar { padding: 10px 14px; gap: 8px; }
-    .topbar #manageBtn, .topbar #aiGuideBtn, .topbar #addBtn { display: none; }
-    .search { width: 100%; order: 3; }
+  /* 手机形态（≤700px）：一次只看一页，导航下沉到底部 T-bar。
+     断点定在 700：能覆盖所有手机；同时测试器的默认视口是 748，保持宽屏形态，
+     避免「改断点顺手改坏一批几何断言」。平板竖屏（768）仍是左右分屏。 */
+  @media (max-width: 700px) {
+    .topbar { padding: 13px 14px 0; gap: 9px; flex-wrap: wrap; }
+    .topbar #manageBtn, .topbar #aiGuideBtn, .topbar #addBtn, .topbar #themeBtn { display: none; }
+    .ai-quick { display: none; } /* 手机上「指南」在底部 T-bar 中央键里 */
+    .search { width: 100%; order: 3; height: 38px; }
+    /* 「放大本栏」在手机上无意义（点标题是切页），隐藏角标 */
+    .sec-title .mx { display: none; }
 
-    main.split { padding: 0 10px; flex-direction: column; overflow-y: auto; }
+    main.split {
+      padding: 10px 12px calc(78px + env(safe-area-inset-bottom, 0px));
+      flex-direction: column; overflow-y: auto; gap: 0;
+    }
     .split-divider { display: none; }
-    .view { padding: 0 4px 96px; overflow: visible; }
     /* 没有左右分屏了：一次只显示一页，由底部 T-bar 切换 */
     body[data-page="board"] #viewGithub { display: none; }
     body[data-page="gh"] #viewBoard { display: none; }
-    .pane-top { margin: 0 -4px; padding: 10px 4px 8px; }
-    .board, .gh-list { grid-template-columns: minmax(0, 1fr); }
+    .view { padding: 0 14px 24px; overflow: visible; border-radius: 20px; }
+    .pane-top { margin: 0 -14px; padding: 15px 14px 8px; border-radius: 20px 20px 0 0; }
+
+    /* 列按内容高度排：grid 默认会把每行拉满，卡片会超出列高、压到下一列 */
+    .board { grid-template-columns: minmax(0, 1fr); grid-auto-rows: max-content; align-content: start; }
+    .board .col { height: auto; }
+    .board .col-body { flex: none; overflow: visible; }
+    .gh-list { grid-template-columns: minmax(0, 1fr); }
+
+    /* 同步记录窄屏两行排：时间/版本/状态/菜单一行，内容独占第二行 */
+    .repo-entry {
+      display: grid; grid-template-columns: auto 1fr auto auto;
+      grid-template-areas: "time ver res dots" "content content content content";
+      row-gap: 2px; padding: 6px 0; align-items: center;
+    }
+    .repo-entry .re-time { grid-area: time; }
+    .repo-entry .re-ver { grid-area: ver; max-width: none; }
+    .repo-entry .re-res { grid-area: res; justify-self: end; }
+    .repo-entry .re-content { grid-area: content; white-space: normal; }
+    .repo-entry .re-dots { grid-area: dots; }
+    .repo-entry .re-who { display: none; }
 
     .tabbar {
-      position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
       display: flex; align-items: flex-end; justify-content: space-around; gap: 2px;
-      padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
-      background: var(--sheet-bg); border-top: 1px solid var(--border);
-      -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
+      padding: 4px 8px calc(4px + env(safe-area-inset-bottom, 0px));
+      background: var(--panel); border-top: 0;
+      box-shadow: none;
     }
     .tb-item {
-      min-width: 58px; min-height: 48px; border-radius: 12px;
+      min-width: 58px; min-height: 48px; border-radius: 14px;
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-      font-size: 10.5px; color: var(--text-2);
+      font-size: 10.5px; color: var(--text-3);
     }
     .tb-item .em { font-size: 16px; line-height: 1; }
-    .tb-item.on { color: var(--accent); background: var(--accent-soft); }
-    /* 中间键：AI 指南（＋新增 / 管理 收进「更多」） */
+    .tb-item.on { color: var(--accent); background: transparent; }
+    /* 中间键：AI 指南（＋新增 / 管理 / 主题 收进「更多」） */
     .tb-core {
-      min-width: 68px; min-height: 52px; border-radius: 50%; margin-top: -14px; flex: none;
+      width: 56px; height: 56px; min-width: 56px; min-height: 56px;
+      border-radius: 50%; margin-top: -26px; flex: none;
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-      background: linear-gradient(145deg, #5B95FF, #2C6BE8); color: #fff; font-size: 10.5px;
-      box-shadow: 0 12px 26px -8px rgba(44,107,232,.95), inset 0 1px 0 rgba(255,255,255,.35);
+      background: var(--btn-bg); color: var(--btn-fg); font-size: 9.5px;
+      box-shadow: none;
     }
-    .tb-core .ico { font-size: 19px; line-height: 1; }
+    .tb-core .ico { font-size: 17px; line-height: 1; }
     .tb-core:active { transform: scale(.94); }
 
     /* 弹窗统一居中形态：手机上只把宽度和安全区收一下，不再改底部弹层 */
-    .drawer, .modal { width: min(680px, 94vw); max-height: min(86vh, 780px); }
-    .drawer-foot, .modal-foot { padding-bottom: 12px; }
+    .drawer, .modal { width: 94vw; max-height: 84vh; border-radius: 22px; }
+    .drawer-foot, .modal-foot { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
 
     /* AI 指南弹窗在手机上只要「选电脑 + 复制」，完整契约按需展开 */
     #aiFull { display: inline-flex; }
@@ -918,9 +1142,9 @@
     .ai-pick select { height: 44px; font-size: 14px; padding: 0 10px; }
     .ai-pick-tip { flex: 1 1 100%; }
 
-    .manage-bar { bottom: calc(74px + env(safe-area-inset-bottom, 0px)); left: 8px; right: 8px; transform: translateY(140%); }
+    .manage-bar { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); left: 8px; right: 8px; transform: translateY(140%); }
     .manage-bar.on { transform: translateY(0); }
-    .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+    .toast { bottom: calc(94px + env(safe-area-inset-bottom, 0px)); }
   }
 
 </style>
@@ -931,22 +1155,28 @@
   <div class="brand"><h1>Agent 工作台</h1><span class="ver" id="appVer" title="当前部署的版本号"></span></div>
   <div class="spacer"></div>
   <div class="search">
-    <svg fill="none" height="13" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13">
+    <svg aria-hidden="true" fill="none" height="13" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13">
       <circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>
     </svg>
     <input id="q" placeholder="搜任务、目录、进度" type="text">
   </div>
-  <button class="icon-btn" id="themeBtn" title="切换主题">
-    <svg fill="none" height="15" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" width="15">
+  <!-- 快捷指南：选电脑 + 复制契约，一步到位（完整契约仍可点右侧 🤖 打开） -->
+  <div class="ai-quick" id="aiQuick" title="选一台电脑后复制契约：示例 payload 里的「所在电脑」会填好">
+    <span class="lab">电脑</span>
+    <select id="aiQuickMachine" title="选择电脑：决定示例里的「所在电脑」"></select>
+    <button id="aiQuickCopy" type="button" title="复制完整契约（已按所选电脑填好示例）">复制契约</button>
+  </div>
+  <button class="icon-btn" id="themeBtn" title="切换主题" aria-label="切换主题">
+    <svg aria-hidden="true" fill="none" height="15" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" width="15">
       <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
     </svg>
   </button>
   <button class="ghost-btn" id="manageBtn" title="批量选择与操作">管理</button>
-  <button class="ghost-btn" id="aiGuideBtn" title="AI 写入指南：四张表的字段契约与示例">🤖 指南</button>
+  <button class="ghost-btn" id="aiGuideBtn" title="AI 写入指南：四张表的字段契约与示例">🤖 <span class="gt">指南</span></button>
   <button class="btn-primary" id="addBtn" title="新增">
-    <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-width="2.2" viewBox="0 0 24 24" width="12"><path d="M12 5v14M5 12h14"/></svg>
+    <svg aria-hidden="true" fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-width="2.2" viewBox="0 0 24 24" width="12"><path d="M12 5v14M5 12h14"/></svg>
     新增
-    <svg fill="none" height="11" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="11"><path d="M6 9l6 6 6-6"/></svg>
+    <svg aria-hidden="true" fill="none" height="11" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="11"><path d="M6 9l6 6 6-6"/></svg>
   </button>
 </header>
 
@@ -969,7 +1199,7 @@
       <button class="sec-title" id="tGh" title="点击放大本栏，再点还原" type="button">GitHub 看板<span class="mx">⤢</span></button>
       <div class="gh-intensity" id="ghIntensity"></div>
       <div class="gh-toolbar">
-        <div class="gh-filter"><label>电脑</label><select id="ghF_machine"><option value>全部</option></select></div>
+        <div class="gh-filter"><label for="ghF_machine">电脑</label><select id="ghF_machine"><option value>全部</option></select></div>
         <div class="gh-kpis" id="ghKpis"></div>
       </div>
     </div>
@@ -979,18 +1209,18 @@
 
 <nav class="tabbar" id="tabbar" aria-label="分页">
   <button class="tb-item" data-page="board" type="button">
-    <svg fill="none" height="19" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" width="19"><rect x="3.5" y="5" width="4.6" height="14" rx="1.5"/><rect x="10.2" y="5" width="4.6" height="9" rx="1.5"/><rect x="17" y="5" width="3.8" height="12" rx="1.5"/></svg>
+    <svg aria-hidden="true" fill="none" height="19" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" width="19"><rect x="3.5" y="5" width="4.6" height="14" rx="1.5"/><rect x="10.2" y="5" width="4.6" height="9" rx="1.5"/><rect x="17" y="5" width="3.8" height="12" rx="1.5"/></svg>
     <span>看板</span>
   </button>
   <button class="tb-item" data-page="gh" type="button">
-    <svg fill="none" height="19" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" width="19"><circle cx="7" cy="6" r="2.1"/><circle cx="7" cy="18" r="2.1"/><circle cx="17" cy="9" r="2.1"/><path d="M7 8.1v7.8M9.2 6h4.6a3 3 0 0 1 3 3"/></svg>
+    <svg aria-hidden="true" fill="none" height="19" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" width="19"><circle cx="7" cy="6" r="2.1"/><circle cx="7" cy="18" r="2.1"/><circle cx="17" cy="9" r="2.1"/><path d="M7 8.1v7.8M9.2 6h4.6a3 3 0 0 1 3 3"/></svg>
     <span>仓库</span>
   </button>
   <button class="tb-core" id="tabAi" type="button" title="AI 写入指南：选电脑 + 复制">
     <span class="ico">🤖</span><span>AI 指南</span>
   </button>
   <button class="tb-item" id="tabMore" type="button">
-    <svg fill="none" height="19" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="19"><circle cx="6" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="18" cy="12" r="1.4" fill="currentColor"/></svg>
+    <svg aria-hidden="true" fill="none" height="19" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="19"><circle cx="6" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="18" cy="12" r="1.4" fill="currentColor"/></svg>
     <span>更多</span>
   </button>
 </nav>
@@ -998,12 +1228,12 @@
 <div class="drawer-mask" id="mask"></div>
 <aside class="drawer" id="drawer">
   <div class="drawer-head">
-    <button class="icon-btn" id="drawerBack" style="width:27px; height:27px; display:none" title="返回上一层">
-      <svg fill="none" height="13" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13"><path d="M15 5l-7 7 7 7"/></svg>
+    <button class="icon-btn" id="drawerBack" style="width:27px; height:27px; display:none" title="返回上一层" aria-label="返回上一层">
+      <svg aria-hidden="true" fill="none" height="13" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13"><path d="M15 5l-7 7 7 7"/></svg>
     </button>
     <h3 id="drawerTitle">任务详情</h3>
-    <button class="icon-btn" id="closeDrawer" style="width:27px; height:27px">
-      <svg fill="none" height="12" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    <button class="icon-btn" id="closeDrawer" style="width:27px; height:27px" aria-label="关闭弹窗">
+      <svg aria-hidden="true" fill="none" height="12" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </div>
   <div class="drawer-body" id="drawerBody"></div>
@@ -1022,13 +1252,13 @@
 <div class="modal sm" id="machineModal">
   <div class="modal-head">
     <h3>添加电脑</h3>
-    <button class="icon-btn" id="closeMachineModal" style="width:26px; height:26px">
-      <svg fill="none" height="12" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    <button class="icon-btn" id="closeMachineModal" style="width:26px; height:26px" aria-label="关闭添加电脑">
+      <svg aria-hidden="true" fill="none" height="12" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </div>
   <div class="modal-body pad">
-    <div class="field"><label>电脑名称</label><input id="m_name" placeholder="比如 台式机-书房"></div>
-    <div class="field"><label>位置标签（可留空）</label><input id="m_place" placeholder="比如 家 / 公司 / 随身"></div>
+    <div class="field"><label for="m_name">电脑名称</label><input id="m_name" placeholder="比如 台式机-书房"></div>
+    <div class="field"><label for="m_place">位置标签（可留空）</label><input id="m_place" placeholder="比如 家 / 公司 / 随身"></div>
   </div>
   <div class="drawer-foot">
     <button class="btn-primary" id="m_save">添加</button>
@@ -1051,8 +1281,8 @@
   <div class="drawer-head">
     <h3>🤖 AI 写入指南</h3>
     <button class="ghost-btn" id="aiFull" title="展开/收起完整契约" style="height:26px;padding:0 8px;font-size:11.5px">完整契约</button>
-    <button class="icon-btn" id="aiClose" style="width:27px; height:27px">
-      <svg fill="none" height="12" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    <button class="icon-btn" id="aiClose" style="width:27px; height:27px" aria-label="关闭 AI 指南">
+      <svg aria-hidden="true" fill="none" height="12" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </div>
   <div class="drawer-body" id="aiBody"></div>
@@ -1062,7 +1292,7 @@
   </div>
 </aside>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <div class="manage-bar" id="manageBar" style="display:none">
   <span class="m-count" id="mCount">已选 0</span>
@@ -1096,7 +1326,7 @@
          progress: '进度', todos: '待办', handoff: '交接内容', updated: '更新时间', order: '排序' },
     m: { name: '机器名', place: '位置', wb: 'WorkBuddy账号', trae: 'TRAE账号', confirmed: '最后确认', order: '排序' },
     a: { name: '账号名', plat: '平台', mach: '所属电脑', cur: '当前', note: '备注', at: '最后确认', order: '排序' },
-    g: { time: '同步时间', machine: '电脑', account: 'GitHub账号', repo: '仓库', content: '内容', versions: '同步版本', result: '是否同步', archived: '仓库归档' }
+    g: { time: '同步时间', machine: '电脑', account: 'GitHub账号', repo: '仓库', content: '内容', versions: '同步版本', result: '是否同步', archived: '仓库归档', pinned: '仓库置顶' }
   };
   var ST_DOING = '进行中', ST_DONE = '已完成';
   var STALE_MS = 7 * 86400000; // 「久未动」阈值：进行中且 7 天没更新
@@ -1142,31 +1372,87 @@ function localDb() {
 }
 var db = localDb();
 
-  var S = {
-    machines: [],
-    accounts: [],   // 登录账号表：一台电脑 × 一个平台可以有多条，至多一条「当前」
-    tasks: [],
-    gh: [],
-    ghFilter: { machine: '', unsync: false },
-    ghIntensityRange: 'month', // 开发强度范围：week 本周 / month 本月 / 90 近3个月
-    hmYear: null,         // 日历弹窗当前查看的年份（null = 打开时落到当年）
-    showHmNum: (function () { try { return localStorage.getItem('awb.hmnum') !== '0'; } catch (e) { return true; } })(), // 默认开，除非手动关过,
-    ghExpanded: {},
-    opts: { status: [], prio: [], wb: [], trae: [], ghResult: [] },
-    q: '',
-    // 弹窗（sheet）状态：单一枚举，每个值自带全部上下文，不再靠多个布尔拼装
-    // kind: taskDetail 任务详情(只读) / taskForm 任务表单 / ghForm 同步记录表单 /
-    //       repoDetail 仓库详情(只读)
-    // id 就是「当前操作对象」—— 保存/删除/复制交接都从它取，不再另存一份。
-    sheet: { kind: '', id: null, repo: '' },
-    // 弹窗导航栈：钻取时压入来源视图，「返回」时弹出并重绘。
-    // 每项是一个完整的 sheet 描述，可直接重建成界面 —— 所以返回不需要重新查数据源。
-    sheetStack: [],
-    view: 'doing', // 看板视图（单一枚举）：doing 进行中 / all 全部 / done 已完成 / att 需要关注 / todo 未勾待办
-    manage: false, // 管理模式：批量选择与批量操作
-    aiMachine: '', // AI 指南里选中的机器名（决定示例 payload 的「所在电脑」）
-    ready: false
+// 写库唯一出口：页面其余部分不再直接调 db.updateRecord/addRecord/deleteRecord，
+// 一律走 Repo.<表>.update / create / remove。返回 Promise，形状与 db.* 完全一致，
+// 调用点的 then/catch 语义原样保留；以后要统一加更新时间、重试或写入日志，只改这里。
+var Repo = (function () {
+  function update(dbKey, id, props) {
+    return db.updateRecord({ databaseId: dbKey, recordId: id, properties: props });
+  }
+  function create(dbKey, props) {
+    return db.addRecord({ databaseId: dbKey, properties: props });
+  }
+  function remove(dbKey, id) {
+    return db.deleteRecord({ databaseId: dbKey, recordId: id });
+  }
+  function table(dbKey) {
+    return {
+      update: function (id, props) { return update(dbKey, id, props); },
+      create: function (props) { return create(dbKey, props); },
+      remove: function (id) { return remove(dbKey, id); }
+    };
+  }
+  return {
+    update: update, create: create, remove: remove,
+    tasks: table(DATABASE_ID),
+    machines: table(DB_MACHINE),
+    accounts: table(DB_ACC),
+    github: table(DB_GITHUB)
   };
+})();
+
+  // ── 状态分域（重构第 3 步）──
+  // S 只有三个域，每个字段只属于一个域，写入一律走对应的 setter；
+  // 业务函数里不再对 S 的字段直接赋值，避免「谁改的、改完要不要重绘」散落各处。
+  //   data：服务端真相（四张表 + schema 选项 + 是否已就绪）
+  //   ui  ：本机视图状态（搜索词、视图、管理模式、弹窗与导航栈、GitHub 筛选/强度/日历）
+  //   sel ：批量选择（管理模式里勾中的任务与记录）
+  var S = {
+    data: {
+      machines: [],
+      accounts: [],   // 登录账号表：一台电脑 × 一个平台可以有多条，至多一条「当前」
+      tasks: [],
+      gh: [],
+      opts: { status: [], prio: [], wb: [], trae: [], ghResult: [] },
+      ready: false
+    },
+    ui: {
+      q: '',
+      // 看板视图（单一枚举）：doing 进行中 / all 全部 / done 已完成 / att 需要关注 / todo 未勾待办
+      view: 'doing',
+      manage: false, // 管理模式：批量选择与批量操作
+      // 弹窗（sheet）状态：单一枚举，每个值自带全部上下文，不再靠多个布尔拼装
+      // kind: taskDetail 任务详情(只读) / taskForm 任务表单 / ghForm 同步记录表单 /
+      //       repoDetail 仓库详情(只读) / intensity 开发强度日历
+      // id 就是「当前操作对象」—— 保存/删除/复制交接都从它取，不再另存一份。
+      sheet: { kind: '', id: null, repo: '' },
+      // 弹窗导航栈：钻取时压入来源视图，「返回」时弹出并重绘。
+      // 每项是一个完整的 sheet 描述，可直接重建成界面 —— 所以返回不需要重新查数据源。
+      sheetStack: [],
+      // AI 指南里选中的机器名（决定示例 payload 的「所在电脑」）。
+      // 顶栏下拉与弹窗里的下拉共用它；选过就记在 localStorage，刷新后不会复位。
+      aiMachine: (function () { try { return localStorage.getItem('awb.aiMachine') || ''; } catch (e) { return ''; } })(),
+      ghFilter: { machine: '', unsync: false },
+      ghIntensityRange: 'month', // 开发强度范围：week 本周 / month 本月 / q3 近3个月
+      ghExpanded: {},
+      hmYear: null, // 日历弹窗当前查看的年份（null = 打开时落到当年）
+      // 日历格子里的日期数字：默认开，除非手动关过
+      showHmNum: (function () { try { return localStorage.getItem('awb.hmnum') !== '0'; } catch (e) { return true; } })()
+    },
+    sel: { tasks: {}, gh: {} }
+  };
+
+  // 三个域的写入入口：调用点只说「改哪个字段」，不直接碰 S
+  function setData(k, v) { S.data[k] = v; }
+  function setUi(k, v) { S.ui[k] = v; }
+  function setSel(k, v) { S.sel[k] = v; }
+  // 筛选是复合状态，按「补丁」写：只传要改的键，别整对象替换（否则会丢掉另一个键）
+  function setGhFilter(patch) {
+    for (var k in patch) if (patch.hasOwnProperty(k)) S.ui.ghFilter[k] = patch[k];
+  }
+  // 仓库卡「展开全部记录」：键是仓库名，值只有 true / 不存在两种
+  function toggleGhExpanded(repo) { S.ui.ghExpanded[repo] = !S.ui.ghExpanded[repo]; }
+
 
   function $(id) { return document.getElementById(id); }
   function escapeHtml(v) {
@@ -1219,8 +1505,6 @@ var db = localDb();
     return { total: list.length, done: done, list: list };
   }
 
-  function setBind() { /* 资料库版的平台标注机制；本地版无此层 */ }
-
   function paged(fetchPage, cb) {
     var acc = [], guard = 0;
     function step(cursor) {
@@ -1266,7 +1550,7 @@ var db = localDb();
       if (props[i].name === fieldName) {
         var cfg = props[i].config || {};
         var list = cfg.options || [];
-        for (var j = 0; j < list.length; j++) S.opts[key].push(list[j].text);
+        for (var j = 0; j < list.length; j++) S.data.opts[key].push(list[j].text);
       }
     }
   }
@@ -1284,16 +1568,18 @@ var db = localDb();
       readOpts(s3, 'ghResult', F.g.result);
     }).catch(function (e) {
       console.error('[workbench] schema 加载失败', e);
+      // 下拉选项来自 schema：拉不到就只剩空列表，用户会以为「状态/优先级没有选项」，必须说出来
+      toast('字段选项加载失败，下拉可能是空的（可刷新重试）');
     }).then(function () {
       loadMachines( function (ms, e1) {
-        S.machines = ms;
+        setData('machines', ms);
         loadAccounts( function (accs, e2) {
-          S.accounts = accs;
+          setData('accounts', accs);
           loadTasks( function (ts, e3) {
-            S.tasks = ts;
+            setData('tasks', ts);
             loadGithub( function (gh, e4) {
-              S.gh = gh;
-              S.ready = true;
+              setData('gh', gh);
+              setData('ready', true);
               cb(e1 || e2 || e3 || e4);
             });
           });
@@ -1304,21 +1590,21 @@ var db = localDb();
 
   function doingTasks() {
     var out = [];
-    for (var i = 0; i < S.tasks.length; i++) {
-      if (txt(S.tasks[i][F.t.status]) !== ST_DONE) out.push(S.tasks[i]);
+    for (var i = 0; i < S.data.tasks.length; i++) {
+      if (txt(S.data.tasks[i][F.t.status]) !== ST_DONE) out.push(S.data.tasks[i]);
     }
     return out;
   }
   function doneTasks() {
     var out = [];
-    for (var i = 0; i < S.tasks.length; i++) {
-      if (txt(S.tasks[i][F.t.status]) === ST_DONE) out.push(S.tasks[i]);
+    for (var i = 0; i < S.data.tasks.length; i++) {
+      if (txt(S.data.tasks[i][F.t.status]) === ST_DONE) out.push(S.data.tasks[i]);
     }
     return out;
   }
   function match(t) {
-    if (!S.q) return true;
-    var q = S.q.toLowerCase();
+    if (!S.ui.q) return true;
+    var q = S.ui.q.toLowerCase();
     var blob = (txt(t[F.t.title]) + ' ' + txt(t[F.t.progress]) + ' ' + txt(t[F.t.dir]) + ' ' + txt(t[F.t.handoff]) + ' ' + txt(t[F.t.todos])).toLowerCase();
     return blob.indexOf(q) >= 0;
   }
@@ -1330,24 +1616,24 @@ var db = localDb();
   // 后者不是筛选造成的，不该显示「清除筛选」。
   function emptyReason() {
     // 搜索是叠加在任意视图上的文本匹配，属于真·筛选 → 要给清除入口
-    if (S.q) {
-      return '搜索「' + S.q + '」没有匹配的任务<br>' +
+    if (S.ui.q) {
+      return '搜索「' + S.ui.q + '」没有匹配的任务<br>' +
         '<button class="mini" data-clear-view="1">清除搜索</button>';
     }
     // 其余情况是「这个视图下这台电脑本来就没有任务」→ 不是筛选，不给清除按钮
-    if (S.view === 'done') return '这台电脑下还没有已完成的任务';
-    if (S.view === 'att') return '这台电脑下没有需要关注的任务';
-    if (S.view === 'todo') return '这台电脑下没有欠账的任务';
-    if (S.view === 'all') return '这台电脑下还没有任务';
+    if (S.ui.view === 'done') return '这台电脑下还没有已完成的任务';
+    if (S.ui.view === 'att') return '这台电脑下没有需要关注的任务';
+    if (S.ui.view === 'todo') return '这台电脑下没有欠账的任务';
+    if (S.ui.view === 'all') return '这台电脑下还没有任务';
     return '这台电脑下没有进行中的任务';
   }
 
   // 列头计数的单位词：跟着当前视图走
   function viewCountUnit() {
-    if (S.view === 'all') return '个';
-    if (S.view === 'done') return '个已完成';
-    if (S.view === 'att') return '个需关注';
-    if (S.view === 'todo') return '个有欠账';
+    if (S.ui.view === 'all') return '个';
+    if (S.ui.view === 'done') return '个已完成';
+    if (S.ui.view === 'att') return '个需关注';
+    if (S.ui.view === 'todo') return '个有欠账';
     return '个进行中';
   }
 
@@ -1388,7 +1674,7 @@ var db = localDb();
 
   // 任务是否属于当前视图。规则在 VIEW 表里，这里只做查表调用。
   function viewMatch(t) {
-    return VIEW[S.view](t);
+    return VIEW[S.ui.view](t);
   }
 
   function renderSummary() {
@@ -1412,12 +1698,12 @@ var db = localDb();
     // KPI 卡片高亮 = 它对应的视图就是当前视图。任何时刻最多一个亮起。
     var hAtt = att ? 'P0 · 久未动' : '';
     var hTodo = '点击筛选';
-    var hDone = S.view === 'done' ? '当前视图' : '点击切换视图';
+    var hDone = S.ui.view === 'done' ? '当前视图' : '点击切换视图';
     $('summary').innerHTML = '<div class="kpis">' +
-      kpi('', '', doing.length, '进行中', '默认视图', S.view === 'doing') +
-      kpi('alert', 'att', att, '需要关注', hAtt, S.view === 'att') +
-      kpi('warn', 'todo', unt, '未勾待办', hTodo, S.view === 'todo') +
-      kpi('good', 'done', done.length, '已完成', hDone, S.view === 'done') +
+      kpi('', '', doing.length, '进行中', '默认视图', S.ui.view === 'doing') +
+      kpi('alert', 'att', att, '需要关注', hAtt, S.ui.view === 'att') +
+      kpi('warn', 'todo', unt, '未勾待办', hTodo, S.ui.view === 'todo') +
+      kpi('good', 'done', done.length, '已完成', hDone, S.ui.view === 'done') +
       '<' + '/div>';
   }
 
@@ -1426,8 +1712,8 @@ var db = localDb();
 
   function accPool(machineName, plat) {
     var out = [];
-    for (var i = 0; i < S.accounts.length; i++) {
-      var a = S.accounts[i];
+    for (var i = 0; i < S.data.accounts.length; i++) {
+      var a = S.data.accounts[i];
       if (txt(a[F.a.mach]) === machineName && txt(a[F.a.plat]) === plat) out.push(a);
     }
     out.sort(function (x, y) {
@@ -1442,13 +1728,13 @@ var db = localDb();
   // 每台电脑只是「我现在用的是哪个号」。面板列全库，改名全库同步，删除只解除本机登记。
   function accShared(plat, machineName) {
     var map = {}, out = [];
-    for (var i = 0; i < S.accounts.length; i++) {
-      var a = S.accounts[i];
+    for (var i = 0; i < S.data.accounts.length; i++) {
+      var a = S.data.accounts[i];
       if (txt(a[F.a.plat]) !== plat) continue;
       var nm = txt(a[F.a.name]);
       if (!nm || nm === '未登录') continue;
       if (!map[nm]) {
-        map[nm] = { name: nm, recs: [], mine: null, others: [], cur: false };
+        map[nm] = { name: nm, recs: [], mine: null, others: [], curOthers: [], cur: false };
         out.push(map[nm]);
       }
       var e = map[nm];
@@ -1456,8 +1742,11 @@ var db = localDb();
       if (txt(a[F.a.mach]) === machineName) {
         e.mine = a;
         if (a[F.a.cur] === true) e.cur = true;
-      } else if (e.others.indexOf(txt(a[F.a.mach])) < 0) {
-        e.others.push(txt(a[F.a.mach]));
+      } else {
+        var om = txt(a[F.a.mach]);
+        if (e.others.indexOf(om) < 0) e.others.push(om);
+        // 别的电脑也把这个号设成「当前」→ 同一个号被多台同时登录，需要醒目标出来
+        if (a[F.a.cur] === true && e.curOthers.indexOf(om) < 0) e.curOthers.push(om);
       }
     }
     out.sort(function (x, y) {
@@ -1475,7 +1764,7 @@ var db = localDb();
   }
 
   function findAcc(id) {
-    for (var i = 0; i < S.accounts.length; i++) if (S.accounts[i]._id === id) return S.accounts[i];
+    for (var i = 0; i < S.data.accounts.length; i++) if (S.data.accounts[i]._id === id) return S.data.accounts[i];
     return null;
   }
 
@@ -1486,14 +1775,26 @@ var db = localDb();
     var cur = currentAcc(name, plat);
     // 账号表是唯一真相：没有「当前」就是未登录，不能拿机器记录里的旧派生值兜底，
     // 否则清除登录态后胶囊还挂着上一个名字（数据已经空了）
-    var val = cur ? txt(cur[F.a.name]) : (S.ready ? '' : txt(m[key === 'wb' ? F.m.wb : F.m.trae]));
-    var n = accShared(plat, name).length;
+    var val = cur ? txt(cur[F.a.name]) : (S.data.ready ? '' : txt(m[key === 'wb' ? F.m.wb : F.m.trae]));
+    var shared = accShared(plat, name);
+    var n = shared.length;
+    // 同一个账号在别的电脑上也是「当前」= 一号多机同时登录，胶囊要醒目告警
+    var conflict = [];
+    if (cur) {
+      for (var ci = 0; ci < shared.length; ci++) {
+        if (shared[ci].name === val) { conflict = shared[ci].curOthers; break; }
+      }
+    }
     var empty = (!val || val === '未登录');
-    return '<button class="acc ' + (empty ? 'empty' : '') + '" data-switch="' + escapeHtml(m._id) + ':' + key + '"' +
-      ' title="' + (empty ? '登记这个平台登录过的账号' : '切换 / 管理账号') + '">' +
+    var tip = conflict.length
+      ? '同一个账号在「' + conflict.join(' / ') + '」也是当前 —— 多台电脑同时登录同一个号'
+      : (empty ? '登记这个平台登录过的账号' : '切换 / 管理账号');
+    return '<button class="acc ' + (empty ? 'empty' : '') + (conflict.length ? ' conflict' : '') +
+      '" data-switch="' + escapeHtml(m._id) + ':' + key + '" title="' + escapeHtml(tip) + '">' +
       '<span class="led"></span><span class="pf">' + label + '<' + '/span>' +
       '<span class="an">' + (empty ? '未登录' : escapeHtml(val)) + '</span>' +
-      ((n > 1 || (n && empty)) ? '<span class="cnt">' + n + '</span>' : '') + '</button>';
+      ((n > 1 || (n && empty)) ? '<span class="cnt">' + n + '</span>' : '') +
+      (conflict.length ? '<span class="excl" aria-hidden="true">!</span>' : '') + '</button>';
   }
 
   function cardHTML(t) {
@@ -1513,7 +1814,8 @@ var db = localDb();
         '<span class="tnum">' + st.done + '/' + st.total + ' 待办</span></div>' : '';
     return '<div class="card' + (txt(t[F.t.prio]) === 'P0' && !isDone ? ' p0' : '') + (isDone ? ' done' : '') +
         '" data-task-id="' + escapeHtml(t._id) + '" data-open="' + escapeHtml(t._id) + '"' +
-        ' draggable="' + (isDone || S.manage ? 'false' : 'true') + '">' +
+        ' tabindex="0" role="button" aria-label="打开任务详情：' + escapeHtml(txt(t[F.t.title])) + '"' +
+        ' draggable="' + (isDone || S.ui.manage ? 'false' : 'true') + '">' +
       '<span class="sel-box">✓</span>' +
       '<div class="c-title" title="点击查看详情">' + escapeHtml(t[F.t.title]) + '<' + '/div>' +
       '<div class="c-meta">' + meta + '<' + '/div>' +
@@ -1528,7 +1830,7 @@ var db = localDb();
 
   function sortedMachines() {
     var arr = [];
-    for (var i = 0; i < S.machines.length; i++) arr.push(S.machines[i]);
+    for (var i = 0; i < S.data.machines.length; i++) arr.push(S.data.machines[i]);
     arr.sort(function (a, b) {
       var na = (typeof a[F.m.order] === 'number') ? a[F.m.order] : 9999;
       var nb = (typeof b[F.m.order] === 'number') ? b[F.m.order] : 9999;
@@ -1549,7 +1851,7 @@ var db = localDb();
 
   function renderBoard() {
     // 视图决定取哪些任务：doing 进行中 / all 全部 / done 已完成 / att 需要关注 / todo 未勾待办
-    var list = S.tasks.slice();
+    var list = S.data.tasks.slice();
     var host = $('board');
     var out = '';
     var machines = sortedMachines();
@@ -1608,20 +1910,19 @@ var db = localDb();
       out = '<div class="col"><div class="col-body"><div class="col-empty">还没有登记电脑，点右上角「＋ 新增 → 添加电脑」加一台。</div></div></div>';
     }
     host.innerHTML = out;
-    var heads = host.querySelectorAll('.col-head');
-    for (var h = 0; h < heads.length; h++) setBind(heads[h], DB_MACHINE);
   }
 
   function render() {
     renderSummary();
     renderBoard();
     renderGithub();
+    renderAiQuick(); // 顶栏快捷指南的电脑下拉：机器增删改名后跟着刷新
     syncSel();
     renderManageBar();
   }
 
   function findTask(id) {
-    for (var i = 0; i < S.tasks.length; i++) if (S.tasks[i]._id === id) return S.tasks[i];
+    for (var i = 0; i < S.data.tasks.length; i++) if (S.data.tasks[i]._id === id) return S.data.tasks[i];
     return null;
   }
 
@@ -1657,11 +1958,11 @@ var db = localDb();
 
   function ghRepoGroups() {
     var map = {}, arr = [];
-    for (var i = 0; i < S.gh.length; i++) {
-      var r = S.gh[i];
+    for (var i = 0; i < S.data.gh.length; i++) {
+      var r = S.data.gh[i];
       var name = txt(r[F.g.repo]) || '未命名仓库';
       if (!map[name]) {
-        map[name] = { name: name, records: [], latest: 0, versions: [], machines: [], accounts: [], archived: false };
+        map[name] = { name: name, records: [], latest: 0, versions: [], machines: [], accounts: [], archived: false, pinned: false };
         arr.push(map[name]);
       }
       var g = map[name];
@@ -1676,16 +1977,21 @@ var db = localDb();
       var mc = txt(r[F.g.machine]); if (mc && g.machines.indexOf(mc) < 0) g.machines.push(mc);
       var ac = txt(r[F.g.account]); if (ac && g.accounts.indexOf(ac) < 0) g.accounts.push(ac);
       if (r[F.g.archived]) g.archived = true; // 仓库归档是仓库级属性：任一条记录勾了就算
+      if (r[F.g.pinned]) g.pinned = true;     // 置顶同理：任一条记录勾了就算
     }
     for (var j = 0; j < arr.length; j++) {
       arr[j].records.sort(function (a, b) { return toTime(normDate(b[F.g.time])) - toTime(normDate(a[F.g.time])); });
     }
     var out = [];
     for (var k = 0; k < arr.length; k++) {
-      if (S.ghFilter.machine && arr[k].machines.indexOf(S.ghFilter.machine) < 0) continue;
+      if (S.ui.ghFilter.machine && arr[k].machines.indexOf(S.ui.ghFilter.machine) < 0) continue;
       out.push(arr[k]);
     }
-    out.sort(function (a, b) { return b.latest - a.latest; });
+    // 排序：置顶优先，其余（以及置顶之间）都按最近更新时间倒序
+    out.sort(function (a, b) {
+      if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+      return b.latest - a.latest;
+    });
     return out;
   }
 
@@ -1734,6 +2040,7 @@ var db = localDb();
         '<span class="dt-tag">' + g.records.length + ' 条记录</span>' +
         (unsync ? '<span class="dt-tag prio-p1">' + unsync + ' 条未同步</span>' : '') +
         (g.archived ? '<span class="dt-tag">已归档</span>' : '') +
+        (g.pinned ? '<span class="dt-tag">已置顶</span>' : '') +
         (g.latest ? '<span class="dt-tag">最近 ' + escapeHtml(fmtDateTime(g.latest)) + '</span>' : '') +
       '<' + '/div>' +
       (g.machines.length || g.accounts.length ?
@@ -1768,12 +2075,11 @@ var db = localDb();
     html += '<' + '/div><' + '/div>';
 
     $('drawerBody').innerHTML = html;
-    setBind($('drawerBody'), DB_GITHUB);
     return true;
   }
 
   function repoCardHTML(g) {
-    var expanded = !!S.ghExpanded[g.name];
+    var expanded = !!S.ui.ghExpanded[g.name];
     var shown = expanded ? g.records : g.records.slice(0, 3);
     var verHtml = '';
     var vers = g.versions.slice(0, 8);
@@ -1794,13 +2100,16 @@ var db = localDb();
     var unsyncHtml = unsync ? '<span class="repo-unsync">' + unsync + ' 条未同步<' + '/span>' : '';
     // 整卡可点：判定范围挂在卡片容器上，跟任务看板的 .card 一样。
     // 仓库名降级为纯文本（不再单独可点），复制链接独立成按钮。
-    return '<div class="repo-card" data-repo="' + escapeHtml(g.name) + '" data-repo-open="' + escapeHtml(g.name) + '" title="点击查看仓库详情">' +
+    return '<div class="repo-card' + (g.pinned ? ' pinned' : '') + '" data-repo="' + escapeHtml(g.name) + '" data-repo-open="' + escapeHtml(g.name) + '"' +
+      ' tabindex="0" role="button" aria-label="打开仓库详情：' + escapeHtml(g.name) + '" title="点击查看仓库详情">' +
       '<div class="repo-head">' +
         '<span class="repo-name">' + escapeHtml(g.name) + '</span>' +
         unsyncHtml +
         '<span class="repo-count">' + g.records.length + ' 条' + '<' + '/span>' +
         (g.archived ? '<span class="archtag">已归档<' + '/span>' : '') +
         '<button class="repo-copy" data-copy-repo="https://github.com/' + escapeHtml(g.name) + '" title="复制仓库链接">⧉ 复制链接</button>' +
+        '<button class="repo-pin' + (g.pinned ? ' on' : '') + '" data-pin-repo="' + escapeHtml(g.name) + '"' +
+          ' title="' + (g.pinned ? '取消置顶' : '置顶：置顶的仓库排在最前') + '">' + (g.pinned ? '已置顶' : '置顶') + '</button>' +
         '<button class="repo-del" data-mb="del-repo" data-repo="' + escapeHtml(g.name) + '" title="删除该仓库的全部同步记录">删整仓</button>' +
       '<' + '/div>' +
       '<div class="repo-sub">最近 ' + escapeHtml(latestStr) + (ageStr ? '<span class="sub">' + escapeHtml(ageStr) + '<' + '/span>' : '') + '<' + '/div>' +
@@ -1816,8 +2125,8 @@ var db = localDb();
   // 返回 { 'YYYY-MM-DD': { n: 去重仓库数, repos: [仓库名] } }，头部柱状图与全年日历共用。
   function ghDailyMap() {
     var byDay = {};
-    for (var i = 0; i < S.gh.length; i++) {
-      var r = S.gh[i];
+    for (var i = 0; i < S.data.gh.length; i++) {
+      var r = S.data.gh[i];
       var t = toTime(normDate(r[F.g.time]));
       if (!t) continue;
       var d = new Date(t);
@@ -1911,17 +2220,17 @@ var db = localDb();
     var head = '<div class="gi-head">' +
       '<div class="gi-label"><b>开发强度</b><span>每天更新的仓库数</span></div>' +
       '<div class="gi-ranges">' +
-        '<button class="gi-range' + (S.ghIntensityRange === 'week' ? ' on' : '') + '" data-gi-range="week">本周</button>' +
-        '<button class="gi-range' + (S.ghIntensityRange === 'month' ? ' on' : '') + '" data-gi-range="month">本月</button>' +
-        '<button class="gi-range' + (S.ghIntensityRange === 'q3' ? ' on' : '') + '" data-gi-range="q3">近3个月</button>' +
+        '<button class="gi-range' + (S.ui.ghIntensityRange === 'week' ? ' on' : '') + '" data-gi-range="week">本周</button>' +
+        '<button class="gi-range' + (S.ui.ghIntensityRange === 'month' ? ' on' : '') + '" data-gi-range="month">本月</button>' +
+        '<button class="gi-range' + (S.ui.ghIntensityRange === 'q3' ? ' on' : '') + '" data-gi-range="q3">近3个月</button>' +
       '<' + '/div>' +
-      '<span class="gi-when">' + escapeHtml(giRangeLabel(S.ghIntensityRange)) + '</span>' +
+      '<span class="gi-when">' + escapeHtml(giRangeLabel(S.ui.ghIntensityRange)) + '</span>' +
       '<' + '/div>';
 
     var map = ghDailyMap();
     var DAY = 86400000;
     var todayTs = new Date(); todayTs.setHours(0, 0, 0, 0); todayTs = todayTs.getTime();
-    var rows = giRangeRows(S.ghIntensityRange);
+    var rows = giRangeRows(S.ui.ghIntensityRange);
 
     var hasData = false;
     for (var r = 0; r < rows.length && !hasData; r++) {
@@ -1970,9 +2279,9 @@ var db = localDb();
     var DAY = 86400000;
     var today = new Date(); today.setHours(0, 0, 0, 0);
     var thisYear = today.getFullYear();
-    if (typeof S.hmYear !== 'number' || S.hmYear > thisYear) S.hmYear = thisYear;
-    var yearStart = new Date(S.hmYear, 0, 1).getTime();
-    var yearEnd = new Date(S.hmYear, 11, 31).getTime();
+    if (typeof S.ui.hmYear !== 'number' || S.ui.hmYear > thisYear) setUi('hmYear', thisYear);
+    var yearStart = new Date(S.ui.hmYear, 0, 1).getTime();
+    var yearEnd = new Date(S.ui.hmYear, 11, 31).getTime();
     var end = yearEnd; // 每一年的格子都显示完全：当年也画到 12/31，未来日期是灰色空格
     var startWd = (new Date(yearStart).getDay() + 6) % 7; // 周一 = 0
     var gridStart = yearStart - startWd * DAY;
@@ -1981,10 +2290,10 @@ var db = localDb();
     var nav =
       '<div class="hm-nav">' +
         '<button class="hm-navbtn" data-hm-year="prev" title="上一年">‹</button>' +
-        '<b>' + S.hmYear + '</b>' +
-        '<button class="hm-navbtn" data-hm-year="next" title="下一年"' + (S.hmYear >= thisYear ? ' disabled' : '') + '>›</button>' +
+        '<b>' + S.ui.hmYear + '</b>' +
+        '<button class="hm-navbtn" data-hm-year="next" title="下一年"' + (S.ui.hmYear >= thisYear ? ' disabled' : '') + '>›</button>' +
       '<' + '/div>';
-    var numBtn = '<button class="hm-numtoggle' + (S.showHmNum ? ' on' : '') + '" data-hm-num="1" title="在格子里显示当天的仓库数">显示数字</button>';
+    var numBtn = '<button class="hm-numtoggle' + (S.ui.showHmNum ? ' on' : '') + '" data-hm-num="1" title="在格子里显示当天的仓库数">显示数字</button>';
 
     var wds = '<div class="hm-wds">';
     for (var wi = 0; wi < 7; wi++) wds += '<span>' + (wi % 2 === 0 ? '一二三四五六日'.charAt(wi) : '') + '</span>';
@@ -2003,7 +2312,7 @@ var db = localDb();
         if (n > 0) { activeDays++; totalN += n; }
         if (n > maxN) maxN = n;
         var lv = n === 0 ? 0 : n === 1 ? 1 : n === 2 ? 2 : n === 3 ? 3 : 4;
-        var num = (S.showHmNum && n) ? '<i>' + n + '</i>' : '';
+        var num = (S.ui.showHmNum && n) ? '<i>' + n + '</i>' : '';
         col += '<span class="hm l' + lv + '" data-hm-day="' + key + '" data-hm-n="' + n + '">' + num + '</span>';
       }
       if (colMonth >= 0 && colMonth !== prevMonth) {
@@ -2020,7 +2329,7 @@ var db = localDb();
     $('drawerBody').innerHTML =
       '<div class="hm-wrap">' +
         '<div class="hm-head">' + nav +
-          '<div class="hm-summary">' + S.hmYear + ' 年 · <b>' + activeDays + '</b> 天有更新 · 共 <b>' + totalN + '</b> 仓库次 · 单日最多 <b>' + maxN + '</b></div>' +
+          '<div class="hm-summary">' + S.ui.hmYear + ' 年 · <b>' + activeDays + '</b> 天有更新 · 共 <b>' + totalN + '</b> 仓库次 · 单日最多 <b>' + maxN + '</b></div>' +
           numBtn +
         '<' + '/div>' +
         '<div class="hm-scroll">' +
@@ -2035,7 +2344,7 @@ var db = localDb();
   function renderGithub() {
     var groups = ghRepoGroups();
     // 「未同步」筛选：只看有未同步版本的仓库
-    if (S.ghFilter.unsync) {
+    if (S.ui.ghFilter.unsync) {
       var kept = [];
       for (var u = 0; u < groups.length; u++) {
         var gu = groups[u], nu = 0;
@@ -2045,8 +2354,8 @@ var db = localDb();
       groups = kept;
     }
     var repoSet = {}, last30 = 0, unsyncN = 0, archN = 0, cutoff = Date.now() - 30 * 86400000;
-    for (var i = 0; i < S.gh.length; i++) {
-      var r = S.gh[i];
+    for (var i = 0; i < S.data.gh.length; i++) {
+      var r = S.data.gh[i];
       if (txt(r[F.g.repo])) repoSet[txt(r[F.g.repo])] = 1;
       if (txt(r[F.g.result]) === '未同步') unsyncN++;
       var t = toTime(normDate(r[F.g.time]));
@@ -2054,7 +2363,7 @@ var db = localDb();
     }
     for (var a = 0; a < groups.length; a++) if (groups[a].archived) archN++;
     function gkpi(cls, k, num, lab) {
-      return '<button class="kpi ' + cls + (k === 'unsync' && S.ghFilter.unsync ? ' on' : '') + '" data-gk="' + k + '" title="' + lab + '">' +
+      return '<button class="kpi ' + cls + (k === 'unsync' && S.ui.ghFilter.unsync ? ' on' : '') + '" data-gk="' + k + '" title="' + lab + '">' +
         '<span class="num">' + num + '</span><span class="lab">' + lab + '</span>' +
         '<' + '/button>';
     }
@@ -2067,41 +2376,47 @@ var db = localDb();
 
     var mSel = $('ghF_machine');
     if (mSel) {
+      // 下拉 = 机器表 ∪ 记录里出现过的电脑名：
+      // 电脑改名/删除后，历史记录仍挂在旧名上；只给机器表的话，这些记录就永远筛不到
+      var names = [], seen = {};
+      for (var k = 0; k < S.data.machines.length; k++) {
+        var mn = txt(S.data.machines[k][F.m.name]);
+        if (!mn || seen[mn]) continue;
+        seen[mn] = 1; names.push(mn);
+      }
+      for (var gi = 0; gi < S.data.gh.length; gi++) {
+        var rn = txt(S.data.gh[gi][F.g.machine]);
+        if (!rn || seen[rn]) continue;
+        seen[rn] = 1; names.push(rn);
+      }
       var html = '<option value="">全部</option>';
-      for (var k = 0; k < S.machines.length; k++) {
-        var mn = txt(S.machines[k][F.m.name]);
-        html += '<option value="' + escapeHtml(mn) + '">' + escapeHtml(mn) + '<' + '/option>';
+      for (var ni = 0; ni < names.length; ni++) {
+        html += '<option value="' + escapeHtml(names[ni]) + '">' + escapeHtml(names[ni]) + '<' + '/option>';
       }
       mSel.innerHTML = html;
-      mSel.value = S.ghFilter.machine;
+      mSel.value = S.ui.ghFilter.machine;
     }
 
     var host = $('ghList');
+    if (!host) return;
     if (!groups.length) {
       // 空态要说清是哪个筛选造成的，并给出清除入口（与任务看板同一原则）
       var ghFilters = [];
-      if (S.ghFilter.machine) ghFilters.push('电脑 ' + S.ghFilter.machine);
-      if (S.ghFilter.unsync) ghFilters.push('未同步');
+      if (S.ui.ghFilter.machine) ghFilters.push('电脑 ' + S.ui.ghFilter.machine);
+      if (S.ui.ghFilter.unsync) ghFilters.push('未同步');
       host.innerHTML = ghFilters.length
         ? '<div class="col-empty">当前筛选：' + ghFilters.join(' + ') + '<br>没有匹配的仓库<br>' +
           '<button class="mini" data-clear-gh-filter="1">清除筛选</button></div>'
-        : '<div class="col-empty">' + (S.gh.length ? '没有匹配的仓库' : '还没有同步记录，点右上角「＋ 新增 → 记录一次同步」记一笔。') + '</div>';
-      return;
-    }
-    if (!host) return;
-    if (!groups.length) {
-      host.innerHTML = '<div class="col-empty">' + (S.gh.length ? '无匹配筛选' : '还没有同步记录，点右上角「＋ 新增 → 记录一次同步」记一笔。') + '<' + '/div>';
-      setBind(host, DB_GITHUB);
+        : '<div class="col-empty">' + (S.data.gh.length ? '没有匹配的仓库' : '还没有同步记录，点右上角「＋ 新增 → 记录一次同步」记一笔。') + '</div>';
       return;
     }
     var out = '';
     for (var j = 0; j < groups.length; j++) out += repoCardHTML(groups[j]);
     host.innerHTML = out;
-    setBind(host, DB_GITHUB);
   }
 
   function findGh(id) {
-    for (var i = 0; i < S.gh.length; i++) if (ghRecId(S.gh[i]) === id) return S.gh[i];
+    for (var i = 0; i < S.data.gh.length; i++) if (ghRecId(S.data.gh[i]) === id) return S.data.gh[i];
     return null;
   }
 
@@ -2121,42 +2436,41 @@ var db = localDb();
         archived: !!rec[F.g.archived]
       };
     } else {
-      d = { time: new Date().toISOString(), machine: (S.machines[0] ? txt(S.machines[0][F.m.name]) : ''), account: '', repo: presetRepo || '', content: '', versions: '', result: '已同步', archived: false };
+      d = { time: new Date().toISOString(), machine: (S.data.machines[0] ? txt(S.data.machines[0][F.m.name]) : ''), account: '', repo: presetRepo || '', content: '', versions: '', result: '已同步', archived: false };
     }
 
     $('drawerTitle').textContent = id ? '同步记录详情' : '记录同步';
     setSheetFoot({ save: true, edit: false, copy: false, repoAdd: false, repoCopy: false, del: !!id });
 
     var mOpts = '<option value="">—</option>';
-    for (var k = 0; k < S.machines.length; k++) {
-      var mn = txt(S.machines[k][F.m.name]);
+    for (var k = 0; k < S.data.machines.length; k++) {
+      var mn = txt(S.data.machines[k][F.m.name]);
       mOpts += '<option value="' + escapeHtml(mn) + '"' + (mn === d.machine ? ' selected' : '') + '>' + escapeHtml(mn) + '<' + '/option>';
     }
     var repoOpts = '', seenRepo = {};
-    for (var ri = 0; ri < S.gh.length; ri++) {
-      var rn = txt(S.gh[ri][F.g.repo]);
+    for (var ri = 0; ri < S.data.gh.length; ri++) {
+      var rn = txt(S.data.gh[ri][F.g.repo]);
       if (rn && !seenRepo[rn]) { seenRepo[rn] = 1; repoOpts += '<option value="' + escapeHtml(rn) + '">'; }
     }
     // 老记录的「是否同步」若已不在选项集里，补进去，否则下拉会默认选中第一项，保存时把原值悄悄改掉
-    var resOpts = S.opts.ghResult.length ? S.opts.ghResult.slice(0) : ['已同步', '未同步'];
+    var resOpts = S.data.opts.ghResult.length ? S.data.opts.ghResult.slice(0) : ['已同步', '未同步'];
     if (d.result && resOpts.indexOf(d.result) < 0) resOpts.unshift(d.result);
 
     $('drawerBody').innerHTML =
-      '<div class="field"><label>同步时间</label><input id="gf_time" type="datetime-local" value="' + toLocalInput(d.time) + '"></div>' +
+      '<div class="field"><label for="gf_time">同步时间</label><input id="gf_time" type="datetime-local" value="' + toLocalInput(d.time) + '"></div>' +
       '<div class="row2">' +
-        '<div class="field"><label>电脑</label><select id="gf_machine">' + mOpts + '<' + '/select></div>' +
-        '<div class="field"><label>GitHub 账号</label><input id="gf_account" value="' + escapeHtml(d.account) + '" placeholder="如 Simiely"></div>' +
+        '<div class="field"><label for="gf_machine">电脑</label><select id="gf_machine">' + mOpts + '<' + '/select></div>' +
+        '<div class="field"><label for="gf_account">GitHub 账号</label><input id="gf_account" value="' + escapeHtml(d.account) + '" placeholder="如 Simiely"></div>' +
       '<' + '/div>' +
-      '<div class="field"><label>仓库</label><input id="gf_repo" list="ghRepoList" value="' + escapeHtml(d.repo) + '" placeholder="如 Simiely/ae-tools"></div>' +
+      '<div class="field"><label for="gf_repo">仓库</label><input id="gf_repo" list="ghRepoList" value="' + escapeHtml(d.repo) + '" placeholder="如 Simiely/ae-tools"></div>' +
       '<datalist id="ghRepoList">' + repoOpts + '<' + '/datalist>' +
-      '<div class="field"><label>同步版本</label><input id="gf_versions" class="mono" value="' + escapeHtml(d.versions) + '" placeholder="v1.5.8, v1.5.9"></div>' +
+      '<div class="field"><label for="gf_versions">同步版本</label><input id="gf_versions" class="mono" value="' + escapeHtml(d.versions) + '" placeholder="v1.5.8, v1.5.9"></div>' +
       '<div class="row2">' +
-        '<div class="field"><label>是否同步</label><select id="gf_result">' + optionsHTML(resOpts, d.result) + '<' + '/select></div>' +
+        '<div class="field"><label for="gf_result">是否同步</label><select id="gf_result">' + optionsHTML(resOpts, d.result) + '<' + '/select></div>' +
         '<div class="field"><label>仓库归档</label><label class="check-line"><input type="checkbox" id="gf_arch"' + (d.archived ? ' checked' : '') + '> 已在 GitHub 归档</label></div>' +
       '<' + '/div>' +
-      '<div class="field"><label>内容</label><textarea id="gf_content" style="min-height:80px" placeholder="这次同步了什么">' + escapeHtml(d.content) + '<' + '/textarea></div>';
+      '<div class="field"><label for="gf_content">内容</label><textarea id="gf_content" style="min-height:80px" placeholder="这次同步了什么">' + escapeHtml(d.content) + '<' + '/textarea></div>';
 
-    setBind($('drawerBody'), DB_GITHUB);
     return true;
   }
 
@@ -2180,24 +2494,24 @@ var db = localDb();
     if (!db) return;
     var props = collectGhProps();
     if (!props) { toast('表单没准备好，请重新打开'); return; }
-    var id = S.sheet.id;   // 当前层就是这条记录
+    var id = S.ui.sheet.id;   // 当前层就是这条记录
     $('saveBtn').disabled = true;
     var p;
-    if (id) p = db.updateRecord({ databaseId: DB_GITHUB, recordId: id, properties: props });
-    else p = db.addRecord({ databaseId: DB_GITHUB, properties: props });
+    if (id) p = Repo.github.update(id, props);
+    else p = Repo.github.create(props);
     p.then(function (rr) {
       var newId = id || (rr && (rr.id || rr._id));
       if (!id) {
         var rec = { _id: newId };
         for (var key in props) if (props.hasOwnProperty(key)) rec[key] = props[key][Object.keys(props[key])[0]];
-        S.gh.unshift(rec);
+        S.data.gh.unshift(rec);
       } else {
         var t = findGh(newId);
         if (t) for (var k2 in props) if (props.hasOwnProperty(k2)) t[k2] = props[k2][Object.keys(props[k2])[0]];
       }
       $('saveBtn').disabled = false;
       // 保存后：若有上一层就退回上一层（用户能看到刚改的那条），否则关闭整个弹窗
-      if (S.sheetStack.length) { backSheet(); } else { closeDrawer(); }
+      if (S.ui.sheetStack.length) { backSheet(); } else { closeDrawer(); }
       renderGithub();
       toast(id ? '已保存' : '已记录');
     }).catch(function (e) {
@@ -2207,16 +2521,41 @@ var db = localDb();
     });
   }
 
+  // 置顶是仓库级属性：把该仓库所有记录写成同一个值（读侧「任一为 true 即置顶」，与归档同口径）
+  function toggleRepoPin(repo) {
+    if (!repo) return;
+    var recs = [];
+    for (var i = 0; i < S.data.gh.length; i++) if (txt(S.data.gh[i][F.g.repo]) === repo) recs.push(S.data.gh[i]);
+    if (!recs.length) return;
+    var next = true;
+    for (var j = 0; j < recs.length; j++) if (recs[j][F.g.pinned]) next = false;
+    for (var k = 0; k < recs.length; k++) recs[k][F.g.pinned] = next;
+    renderGithub();
+    var props = {};
+    props[F.g.pinned] = { checkbox: next };
+    var jobs = [];
+    for (var n = 0; n < recs.length; n++) {
+      jobs.push(Repo.github.update(ghRecId(recs[n]), props));
+    }
+    Promise.all(jobs).then(function () {
+      toast(next ? '已置顶「' + repo + '」' : '已取消置顶「' + repo + '」');
+    }).catch(function (e) {
+      console.error('[workbench] 置顶保存失败', e);
+      toast('置顶保存失败，正在回滚');
+      loadGithub(function (gh) { setData('gh', gh); renderGithub(); });
+    });
+  }
+
   function delGh(id) {
     if (!id) return;
     var rec = findGh(id);
     showConfirm('删除同步记录', '「' + (rec ? (txt(rec[F.g.repo]) || txt(rec[F.g.content]) || '这条记录') : '') + '」删除后无法恢复。', function () {
-      db.deleteRecord({ databaseId: DB_GITHUB, recordId: id }).then(function () {
+      Repo.github.remove(id).then(function () {
         var arr = [];
-        for (var i = 0; i < S.gh.length; i++) if (ghRecId(S.gh[i]) !== id) arr.push(S.gh[i]);
-        S.gh = arr;
+        for (var i = 0; i < S.data.gh.length; i++) if (ghRecId(S.data.gh[i]) !== id) arr.push(S.data.gh[i]);
+        setData('gh', arr);
         // 删除后：若有上一层就退回上一层（列表里那条已消失），否则关闭弹窗
-        if (S.sheetStack.length) { backSheet(); } else { closeDrawer(); }
+        if (S.ui.sheetStack.length) { backSheet(); } else { closeDrawer(); }
         renderGithub();
         toast('已删除');
       }).catch(function (e) {
@@ -2244,7 +2583,7 @@ var db = localDb();
   }
 
   function findMachine(id) {
-    for (var i = 0; i < S.machines.length; i++) if (S.machines[i]._id === id) return S.machines[i];
+    for (var i = 0; i < S.data.machines.length; i++) if (S.data.machines[i]._id === id) return S.data.machines[i];
     return null;
   }
 
@@ -2256,10 +2595,13 @@ var db = localDb();
     return out;
   }
 
-  // ── 任务详情（只读态）──
-  // 记录优先（record-first）模式：点卡片先看只读详情，要改再点「编辑」。
-  // 依据：Oracle Manage Object「View Object: 只读展示 / Edit Object: 进入可编辑态」；
-  //      GitHub issue「selecting a row opens a read-only detail; an explicit Edit action opens the form」。
+  // ── 任务详情：看得见就能改（就地编辑）──
+  // 早期是「只读详情 + 编辑表单」，实际用起来最常改的就是标题 / 进度 / 待办，
+  // 每次都要先点「编辑」再拉一整个表单太绕。现在详情里：
+  //   文字（标题 / 进度 / 交接 / 目录）点一下变输入框
+  //   状态、优先级点一下弹小菜单
+  //   待办点一行直接勾选（与表单里的勾选走同一个 toggleTodo）
+  // 「编辑」按钮保留给「一次改多个字段」的场景，表单仍是完整入口。
   function renderTaskDetail(t) {
     if (!t) return false;
     var st = txt(t[F.t.status]) || ST_DOING;
@@ -2270,30 +2612,34 @@ var db = localDb();
     var hand = txt(t[F.t.handoff]);
     var todos = parseTodos(t[F.t.todos]);
     var upd = txt(t[F.t.updated]);
+    var doneN = todos.filter(function (x) { return x.done; }).length;
 
     var html = '';
-    // 标题 + 状态/优先级/电脑 徽章
+    // 标题 + 状态/优先级/电脑
     html += '<div class="dt-sec">' +
-      '<div class="dt-title">' + escapeHtml(txt(t[F.t.title]) || '(无标题)') + '<' + '/div>' +
+      '<div class="dt-title" data-dt-edit="' + escapeHtml(F.t.title) + '" title="点一下改标题">' +
+        escapeHtml(txt(t[F.t.title]) || '(无标题)') + '<' + '/div>' +
       '<div class="dt-tags">' +
-        '<span class="dt-tag ' + (st === ST_DONE ? 'st-done' : 'st-doing') + '">' + escapeHtml(st) + '<' + '/span>' +
-        (pr ? '<span class="dt-tag prio-' + escapeHtml(pr.toLowerCase()) + '">' + escapeHtml(pr) + '<' + '/span>' : '') +
+        '<button class="dt-tag ' + (st === ST_DONE ? 'st-done' : 'st-doing') + '" data-dt-menu="status" type="button" title="点一下切换状态">' +
+          escapeHtml(st) + '<' + '/button>' +
+        '<button class="dt-tag ' + (pr ? 'prio-' + escapeHtml(pr.toLowerCase()) : '') + '" data-dt-menu="prio" type="button" title="点一下改优先级">' +
+          escapeHtml(pr || '未定') + '<' + '/button>' +
         (mach ? '<span class="dt-tag">🖥 ' + escapeHtml(mach) + '<' + '/span>' : '') +
       '<' + '/div>' +
     '<' + '/div>';
 
-    // 进度
-    if (prog) {
-      html += '<div class="dt-sec"><div class="dt-label">当前进度</div>' +
-        '<div class="dt-text">' + escapeHtml(prog) + '<' + '/div><' + '/div>';
-    }
+    // 进度（空也给入口，否则新任务永远填不进去）
+    html += '<div class="dt-sec"><div class="dt-label">当前进度<span class="dt-tip">点文字直接改</span></div>' +
+      '<div class="dt-text' + (prog ? '' : ' muted') + '" data-dt-edit="' + escapeHtml(F.t.progress) + '" title="点一下改进度">' +
+      (prog ? escapeHtml(prog) : '＋ 填写进度') + '<' + '/div><' + '/div>';
 
-    // 待办清单
+    // 待办清单：点一行就勾选
     if (todos.length) {
-      html += '<div class="dt-sec"><div class="dt-label">待办（' +
-        todos.filter(function (x) { return x.done; }).length + '/' + todos.length + ' 已完成）</div><div class="dt-todo">';
+      html += '<div class="dt-sec"><div class="dt-label">待办（' + doneN + '/' + todos.length +
+        ' 已完成）<span class="dt-tip">点一行勾选</span></div><div class="dt-todo">';
       for (var i = 0; i < todos.length; i++) {
-        html += '<div class="dt-todo-row' + (todos[i].done ? ' done' : '') + '">' +
+        html += '<div class="dt-todo-row' + (todos[i].done ? ' done' : '') +
+          '" data-dt-todo="' + escapeHtml(t._id) + ':' + todos[i].line + '" title="点一下勾选 / 取消">' +
           '<span class="dt-todo-mark">✓</span>' +
           '<span class="dt-todo-txt">' + escapeHtml(todos[i].text) + '<' + '/span>' +
         '<' + '/div>';
@@ -2302,16 +2648,14 @@ var db = localDb();
     }
 
     // 交接内容
-    if (hand) {
-      html += '<div class="dt-sec"><div class="dt-label">交接内容</div>' +
-        '<div class="dt-text">' + escapeHtml(hand) + '<' + '/div><' + '/div>';
-    }
+    html += '<div class="dt-sec"><div class="dt-label">交接内容</div>' +
+      '<div class="dt-text' + (hand ? '' : ' muted') + '" data-dt-edit="' + escapeHtml(F.t.handoff) + '" title="点一下改交接内容">' +
+      (hand ? escapeHtml(hand) : '＋ 填写交接内容（背景 / 约束 / 回滚点）') + '<' + '/div><' + '/div>';
 
     // 目录
-    if (dir) {
-      html += '<div class="dt-sec"><div class="dt-label">目录</div>' +
-        '<div class="dt-path">' + escapeHtml(dir) + '<' + '/div><' + '/div>';
-    }
+    html += '<div class="dt-sec"><div class="dt-label">目录</div>' +
+      '<div class="dt-path' + (dir ? '' : ' muted') + '" data-dt-edit="' + escapeHtml(F.t.dir) + '" title="点一下改工作目录">' +
+      (dir ? escapeHtml(dir) : '＋ 填写目录') + '<' + '/div><' + '/div>';
 
     // 元信息
     html += '<div class="dt-sec"><div class="dt-meta">' +
@@ -2324,6 +2668,103 @@ var db = localDb();
     return true;
   }
 
+  // 详情里的单字段保存：改一个字段 + 更新时间，看板与详情就地重绘，不关窗、不动导航栈
+  var DT_SELECT_FIELDS = {};
+  DT_SELECT_FIELDS[F.t.status] = 1;
+  DT_SELECT_FIELDS[F.t.prio] = 1;
+
+  function saveTaskField(id, fname, value) {
+    var t = findTask(id);
+    if (!t || !fname) return;
+    var now = new Date().toISOString();
+    var props = {};
+    props[fname] = DT_SELECT_FIELDS[fname] ? { select: value } : { text: value };
+    props[F.t.updated] = { date: now };
+    t[fname] = value;
+    t[F.t.updated] = now;
+    render();
+    if (S.ui.sheet.kind === 'taskDetail') renderSheetLayer(S.ui.sheet);
+    Repo.tasks.update(id, props)
+      .then(function () { toast('已更新'); })
+      .catch(function (e) {
+        console.error('[workbench] 就地更新失败', e);
+        toast('更新失败，正在回滚');
+        loadTasks(function (ts) {
+          setData('tasks', ts);
+          render();
+          if (S.ui.sheet.kind === 'taskDetail') renderSheetLayer(S.ui.sheet);
+        });
+      });
+  }
+
+  // 文字就地编辑：单行 input（Enter 提交），多行 textarea（Ctrl/⌘+Enter 提交，失焦也提交）
+  function startDtEdit(el) {
+    if (!el || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') return;
+    var fname = el.getAttribute('data-dt-edit');
+    var id = S.ui.sheet.id;
+    var t = findTask(id);
+    if (!t || !fname) return;
+    var old = txt(t[fname]);
+    var multi = (fname === F.t.progress || fname === F.t.handoff);
+    var box = multi ? document.createElement('textarea') : document.createElement('input');
+    box.className = 'dt-edit' + (multi ? ' multi' : '');
+    box.value = old;
+    el.style.display = 'none';
+    el.parentNode.insertBefore(box, el.nextSibling);
+    box.focus();
+    if (!multi) { try { box.select(); } catch (e) {} }
+
+    var settled = false;
+    function restore() {
+      if (settled) return;
+      settled = true;
+      if (box.parentNode) box.parentNode.removeChild(box);
+      el.style.display = '';
+    }
+    function commit() {
+      if (settled) return;
+      settled = true;
+      if (box.parentNode) box.parentNode.removeChild(box);
+      el.style.display = '';
+      var v = box.value.replace(/^\s+|\s+$/g, '');
+      if (v === old) return;
+      saveTaskField(id, fname, v);
+    }
+    box.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); restore(); }
+      else if (e.key === 'Enter' && (!multi || e.ctrlKey || e.metaKey)) { e.preventDefault(); commit(); }
+    });
+    box.addEventListener('blur', commit);
+    box.addEventListener('click', function (e) { e.stopPropagation(); });
+  }
+
+  // 状态 / 优先级的小菜单
+  function openDtMenu(btn, kind) {
+    closeMenus();
+    var t = findTask(S.ui.sheet.id);
+    if (!t) return;
+    var list = kind === 'status'
+      ? (S.data.opts.status.length ? S.data.opts.status : [ST_DOING, ST_DONE])
+      : (S.data.opts.prio.length ? S.data.opts.prio : ['P0', 'P1', 'P2']);
+    var cur = txt(t[kind === 'status' ? F.t.status : F.t.prio]);
+    var menu = document.createElement('div');
+    menu.className = 'menu';
+    for (var i = 0; i < list.length; i++) {
+      menu.innerHTML += '<button data-dt-set="' + kind + '|' + escapeHtml(list[i]) + '"' +
+        (list[i] === cur ? ' class="cur"' : '') + '>' + escapeHtml(list[i]) + '</button>';
+    }
+    var rect = btn.getBoundingClientRect();
+    menu.style.left = Math.max(12, Math.min(rect.left, window.innerWidth - 168)) + 'px';
+    menu.style.top = (rect.bottom + 6) + 'px';
+    document.body.appendChild(menu);
+  }
+
+  function applyDtSet(kind, value) {
+    var id = S.ui.sheet.id;
+    if (S.ui.sheet.kind !== 'taskDetail' || !id) return;
+    saveTaskField(id, kind === 'status' ? F.t.status : F.t.prio, value);
+  }
+
   // 直接进编辑态（卡片「编辑」按钮 / 详情弹窗里的「编辑」都走它）
   // 渲染任务表单（新建 / 编辑）。返回 false 表示这条任务已不存在，调用方负责回退。
   function openTaskEditor(id) {
@@ -2332,7 +2773,7 @@ var db = localDb();
     if (!id) {
       // 新建任务：带出上次的草稿，省得重填
       t = { id: '', '任务标题': '', '状态': ST_DOING, '优先级': 'P1', '目录': '', '进度': '', '待办': '', '交接内容': '' };
-      t[F.t.machine] = S.machines[0] ? txt(S.machines[0][F.m.name]) : '';
+      t[F.t.machine] = S.data.machines[0] ? txt(S.data.machines[0][F.m.name]) : '';
       var draft = loadDraft();
       if (draft) {
         t[F.t.title] = draft.title || '';
@@ -2355,8 +2796,8 @@ var db = localDb();
     var curMachine = txt(d[F.t.machine]);
     var curKnown = false;
     var mOpts = '';
-    for (var i = 0; i < S.machines.length; i++) {
-      var mn = txt(S.machines[i][F.m.name]);
+    for (var i = 0; i < S.data.machines.length; i++) {
+      var mn = txt(S.data.machines[i][F.m.name]);
       if (mn === curMachine) curKnown = true;
       mOpts += '<option value="' + escapeHtml(mn) + '"' + (mn === curMachine ? ' selected' : '') + '>' + escapeHtml(mn) + '<' + '/option>';
     }
@@ -2380,28 +2821,27 @@ var db = localDb();
       }
 
     $('drawerBody').innerHTML =
-      '<div class="field"><label>任务标题</label><input id="f_title" value="' + escapeHtml(d[F.t.title]) + '"></div>' +
+      '<div class="field"><label for="f_title">任务标题</label><input id="f_title" value="' + escapeHtml(d[F.t.title]) + '"></div>' +
       '<div class="row2">' +
-        '<div class="field"><label>状态</label><select id="f_status">' + optionsHTML(S.opts.status.length ? S.opts.status : [ST_DOING, ST_DONE], txt(d[F.t.status])) + '</select></div>' +
-        '<div class="field"><label>优先级</label><select id="f_priority">' + optionsHTML(S.opts.prio.length ? S.opts.prio : ['P0', 'P1', 'P2'], txt(d[F.t.prio])) + '</select></div>' +
+        '<div class="field"><label for="f_status">状态</label><select id="f_status">' + optionsHTML(S.data.opts.status.length ? S.data.opts.status : [ST_DOING, ST_DONE], txt(d[F.t.status])) + '</select></div>' +
+        '<div class="field"><label for="f_priority">优先级</label><select id="f_priority">' + optionsHTML(S.data.opts.prio.length ? S.data.opts.prio : ['P0', 'P1', 'P2'], txt(d[F.t.prio])) + '</select></div>' +
       '<' + '/div>' +
-      '<div class="field"><label>所在电脑</label><select id="f_machine">' + mOpts + '</select></div>' +
-      '<div class="field"><label>工作目录</label><input id="f_dir" class="mono" value="' + escapeHtml(d[F.t.dir]) + '" placeholder="D:\\dev\\项目名"></div>' +
-      '<div class="field"><label>当前进度</label><textarea id="f_progress">' + escapeHtml(d[F.t.progress]) + '</textarea></div>' +
+      '<div class="field"><label for="f_machine">所在电脑</label><select id="f_machine">' + mOpts + '</select></div>' +
+      '<div class="field"><label for="f_dir">工作目录</label><input id="f_dir" class="mono" value="' + escapeHtml(d[F.t.dir]) + '" placeholder="D:\\dev\\项目名"></div>' +
+      '<div class="field"><label for="f_progress">当前进度</label><textarea id="f_progress">' + escapeHtml(d[F.t.progress]) + '</textarea></div>' +
       checklist +
-      '<div class="field"><label>待办原文</label><textarea id="f_todos" placeholder="一行一条，已完成写 [x]">' + escapeHtml(todoText) + '<' + '/textarea>' +
+      '<div class="field"><label for="f_todos">待办原文</label><textarea id="f_todos" placeholder="一行一条，已完成写 [x]">' + escapeHtml(todoText) + '<' + '/textarea>' +
         '<div class="hint">一行一条；已完成的行首写 [x]</div></div>' +
-      '<div class="field"><label>交接内容</label><textarea id="f_handoff" style="min-height:92px">' + escapeHtml(d[F.t.handoff]) + '<' + '/textarea>' +
+      '<div class="field"><label for="f_handoff">交接内容</label><textarea id="f_handoff" style="min-height:92px">' + escapeHtml(d[F.t.handoff]) + '<' + '/textarea>' +
         '<div class="hint">复制交接时这段会一并给到 agent</div></div>';
 
-    setBind($('drawerBody'), DATABASE_ID);
     return true;
   }
 
   /* ── 居中弹窗（sheet）：视图栈 ──────────────────────────────
      一个弹窗承载一条「视图路径」：仓库详情 → 某条记录的编辑表单。
-     每层是一个完整的视图描述 {kind, id, repo}，压在 S.sheetStack 里；
-     S.sheet 是当前层。返回时弹出上一层并重新渲染它 —— 因为每层都能被
+     每层是一个完整的视图描述 {kind, id, repo}，压在 S.ui.sheetStack 里；
+     S.ui.sheet 是当前层。返回时弹出上一层并重新渲染它 —— 因为每层都能被
      纯渲染函数重建，所以「返回」不需要重新查数据源，也不会丢失上下文。
 
      三种进入方式，语义清晰、不需要守卫：
@@ -2415,11 +2855,11 @@ var db = localDb();
   }
 
   // 渲染一层视图。返回 false 表示这一层已失效（记录被删等），调用方负责回退。
-  // 入口就设好 S.sheet，这样「打开」与「返回」走的是同一条路径，状态不会漂。
-  // 当前操作对象一律从 S.sheet.id 推导，不再另存 editing / ghEditing ——
+  // 入口就设好 S.ui.sheet，这样「打开」与「返回」走的是同一条路径，状态不会漂。
+  // 当前操作对象一律从 S.ui.sheet.id 推导，不再另存 editing / ghEditing ——
   // 同一个事实只存一份，否则迟早出现「两个地方记的不是同一件事」。
   function renderSheetLayer(layer) {
-    S.sheet = layer;
+    setUi('sheet', layer);
     // 日历热力图一年 53 周 + 大格子（可显示数字），需要超宽面板；其余层恢复标准宽
     $('drawer').classList.toggle('xl', layer.kind === 'intensity');
     if (layer.kind === 'taskDetail') {
@@ -2447,11 +2887,11 @@ var db = localDb();
 
   // 进入一层视图。mode: 'push' 保留上一层 | 'root' 清空栈。
   function gotoSheet(layer, mode) {
-    if (mode === 'push') S.sheetStack.push(S.sheet);
-    else S.sheetStack = [];
+    if (mode === 'push') S.ui.sheetStack.push(S.ui.sheet);
+    else     setUi('sheetStack', []);
     if (!renderSheetLayer(layer)) {
       // 这一层渲染不出来（数据没了）→ 回退到上一层；再不行就关闭
-      if (S.sheetStack.length) { backSheet(); } else { closeDrawer(); }
+      if (S.ui.sheetStack.length) { backSheet(); } else { closeDrawer(); }
       return;
     }
     syncSheetNav();
@@ -2460,8 +2900,8 @@ var db = localDb();
 
   // 返回上一层
   function backSheet() {
-    if (!S.sheetStack.length) { closeDrawer(); return; }
-    var prev = S.sheetStack.pop();
+    if (!S.ui.sheetStack.length) { closeDrawer(); return; }
+    var prev = S.ui.sheetStack.pop();
     if (!renderSheetLayer(prev)) {
       // 上一层也失效了 → 继续往上退
       backSheet();
@@ -2473,7 +2913,7 @@ var db = localDb();
 
   // 返回箭头的显隐由「栈里还有没有上一层」唯一决定
   function syncSheetNav() {
-    $('drawerBack').style.display = S.sheetStack.length ? '' : 'none';
+    $('drawerBack').style.display = S.ui.sheetStack.length ? '' : 'none';
   }
 
   function closeDrawer() {
@@ -2481,8 +2921,8 @@ var db = localDb();
     $('drawer').classList.remove('on');
     $('drawer').classList.remove('wide');
     $('drawer').classList.remove('xl'); // 日历弹窗的加宽修饰一并还原
-    S.sheet = { kind: '', id: null, repo: '' };
-    S.sheetStack = [];
+    setUi('sheet', { kind: '', id: null, repo: '' });
+    setUi('sheetStack', []);
     syncSheetNav();
     setSheetFoot({ save: false, edit: false, copy: false, repoAdd: false, repoCopy: false, del: false });
   }
@@ -2498,8 +2938,8 @@ var db = localDb();
 
   // 唯一的提交入口：按弹窗类型分流，不再用「记录 id 是否为 null」当判据（P-02/P-03）
   function submitDrawer() {
-    if (S.sheet.kind === 'ghForm') { saveGh(); return; }
-    if (S.sheet.kind === 'taskForm') { saveTask(); return; }
+    if (S.ui.sheet.kind === 'ghForm') { saveGh(); return; }
+    if (S.ui.sheet.kind === 'taskForm') { saveTask(); return; }
   }
 
   var DRAFT_KEY = 'awb.taskdraft';
@@ -2549,7 +2989,7 @@ var db = localDb();
     if (!db) return;
     var props = collectProps();
     if (!props) { toast('表单没准备好，请重新打开'); return; }
-    var id = S.sheet.id;   // 当前层就是这条任务
+    var id = S.ui.sheet.id;   // 当前层就是这条任务
     if (!props[F.t.title].text) { toast('任务标题不能为空'); return; }
     if (id) {
       var rec0 = findTask(id);
@@ -2563,22 +3003,22 @@ var db = localDb();
     $('saveBtn').disabled = true;
     var p;
     if (id) {
-      p = db.updateRecord({ databaseId: DATABASE_ID, recordId: id, properties: props });
+      p = Repo.tasks.update(id, props);
     } else {
-      p = db.addRecord({ databaseId: DATABASE_ID, properties: props });
+      p = Repo.tasks.create(props);
     }
     p.then(function (r) {
       var newId = id || (r && (r.id || r._id));
       var found = null;
-      for (var i = 0; i < S.tasks.length; i++) {
-        if (S.tasks[i]._id === newId) { found = S.tasks[i]; break; }
+      for (var i = 0; i < S.data.tasks.length; i++) {
+        if (S.data.tasks[i]._id === newId) { found = S.data.tasks[i]; break; }
       }
       if (found) applyProps(found, props);
-      else if (!id && newId) S.tasks.unshift(applyProps({ _id: newId }, props));
+      else if (!id && newId) S.data.tasks.unshift(applyProps({ _id: newId }, props));
       if (!id) clearDraft();
       $('saveBtn').disabled = false;
       // 保存后：若有上一层就退回上一层（用户能看到刚改的内容），否则关闭整个弹窗
-      if (S.sheetStack.length) { backSheet(); } else { closeDrawer(); }
+      if (S.ui.sheetStack.length) { backSheet(); } else { closeDrawer(); }
       render();
       toast(id ? '已保存' : '已新建');
     }).catch(function (e) {
@@ -2640,11 +3080,11 @@ var db = localDb();
     t[F.t.todos] = txtNew;
     t[F.t.updated] = props[F.t.updated].date;
     render();
-    db.updateRecord({ databaseId: DATABASE_ID, recordId: id, properties: props }).catch(function (e) {
+    Repo.tasks.update(id, props).catch(function (e) {
       console.error('[workbench] 待办更新失败', e);
       toast('更新失败，正在回滚');
       loadTasks( function (ts) {
-        S.tasks = ts;
+        setData('tasks', ts);
         render();
       });
     });
@@ -2667,12 +3107,12 @@ var db = localDb();
     if (patch.status != null) t[F.t.status] = patch.status;
     t[F.t.updated] = props[F.t.updated].date;
     scheduleRender();
-    db.updateRecord({ databaseId: DATABASE_ID, recordId: id, properties: props })
+    Repo.tasks.update(id, props)
       .then(function () { toast('已更新'); })
       .catch(function (e) {
         console.error('[workbench] 更新失败', e);
         toast('更新失败，正在回滚');
-        loadTasks(function (ts) { S.tasks = ts; render(); });
+        loadTasks(function (ts) { setData('tasks', ts); render(); });
       });
   }
 
@@ -2705,10 +3145,10 @@ var db = localDb();
     if (act === 'open') { gotoSheet({ kind: 'taskDetail', id: id, repo: '' }, 'root'); return; }
     if (act === 'delete') {
       showConfirm('删除任务', '「' + txt(t[F.t.title]) + '」删除后无法恢复。', function () {
-        db.deleteRecord({ databaseId: DATABASE_ID, recordId: id }).then(function () {
+        Repo.tasks.remove(id).then(function () {
           var arr = [];
-          for (var i = 0; i < S.tasks.length; i++) if (S.tasks[i]._id !== id) arr.push(S.tasks[i]);
-          S.tasks = arr;
+          for (var i = 0; i < S.data.tasks.length; i++) if (S.data.tasks[i]._id !== id) arr.push(S.data.tasks[i]);
+          setData('tasks', arr);
           render();
           toast('任务已删除');
         }).catch(function (e) {
@@ -2763,12 +3203,6 @@ var db = localDb();
     input.addEventListener('click', function (e) { e.stopPropagation(); });
   }
 
-  function editMachineInline(id, key) {
-    var sel = '[data-edit="' + (key === 'name' ? 'machineName' : 'machinePlace') + '"][data-id="' + id + '"]';
-    var el = document.querySelector(sel);
-    if (el) startEdit(el);
-  }
-
   function openMachineModal() {
     $('m_name').value = '';
     $('m_place').value = '';
@@ -2783,8 +3217,8 @@ var db = localDb();
   function saveMachineModal() {
     var name = $('m_name').value.replace(/^\s+|\s+$/g, '');
     if (!name) { toast('名称不能为空'); return; }
-    for (var i = 0; i < S.machines.length; i++) {
-      if (txt(S.machines[i][F.m.name]) === name) { toast('已经有同名电脑了'); return; }
+    for (var i = 0; i < S.data.machines.length; i++) {
+      if (txt(S.data.machines[i][F.m.name]) === name) { toast('已经有同名电脑了'); return; }
     }
     var place = $('m_place').value.replace(/^\s+|\s+$/g, '');
     closeMachineModal();
@@ -2793,39 +3227,46 @@ var db = localDb();
 
   var pendingConfirm = null;
   /* ===================== 管理模式：批量选择与批量操作 ===================== */
-  var selTasks = {}, selGh = {};
 
   function syncSel() {
     var cards = document.querySelectorAll('.card');
     for (var i = 0; i < cards.length; i++) {
-      cards[i].classList.toggle('sel', !!selTasks[cards[i].getAttribute('data-task-id')]);
+      cards[i].classList.toggle('sel', !!S.sel.tasks[cards[i].getAttribute('data-task-id')]);
     }
     var ents = document.querySelectorAll('.repo-entry');
     for (var j = 0; j < ents.length; j++) {
-      ents[j].classList.toggle('sel', !!selGh[ents[j].getAttribute('data-gh-id')]);
+      ents[j].classList.toggle('sel', !!S.sel.gh[ents[j].getAttribute('data-gh-id')]);
     }
   }
   function renderManageBar() {
     var bar = $('manageBar');
     if (!bar) return;
-    var tN = Object.keys(selTasks).length, gN = Object.keys(selGh).length;
-    bar.style.display = S.manage ? '' : 'none';
+    var tN = Object.keys(S.sel.tasks).length, gN = Object.keys(S.sel.gh).length;
+    bar.style.display = S.ui.manage ? '' : 'none';
     $('mCount').textContent = '已选 任务 ' + tN + ' · 记录 ' + gN;
     $('mTaskActs').style.display = tN ? '' : 'none';
     $('mGhActs').style.display = gN ? '' : 'none';
   }
+  // 管理模式下「点卡片」与「键盘 Enter/Space」共用这一处，避免两套逻辑漂移
+  function toggleTaskSel(node) {
+    var id = node.getAttribute('data-task-id');
+    if (S.sel.tasks[id]) delete S.sel.tasks[id]; else S.sel.tasks[id] = true;
+    node.classList.toggle('sel', !!S.sel.tasks[id]);
+    renderManageBar();
+  }
   function setManage(on) {
-    S.manage = !!on;
-    document.body.classList.toggle('manage', S.manage);
+    setUi('manage', !!on);
+    document.body.classList.toggle('manage', S.ui.manage);
     var b = $('manageBtn');
-    if (b) b.classList.toggle('on', S.manage);
-    if (!S.manage) { selTasks = {}; selGh = {}; }
+    if (b) b.classList.toggle('on', S.ui.manage);
+    if (!S.ui.manage) { setSel('tasks', {}); setSel('gh', {}); }
     renderManageBar();
     render();
   }
   function batchUpdateTasks(ids, props) {
     if (!ids.length) return;
     var now = new Date().toISOString();
+    var failed = 0;
     Promise.all(ids.map(function (id) {
       var t = findTask(id);
       if (!t) return null;
@@ -2833,51 +3274,78 @@ var db = localDb();
       t[F.t.updated] = now;
       var p = JSON.parse(JSON.stringify(props));
       p[F.t.updated] = { date: now };
-      return db.updateRecord({ databaseId: DATABASE_ID, recordId: id, properties: p }).catch(function (e) {
+      return Repo.tasks.update(id, p).catch(function (e) {
         console.error('[workbench] 批量更新失败', id, e);
+        failed++;
         return null;
       });
     })).then(function () {
-      toast('已更新 ' + ids.length + ' 个任务');
-      selTasks = {};
+      // 有失败就重拉，别让本地显示「全都改了」而库里只有一半
+      if (failed) {
+        toast('已更新 ' + (ids.length - failed) + ' 个，' + failed + ' 个失败，正在重新拉取');
+        loadTasks(function (ts) { setData('tasks', ts); render(); });
+      } else {
+        toast('已更新 ' + ids.length + ' 个任务');
+      }
+      setSel('tasks', {});
       render();
     });
   }
   function batchDeleteTasks(ids) {
+    var failed = 0;
     Promise.all(ids.map(function (id) {
-      return db.deleteRecord({ databaseId: DATABASE_ID, recordId: id }).catch(function (e) { console.error('[workbench] 批量删除失败', id, e); return null; });
+      return Repo.tasks.remove(id).catch(function (e) { console.error('[workbench] 批量删除失败', id, e); failed++; return null; });
     })).then(function () {
-      var set = {}; ids.forEach(function (id) { set[id] = 1; });
-      S.tasks = S.tasks.filter(function (t) { return !set[t._id]; });
-      toast('已删除 ' + ids.length + ' 个任务');
-      selTasks = {};
+      if (failed) {
+        // 本地不按 ids 全删：失败的还在库里，刷新会「复活」，必须先重拉对齐
+        toast('已删除 ' + (ids.length - failed) + ' 个，' + failed + ' 个失败，正在重新拉取');
+        loadTasks(function (ts) { setData('tasks', ts); render(); });
+      } else {
+        var set = {}; ids.forEach(function (id) { set[id] = 1; });
+        setData('tasks', S.data.tasks.filter(function (t) { return !set[t._id]; }));
+        toast('已删除 ' + ids.length + ' 个任务');
+      }
+      setSel('tasks', {});
       render();
     });
   }
   function batchUpdateGh(ids, props) {
     if (!ids.length) return;
+    var failed = 0;
     Promise.all(ids.map(function (id) {
       var r = findGh(id);
       if (!r) return null;
       for (var k in props) if (props.hasOwnProperty(k)) r[k] = props[k][Object.keys(props[k])[0]];
-      return db.updateRecord({ databaseId: DB_GITHUB, recordId: id, properties: JSON.parse(JSON.stringify(props)) }).catch(function (e) {
+      return Repo.github.update(id, JSON.parse(JSON.stringify(props))).catch(function (e) {
         console.error('[workbench] 批量更新失败', id, e);
+        failed++;
         return null;
       });
     })).then(function () {
-      toast('已更新 ' + ids.length + ' 条记录');
-      selGh = {};
+      if (failed) {
+        toast('已更新 ' + (ids.length - failed) + ' 条，' + failed + ' 条失败，正在重新拉取');
+        loadGithub(function (gh) { setData('gh', gh); render(); });
+      } else {
+        toast('已更新 ' + ids.length + ' 条记录');
+      }
+      setSel('gh', {});
       render();
     });
   }
   function batchDeleteGh(ids) {
+    var failed = 0;
     Promise.all(ids.map(function (id) {
-      return db.deleteRecord({ databaseId: DB_GITHUB, recordId: id }).catch(function (e) { console.error('[workbench] 批量删除失败', id, e); return null; });
+      return Repo.github.remove(id).catch(function (e) { console.error('[workbench] 批量删除失败', id, e); failed++; return null; });
     })).then(function () {
-      var set = {}; ids.forEach(function (id) { set[id] = 1; });
-      S.gh = S.gh.filter(function (r) { return !set[ghRecId(r)]; });
-      toast('已删除 ' + ids.length + ' 条记录');
-      selGh = {};
+      if (failed) {
+        toast('已删除 ' + (ids.length - failed) + ' 条，' + failed + ' 条失败，正在重新拉取');
+        loadGithub(function (gh) { setData('gh', gh); render(); });
+      } else {
+        var set = {}; ids.forEach(function (id) { set[id] = 1; });
+        setData('gh', S.data.gh.filter(function (r) { return !set[ghRecId(r)]; }));
+        toast('已删除 ' + ids.length + ' 条记录');
+      }
+      setSel('gh', {});
       render();
     });
   }
@@ -2886,7 +3354,7 @@ var db = localDb();
     var menu = document.createElement('div');
     menu.className = 'menu';
     if (kind === 'prio') {
-      var ps = S.opts.prio.length ? S.opts.prio : ['P0', 'P1', 'P2'];
+      var ps = S.data.opts.prio.length ? S.data.opts.prio : ['P0', 'P1', 'P2'];
       for (var i = 0; i < ps.length; i++) menu.innerHTML += '<button data-sel-prio="' + escapeHtml(ps[i]) + '">' + escapeHtml(ps[i]) + '</button>';
     } else {
       var ms = sortedMachines();
@@ -2900,16 +3368,16 @@ var db = localDb();
     document.body.appendChild(menu);
   }
   function manageAct(act, btn) {
-    var tIds = Object.keys(selTasks), gIds = Object.keys(selGh);
+    var tIds = Object.keys(S.sel.tasks), gIds = Object.keys(S.sel.gh);
     if (act === 'exit') { setManage(false); return; }
     if (act === 'all-tasks') {
       var cards = document.querySelectorAll('#board .card');
-      for (var i = 0; i < cards.length; i++) selTasks[cards[i].getAttribute('data-task-id')] = true;
+      for (var i = 0; i < cards.length; i++) S.sel.tasks[cards[i].getAttribute('data-task-id')] = true;
       syncSel(); renderManageBar(); return;
     }
     if (act === 'all-gh') {
       var ents = document.querySelectorAll('#ghList .repo-entry');
-      for (var j = 0; j < ents.length; j++) selGh[ents[j].getAttribute('data-gh-id')] = true;
+      for (var j = 0; j < ents.length; j++) S.sel.gh[ents[j].getAttribute('data-gh-id')] = true;
       syncSel(); renderManageBar(); return;
     }
     if (act === 'del-repo') {
@@ -2917,7 +3385,7 @@ var db = localDb();
       var repo = btn ? btn.getAttribute('data-repo') : '';
       if (!repo) return;
       var ids = [];
-      for (var ri = 0; ri < S.gh.length; ri++) if (txt(S.gh[ri][F.g.repo]) === repo) ids.push(ghRecId(S.gh[ri]));
+      for (var ri = 0; ri < S.data.gh.length; ri++) if (txt(S.data.gh[ri][F.g.repo]) === repo) ids.push(ghRecId(S.data.gh[ri]));
       if (!ids.length) { toast('这个仓库下没有记录'); return; }
       showConfirm('删除整个仓库', '将删除「' + repo + '」的全部 ' + ids.length + ' 条同步记录，删除后无法恢复。', function () { batchDeleteGh(ids); });
       return;
@@ -2956,10 +3424,10 @@ var db = localDb();
         { n: '优先级', t: 'select', req: 1, d: 'P0 最急 → P2 不急，只能这三个大写值', en: 'P0,P1,P2' },
         { n: '所在电脑', t: 'text', req: 1, d: '必须与机器表里的「机器名」完全一致，否则任务会落到「未识别电脑」列' },
         { n: '目录', t: 'text', req: 0, d: '绝对路径，如 D:\\home-inventory' },
-        { n: '进度', t: 'text', req: 1, d: '一句话写当前进展，不要写日志' },
+        { n: '进度', t: 'text', req: 0, d: '一句话写当前进展；留空则卡片不显示进度行' },
         { n: '待办', t: 'text', req: 0, d: '一行一条；[x] 表示已完成，[ ] 表示未完成' },
         { n: '交接内容', t: 'text', req: 0, d: '给下一个接手的 agent 看：背景、约束、回滚点' },
-        { n: '更新时间', t: 'date', req: 1, d: 'ISO 8601，如 2026-10-30T04:00:00Z（每次写入都更新）' },
+        { n: '更新时间', t: 'date', req: 0, d: 'ISO 8601，如 2026-10-30T04:00:00Z；省略时服务端自动补当前时间' },
         { n: '排序', t: 'number', req: 0, d: '同列内的顺序，小的在前' }
       ]},
       { name: '机器登录态', id: DB_MACHINE, key: 'machines', fields: [
@@ -2980,14 +3448,15 @@ var db = localDb();
         { n: '排序', t: 'number', req: 0, d: '面板里的顺序，小的在前' }
       ]},
       { name: 'GitHub 同步记录', id: DB_GITHUB, key: 'github', fields: [
-        { n: '同步时间', t: 'date', req: 1, d: '这次同步的时间（未同步的版本填该版本完成时间）' },
+        { n: '同步时间', t: 'date', req: 0, d: '这次同步的时间；省略时服务端补当前时间（未同步的版本填该版本完成时间）' },
         { n: '电脑', t: 'text', req: 1, d: '机器名，同任务表的「所在电脑」' },
         { n: 'GitHub账号', t: 'text', req: 0, d: '如 Simiely' },
         { n: '仓库', t: 'text', req: 1, d: 'owner/repo，如 Simiely/ae-tools' },
-        { n: '内容', t: 'text', req: 1, d: '这次同步了什么，一句话' },
+        { n: '内容', t: 'text', req: 0, d: '这次同步了什么，一句话' },
         { n: '同步版本', t: 'text', req: 0, d: '如 v1.5.8；多个用逗号分隔' },
-        { n: '是否同步', t: 'select', req: 1, d: '已同步 = 已推到 GitHub；未同步 = 本地有版本还没推', en: '已同步,未同步' },
-        { n: '仓库归档', t: 'checkbox', req: 0, d: '该仓库是否已在 GitHub 归档（仓库级属性，任一条记录勾上即视为已归档）' }
+        { n: '是否同步', t: 'select', req: 0, d: '已同步 = 已推到 GitHub；未同步 = 本地有版本还没推（缺省「已同步」）', en: '已同步,未同步' },
+        { n: '仓库归档', t: 'checkbox', req: 0, d: '该仓库是否已在 GitHub 归档（仓库级属性，任一条记录勾上即视为已归档）' },
+        { n: '仓库置顶', t: 'checkbox', req: 0, d: '该仓库是否置顶（仓库级属性，任一条记录勾上即视为置顶；置顶卡排最前，多条置顶按更新时间倒序）' }
       ]}
     ],
     rules: [
@@ -3015,6 +3484,31 @@ var db = localDb();
       }
     }
   };
+  // 顶栏快捷指南：与弹窗里的「① 先定电脑」共用同一个 S.ui.aiMachine，
+  // 选完直接复制契约，不用先开弹窗。机器清单来自同一份 sortedMachines()。
+  function renderAiQuick() {
+    var sel = $('aiQuickMachine');
+    if (!sel) return;
+    var ms = sortedMachines();
+    var names = ms.map(function (x) { return txt(x[F.m.name]); });
+    // 记住的电脑被删掉 / 改名后要能自愈：退回第一台，并把存储里的旧值一起纠正
+    if (S.ui.aiMachine && names.indexOf(S.ui.aiMachine) < 0) {
+      setUi('aiMachine', '');
+      try { localStorage.setItem('awb.aiMachine', ''); } catch (e) {}
+    }
+    var cur = S.ui.aiMachine || (names.length ? names[0] : '');
+    var h = '';
+    if (!ms.length) h = '<option value="">（未登记电脑）</option>';
+    for (var i = 0; i < ms.length; i++) {
+      h += '<option value="' + escapeHtml(names[i]) + '"' + (names[i] === cur ? ' selected' : '') + '>' + escapeHtml(names[i]) + '</option>';
+    }
+    sel.innerHTML = h;
+    if (names.length) {
+      setUi('aiMachine', cur);
+      try { localStorage.setItem('awb.aiMachine', cur); } catch (e) {}
+    }
+  }
+
   function aiMachineOptions() {
     var ms = sortedMachines();
     if (!ms.length) return '<option value="">（还没有登记电脑，先去「新增 → 添加电脑」）</option>';
@@ -3026,7 +3520,7 @@ var db = localDb();
       if (txt(m[F.m.place])) info.push(txt(m[F.m.place]));
       if (txt(m[F.m.wb])) info.push(txt(m[F.m.wb]).indexOf('WB') >= 0 ? txt(m[F.m.wb]) : 'WB ' + txt(m[F.m.wb]));
       if (txt(m[F.m.trae])) info.push(txt(m[F.m.trae]).indexOf('TRAE') >= 0 ? txt(m[F.m.trae]) : 'TRAE ' + txt(m[F.m.trae]));
-      h += '<option value="' + escapeHtml(name) + '"' + (name === S.aiMachine ? ' selected' : '') + '>' +
+      h += '<option value="' + escapeHtml(name) + '"' + (name === S.ui.aiMachine ? ' selected' : '') + '>' +
         escapeHtml(name) + (info.length ? '　（' + escapeHtml(info.join(' · ')) + '）' : '') + '<' + '/option>';
     }
     return h;
@@ -3051,7 +3545,7 @@ var db = localDb();
   function aiExample() {
     var ex = JSON.parse(JSON.stringify(AI_CONTRACT.example));
     var ms = sortedMachines();
-    var pick = S.aiMachine || (ms.length ? txt(ms[0][F.m.name]) : '');
+    var pick = S.ui.aiMachine || (ms.length ? txt(ms[0][F.m.name]) : '');
     ex.properties['所在电脑'] = { text: pick || '台式机-家' };
     return ex;
   }
@@ -3106,7 +3600,7 @@ var db = localDb();
   }
   function renderAiGuide() {
     var ms = sortedMachines();
-    if (!S.aiMachine && ms.length) S.aiMachine = txt(ms[0][F.m.name]);
+    if (!S.ui.aiMachine && ms.length) setUi('aiMachine', txt(ms[0][F.m.name]));
     var h = '';
     h += '<div class="ai-sec ai-sec-pick"><h4>① 先定电脑<span class="dbid">AI 不知道你的机器叫什么</span></h4>' +
       '<div class="ai-pick"><select id="aiMachine">' + aiMachineOptions() + '</select>' +
@@ -3121,6 +3615,7 @@ var db = localDb();
     h += '<div class="ai-sec"><h4>示例 payload（已按所选电脑填好）</h4><div class="ai-pre">' + escapeHtml(JSON.stringify(aiExample(), null, 2)) + '</div></div>';
     h += '<div class="ai-sec ai-note"><span class="ai-warn">提示：</span>本契约与页面共用同一套字段名，改字段请同步更新这里；本地版还提供 <span class="ai-enum">GET /api/contract</span> 供 agent 直接拉取。</div>';
     $('aiBody').innerHTML = h;
+    renderAiQuick(); // 弹窗打开时也把顶栏下拉的选中项对齐
   }
   function openAiGuide() {
     renderAiGuide();
@@ -3144,9 +3639,11 @@ var db = localDb();
     $('confirmModal').classList.remove('on');
   }
 
+  // 返回 Promise<boolean>：true = 已落库，false = 被服务端拒/网络失败。
+  // 调用方要据此决定「内存里先改的值要不要还原」——不能靠事后对比内存（重拉是异步的，会读到中间态）
   function updateMachineFields(id, patch) {
     var m = findMachine(id);
-    if (!m) return Promise.resolve();
+    if (!m) return Promise.resolve(false);
     var props = {};
     if (patch.name != null) props[F.m.name] = { text: patch.name };
     if (patch.place != null) props[F.m.place] = { text: patch.place };
@@ -3155,11 +3652,13 @@ var db = localDb();
     if (patch.place != null) m[F.m.place] = patch.place;
     if (patch.order != null) m[F.m.order] = patch.order;
     render();
-    return db.updateRecord({ databaseId: DB_MACHINE, recordId: id, properties: props })
+    return Repo.machines.update(id, props)
+      .then(function () { return true; })
       .catch(function (e) {
         console.error('[workbench] 机器更新失败', e);
         toast('更新失败');
-        loadMachines(function (ms) { S.machines = ms; render(); });
+        loadMachines(function (ms) { setData('machines', ms); render(); });
+        return false;
       });
   }
 
@@ -3168,21 +3667,35 @@ var db = localDb();
     if (!m) return;
     var old = txt(m[F.m.name]);
     var affected = [];
-    for (var i = 0; i < S.tasks.length; i++) {
-      if (txt(S.tasks[i][F.t.machine]) === old) affected.push(S.tasks[i]);
+    for (var i = 0; i < S.data.tasks.length; i++) {
+      if (txt(S.data.tasks[i][F.t.machine]) === old) affected.push(S.data.tasks[i]);
     }
     // 先在内存里把任务改到新名字。否则 updateMachineFields 内部的 render() 会
     // 因为机器名已改、任务的「所在电脑」还是旧名而匹配不上，导致整列任务从看板消失（P-01）
     for (var k = 0; k < affected.length; k++) affected[k][F.t.machine] = newName;
 
-    updateMachineFields(id, { name: newName }).then(function () {
+    updateMachineFields(id, { name: newName }).then(function (ok) {
+      // ① 改名被服务端拒绝（重名 400）：把「先改掉的内存任务名」还原，并重拉机器表。
+      //    不还原的话，整列任务会跑到别的电脑（或掉进「未识别电脑」列）（F-04）
+      if (!ok) {
+        for (var r = 0; r < affected.length; r++) affected[r][F.t.machine] = old;
+        loadMachines(function (ms) { setData('machines', ms); render(); });
+        render();
+        return;
+      }
+      // ② 电脑身份有三份副本（machines 名 / accounts 所属电脑 / github 电脑）：
+      //    服务端改名时会把账号搬过去，客户端必须重拉，否则胶囊会显示「未登录」（F-02）
+      loadAccounts(function (accs) { setData('accounts', accs); render(); });
+      // ③ GitHub「电脑」筛选若还指着旧名：旧名已不在机器表里，下拉显示「全部」但列表仍在筛（F-01）
+      if (S.ui.ghFilter.machine === old) setGhFilter({ machine: '' });
+      render();
       if (!affected.length) { toast('已重命名'); return; }
       var idx = 0, failed = 0;
       function next() {
         if (idx >= affected.length) {
           if (failed) {
             toast('已重命名，' + failed + ' 个任务同步失败，正在重新拉取');
-            loadTasks(function (ts) { S.tasks = ts; render(); });
+            loadTasks(function (ts) { setData('tasks', ts); render(); });
           } else {
             toast('已重命名，同步更新 ' + affected.length + ' 个任务');
           }
@@ -3191,33 +3704,11 @@ var db = localDb();
         var t = affected[idx++];
         var props = {};
         props[F.t.machine] = { text: newName };
-        db.updateRecord({ databaseId: DATABASE_ID, recordId: t._id, properties: props })
+        Repo.tasks.update(t._id, props)
           .catch(function (e) { failed++; console.error('[workbench] 任务机器同步失败', e); })
           .then(next);
       }
       next();
-    });
-  }
-
-  function moveMachine(id, dir) {
-    var arr = sortedMachines();
-    var pos = -1;
-    for (var i = 0; i < arr.length; i++) if (arr[i]._id === id) pos = i;
-    if (pos < 0) return;
-    var target = pos + dir;
-    if (target < 0 || target >= arr.length) { toast('已经到边上了'); return; }
-    var a = arr[pos], b = arr[target];
-    var oa = (typeof a[F.m.order] === 'number') ? a[F.m.order] : pos + 1;
-    var ob = (typeof b[F.m.order] === 'number') ? b[F.m.order] : target + 1;
-    a[F.m.order] = ob;
-    b[F.m.order] = oa;
-    render();
-    var p1 = db.updateRecord({ databaseId: DB_MACHINE, recordId: a._id, properties: { '排序': { number: ob } } });
-    var p2 = db.updateRecord({ databaseId: DB_MACHINE, recordId: b._id, properties: { '排序': { number: oa } } });
-    Promise.all([p1, p2]).catch(function (e) {
-      console.error('[workbench] 排序保存失败', e);
-      toast('顺序保存失败');
-      loadMachines(function (ms) { S.machines = ms; render(); });
     });
   }
 
@@ -3241,31 +3732,32 @@ var db = localDb();
   function doMachineAction(act, id) {
     var m = findMachine(id);
     if (!m) return;
-    if (act === 'rename') { editMachineInline(id, 'name'); return; }
-    if (act === 'place') { editMachineInline(id, 'place'); return; }
-    if (act === 'left' || act === 'right') { moveMachine(id, act === 'left' ? -1 : 1); return; }
+    // v1.0.2 起菜单只剩「删除」：改名/改位置/移列都在列头上直接做，菜单项已下线
     if (act === 'delete') {
       var used = 0;
-      for (var i = 0; i < S.tasks.length; i++) if (txt(S.tasks[i][F.t.machine]) === txt(m[F.m.name])) used++;
+      for (var i = 0; i < S.data.tasks.length; i++) if (txt(S.data.tasks[i][F.t.machine]) === txt(m[F.m.name])) used++;
       // 有任务也允许删：任务不会丢，会落到「未识别电脑」兜底列（v12 起的孤儿列机制）
       var msg = used
-        ? '「' + txt(m[F.m.name]) + '」下还有 ' + used + ' 个任务。删除电脑后，这些任务会移到「未识别电脑」列，任务本身不会被删除。'
+        ? '「' + txt(m[F.m.name]) + '」下还有 ' + used + ' 个任务。删除电脑后这些任务不会删，会留在看板的「未识别电脑」列（保留原电脑名）；之后新建同名电脑，它们会自动回到那一列。'
         : '「' + txt(m[F.m.name]) + '」会从看板移除，该电脑下没有任务。';
       showConfirm('删除电脑', msg, function () { doDeleteMachine(id); });
     }
   }
   function doDeleteMachine(id) {
-    db.deleteRecord({ databaseId: DB_MACHINE, recordId: id }).then(function () {
+    Repo.machines.remove(id).then(function () {
       var arr = [];
       var removedName = '';
-      for (var i = 0; i < S.machines.length; i++) {
-        if (S.machines[i]._id === id) removedName = txt(S.machines[i][F.m.name]);
-        else arr.push(S.machines[i]);
+      for (var i = 0; i < S.data.machines.length; i++) {
+        if (S.data.machines[i]._id === id) removedName = txt(S.data.machines[i][F.m.name]);
+        else arr.push(S.data.machines[i]);
       }
-      S.machines = arr;
+      setData('machines', arr);
       // 删电脑时同步清理指向它的 GitHub 筛选 ——
       // 否则筛选会指向一台不存在的电脑，渲染时只能靠兜底复位来收拾（那是补丁）。
-      if (removedName && S.ghFilter.machine === removedName) S.ghFilter.machine = '';
+      if (removedName && S.ui.ghFilter.machine === removedName) setGhFilter({ machine: '' });
+      // 服务端删电脑会连带删掉它名下的账号（server.mjs:739）。客户端必须重拉账号池，
+      // 否则共享池里会留着指向已删电脑的「幽灵登记」，别的电脑的「也在用」角标虚高（F-02）
+      loadAccounts(function (accs) { setData('accounts', accs); render(); });
       render();
       toast('已删除电脑');
     }).catch(function (e) {
@@ -3277,25 +3769,25 @@ var db = localDb();
   function addMachine(name, place) {
     name = (name || '').replace(/^\s+|\s+$/g, '');
     if (!name) { toast('名称不能为空'); return; }
-    for (var i = 0; i < S.machines.length; i++) {
-      if (txt(S.machines[i][F.m.name]) === name) { toast('已经有同名电脑了'); return; }
+    for (var i = 0; i < S.data.machines.length; i++) {
+      if (txt(S.data.machines[i][F.m.name]) === name) { toast('已经有同名电脑了'); return; }
     }
     place = (place || '').replace(/^\s+|\s+$/g, '');
     var maxOrder = 0;
-    for (var j = 0; j < S.machines.length; j++) {
-      var o = S.machines[j][F.m.order];
+    for (var j = 0; j < S.data.machines.length; j++) {
+      var o = S.data.machines[j][F.m.order];
       if (typeof o === 'number' && o > maxOrder) maxOrder = o;
     }
     var props = {};
     props[F.m.name] = { text: name };
     props[F.m.place] = { text: place };
     props[F.m.order] = { number: maxOrder + 1 };
-    db.addRecord({ databaseId: DB_MACHINE, properties: props }).then(function (r) {
+    Repo.machines.create(props).then(function (r) {
       var rec = { _id: (r && (r.id || r._id)) };
       rec[F.m.name] = name;
       rec[F.m.place] = place;
       rec[F.m.order] = maxOrder + 1;
-      S.machines.push(rec);
+      S.data.machines.push(rec);
       render();
       toast('已添加 ' + name);
     }).catch(function (e) {
@@ -3308,11 +3800,11 @@ var db = localDb();
   // 账号变动都算一次「确认登录态」，机器表的最后确认跟着走
   function touchMachine(machineName) {
     var now = new Date().toISOString();
-    for (var i = 0; i < S.machines.length; i++) {
-      var m = S.machines[i];
+    for (var i = 0; i < S.data.machines.length; i++) {
+      var m = S.data.machines[i];
       if (txt(m[F.m.name]) !== machineName) continue;
       m[F.m.confirmed] = now;
-      db.updateRecord({ databaseId: DB_MACHINE, recordId: m._id, properties: { '最后确认': { date: now } } })
+      Repo.machines.update(m._id, { '最后确认': { date: now } })
         .catch(function (e) { console.error('[workbench] 最后确认更新失败', e); });
       return;
     }
@@ -3331,17 +3823,15 @@ var db = localDb();
     if (prev) prev[F.a.cur] = false;
     render();
     paintAccPanel();
-    var jobs = [db.updateRecord({ databaseId: DB_ACC, recordId: id,
-      properties: { '当前': { checkbox: true }, '最后确认': { date: now } } })];
-    if (prev) jobs.push(db.updateRecord({ databaseId: DB_ACC, recordId: prev._id,
-      properties: { '当前': { checkbox: false } } }));
+    var jobs = [Repo.accounts.update(id, { '当前': { checkbox: true }, '最后确认': { date: now } })];
+    if (prev) jobs.push(Repo.accounts.update(prev._id, { '当前': { checkbox: false } }));
     Promise.all(jobs).then(function () {
       touchMachine(mach);
       toast(mach + ' → ' + txt(a[F.a.name]));
     }).catch(function (e) {
       console.error('[workbench] 切换账号失败', e);
       toast('切换失败，正在回滚');
-      loadAccounts(function (accs) { S.accounts = accs; render(); paintAccPanel(); });
+      loadAccounts(function (accs) { setData('accounts', accs); render(); paintAccPanel(); });
     });
   }
 
@@ -3383,7 +3873,7 @@ var db = localDb();
     if (noCurrent) { props[F.a.cur] = { checkbox: true }; props[F.a.at] = { date: now }; }
     accUI.mode = 'list';
     paintAccPanel();
-    db.addRecord({ databaseId: DB_ACC, properties: props }).then(function (r) {
+    Repo.accounts.create(props).then(function (r) {
       var rec = { _id: (r && (r.id || r._id)) };
       rec[F.a.name] = name;
       rec[F.a.plat] = plat;
@@ -3391,11 +3881,10 @@ var db = localDb();
       rec[F.a.order] = order;
       rec[F.a.cur] = !!noCurrent;
       rec[F.a.at] = noCurrent ? now : '';
-      S.accounts.push(rec);
+      S.data.accounts.push(rec);
       if (force && prev) {
         prev[F.a.cur] = false;
-        db.updateRecord({ databaseId: DB_ACC, recordId: prev._id,
-          properties: { '当前': { checkbox: false } } }).catch(function () {});
+        Repo.accounts.update(prev._id, { '当前': { checkbox: false } }).catch(function () {});
       }
       render();
       paintAccPanel();
@@ -3404,7 +3893,7 @@ var db = localDb();
     }).catch(function (e) {
       console.error('[workbench] 添加账号失败', e);
       toast('添加失败：' + ((e && e.message) || '网络错误'));
-      loadAccounts(function (accs) { S.accounts = accs; render(); paintAccPanel(); });
+      loadAccounts(function (accs) { setData('accounts', accs); render(); paintAccPanel(); });
     });
   }
 
@@ -3414,8 +3903,8 @@ var db = localDb();
     var plat = txt(a[F.a.plat]);
     if (old === name) { accUI.mode = 'list'; paintAccPanel(); return; }
     var same = [];
-    for (var i = 0; i < S.accounts.length; i++) {
-      var x = S.accounts[i];
+    for (var i = 0; i < S.data.accounts.length; i++) {
+      var x = S.data.accounts[i];
       if (txt(x[F.a.plat]) === plat && txt(x[F.a.name]) === old) same.push(x);
     }
     var touched = {};
@@ -3427,7 +3916,7 @@ var db = localDb();
     render();
     paintAccPanel();
     var jobs = same.map(function (x) {
-      return db.updateRecord({ databaseId: DB_ACC, recordId: x._id, properties: { '账号名': { text: name } } });
+      return Repo.accounts.update(x._id, { '账号名': { text: name } });
     });
     Promise.all(jobs).then(function () {
       Object.keys(touched).forEach(function (mn) { touchMachine(mn); });
@@ -3448,8 +3937,8 @@ var db = localDb();
     var mach = txt(a[F.a.mach]);
     var isCur = a[F.a.cur] === true;
     var others = 0;
-    for (var i = 0; i < S.accounts.length; i++) {
-      var x = S.accounts[i];
+    for (var i = 0; i < S.data.accounts.length; i++) {
+      var x = S.data.accounts[i];
       if (x._id !== id && txt(x[F.a.name]) === nm && txt(x[F.a.plat]) === txt(a[F.a.plat])) others++;
     }
     showConfirm('解除登记', '「' + nm + '」会从「' + mach + '」的账号列表里移除；' +
@@ -3468,13 +3957,13 @@ var db = localDb();
     var a = findAcc(id);
     if (!a) return;
     var nm = txt(a[F.a.name]), mach = txt(a[F.a.mach]);
-    S.accounts = S.accounts.filter(function (x) { return x._id !== id; });
+    setData('accounts', S.data.accounts.filter(function (x) { return x._id !== id; }));
     render();
     paintAccPanel();
-    db.deleteRecord({ databaseId: DB_ACC, recordId: id }).then(function () {
+    Repo.accounts.remove(id).then(function () {
       // 当前账号被删时由服务端顺延下一条，这里重新拉一次，避免本地和服务端各算一套
       return new Promise(function (res) {
-        loadAccounts(function (accs) { S.accounts = accs; res(); });
+        loadAccounts(function (accs) { setData('accounts', accs); res(); });
       });
     }).then(function () {
       render();
@@ -3484,22 +3973,22 @@ var db = localDb();
     }).catch(function (e) {
       console.error('[workbench] 删除账号失败', e);
       toast('删除失败');
-      loadAccounts(function (accs) { S.accounts = accs; render(); reopenAccPanel(); });
+      loadAccounts(function (accs) { setData('accounts', accs); render(); reopenAccPanel(); });
     });
   }
 
   function delTask() {
-    var id = S.sheet.id;
+    var id = S.ui.sheet.id;
     if (!id) return;
     var t = findTask(id);
     showConfirm('删除任务', '「' + (t ? txt(t[F.t.title]) : '') + '」删除后无法恢复。', function () {
-      db.deleteRecord({ databaseId: DATABASE_ID, recordId: id }).then(function () {
+      Repo.tasks.remove(id).then(function () {
         var arr = [];
-        for (var i = 0; i < S.tasks.length; i++) if (S.tasks[i]._id !== id) arr.push(S.tasks[i]);
-        S.tasks = arr;
+        for (var i = 0; i < S.data.tasks.length; i++) if (S.data.tasks[i]._id !== id) arr.push(S.data.tasks[i]);
+        setData('tasks', arr);
         // 删除后：若有上一层就退回上一层，否则关闭弹窗。
         // 注意被删的这条可能正是上一层的对象 —— backSheet 会发现它已失效并继续往上退。
-        if (S.sheetStack.length) { backSheet(); } else { closeDrawer(); }
+        if (S.ui.sheetStack.length) { backSheet(); } else { closeDrawer(); }
         render();
         toast('已删除');
       }).catch(function (e) {
@@ -3511,8 +4000,8 @@ var db = localDb();
 
   function buildHandoff(t) {
     var m = null;
-    for (var i = 0; i < S.machines.length; i++) {
-      if (txt(S.machines[i][F.m.name]) === txt(t[F.t.machine])) { m = S.machines[i]; break; }
+    for (var i = 0; i < S.data.machines.length; i++) {
+      if (txt(S.data.machines[i][F.m.name]) === txt(t[F.t.machine])) { m = S.data.machines[i]; break; }
     }
     var machineName = txt(t[F.t.machine]);
     var wbCur = m ? currentAcc(machineName, 'WorkBuddy') : null;
@@ -3589,8 +4078,8 @@ var db = localDb();
       seen[v] = 1;
       out += '<option value="' + escapeHtml(v) + '"><' + '/option>';
     }
-    for (var i = 0; i < S.accounts.length; i++) {
-      var a = S.accounts[i];
+    for (var i = 0; i < S.data.accounts.length; i++) {
+      var a = S.data.accounts[i];
       if (txt(a[F.a.plat]) !== plat) continue;
       if (txt(a[F.a.mach]) === machineName) continue;
       add(a[F.a.name]);
@@ -3614,8 +4103,12 @@ var db = localDb();
     var id = mine ? mine._id : (e.recs[0] && e.recs[0]._id);
     var tip = on ? '这台电脑正在用'
       : (mine ? '点一下切到这个号' : '共享账号，点一下在这台电脑上使用');
-    var right = on ? '<span class="tag">当前</span>'
-      : (mine ? '<span class="tag sub">已登记</span>'
+    var right = on
+      ? (e.curOthers && e.curOthers.length
+        ? '<span class="tag warn" title="这个号在别的电脑上也是当前">' +
+          escapeHtml(e.curOthers[0]) + (e.curOthers.length > 1 ? ' 等 ' + e.curOthers.length + ' 台' : '') + ' 也在用<' + '/span>'
+        : '<span class="tag">当前<' + '/span>')
+      : (mine ? '<span class="tag sub">已登记<' + '/span>'
         : (e.others.length ? '<span class="tag sub">' + escapeHtml(e.others[0]) + ' 在用<' + '/span>' : ''));
     return '<div class="acc-row' + (on ? ' on' : '') + '" data-acc-pick="' + escapeHtml(e.name) + '"' +
         ' title="' + tip + '">' +
@@ -3709,12 +4202,12 @@ var db = localDb();
     cur[F.a.cur] = false;
     render();
     paintAccPanel();
-    db.updateRecord({ databaseId: DB_ACC, recordId: cur._id, properties: { '当前': { checkbox: false } } })
+    Repo.accounts.update(cur._id, { '当前': { checkbox: false } })
       .then(function () { touchMachine(mach); toast('已清除登录态，账号仍在列表里'); })
       .catch(function (e) {
         console.error('[workbench] 清除登录态失败', e);
         toast('清除失败');
-        loadAccounts(function (accs) { S.accounts = accs; render(); paintAccPanel(); });
+        loadAccounts(function (accs) { setData('accounts', accs); render(); paintAccPanel(); });
       });
   }
 
@@ -3776,27 +4269,31 @@ var db = localDb();
     t[F.t.machine] = name;
     var props = {};
     props[F.t.machine] = { text: name };
-    db.updateRecord({ databaseId: DATABASE_ID, recordId: t._id, properties: props })
+    Repo.tasks.update(t._id, props)
       .then(function () { toast('已移到「' + name + '」'); })
       .catch(function (e) {
         console.error('[workbench] 移动任务失败', e);
         toast('移动失败，正在回滚');
-        loadTasks(function (ts) { S.tasks = ts; render(); });
+        loadTasks(function (ts) { setData('tasks', ts); render(); });
       });
   }
 
   function persistColumnOrder() {
     var cols = $('board').querySelectorAll('.col[data-machine-id]');
-    var i = 0;
+    var i = 0, failed = 0;
     function next() {
-      if (i >= cols.length) { toast('列顺序已保存'); return; }
+      // 逐条写：中途失败只影响那一条，但必须如实说，不能默默「保存成功」
+      if (i >= cols.length) {
+        toast(failed ? ('列顺序有 ' + failed + ' 条没保存上，再拖一次即可') : '列顺序已保存');
+        return;
+      }
       var id = cols[i].getAttribute('data-machine-id');
       var order = i + 1;
       i++;
       var m = findMachine(id);
       if (m) m[F.m.order] = order;
-      db.updateRecord({ databaseId: DB_MACHINE, recordId: id, properties: { '排序': { number: order } } })
-        .catch(function (e) { console.error('[workbench] 列顺序保存失败', e); })
+      Repo.machines.update(id, { '排序': { number: order } })
+        .catch(function (e) { failed++; console.error('[workbench] 列顺序保存失败', e); })
         .then(next);
     }
     next();
@@ -3804,341 +4301,339 @@ var db = localDb();
 
   function persistCardOrder(body) {
     var cards = body.querySelectorAll('.card[data-task-id]');
-    var i = 0;
+    var i = 0, failed = 0;
     function next() {
-      if (i >= cards.length) { toast('任务顺序已保存'); return; }
+      if (i >= cards.length) {
+        toast(failed ? ('任务顺序有 ' + failed + ' 条没保存上，再拖一次即可') : '任务顺序已保存');
+        return;
+      }
       var id = cards[i].getAttribute('data-task-id');
       var order = i + 1;
       i++;
       var t = findTask(id);
       if (t) t[F.t.order] = order;
-      db.updateRecord({ databaseId: DATABASE_ID, recordId: id, properties: { '排序': { number: order } } })
-        .catch(function (e) { console.error('[workbench] 任务顺序保存失败', e); })
+      Repo.tasks.update(id, { '排序': { number: order } })
+        .catch(function (e) { failed++; console.error('[workbench] 任务顺序保存失败', e); })
         .then(next);
     }
     next();
   }
 
-  function bindDrag() {
-    var board = $('board');
+  // 拖拽刚结束时抑制一次点击：拖完松手浏览器仍会派发 click，
+  // 不抑制就会把「拖拽落点」当成「点开了别的卡」
+  function markJustDragged() {
+    justDragged = true;
+    setTimeout(function () { justDragged = false; }, 120);
+  }
 
+  // 列拖：拖列头 ⠿ 手柄，只负责「列的顺序」。
+  // 投放判定按几何来：与被拖列同一行 → clientX 判左右；换行到别的行 → clientY 判上下。
+  // （列宽自适应，列可能并排也可能换行，只用一个轴一定判错）
+  function bindColumnDrag(board) {
     board.addEventListener('dragstart', function (e) {
       var handle = e.target.closest ? e.target.closest('.drag-handle') : null;
-      if (handle) {
-        var col = handle.closest('.col');
-        if (!col) return;
-        dragCol = col;
-        dragMoved = false;
-        col.classList.add('dragging');
-        if (e.dataTransfer) {
-          e.dataTransfer.effectAllowed = 'move';
-          e.dataTransfer.setData('text/plain', 'col');
-        }
-        return;
-      }
-      var card = e.target.closest ? e.target.closest('.card') : null;
-      if (card) {
-        dragCard = card;
-        dragMoved = false;
-        var fromCol = card.closest ? card.closest('.col') : null;
-        dragFromMachineId = fromCol ? fromCol.getAttribute('data-machine-id') : null;
-        card.classList.add('dragging');
-        if (e.dataTransfer) {
-          e.dataTransfer.effectAllowed = 'move';
-          e.dataTransfer.setData('text/plain', 'card');
-        }
+      if (!handle) return;
+      var col = handle.closest('.col');
+      if (!col) return;
+      dragCol = col;
+      dragMoved = false;
+      col.classList.add('dragging');
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', 'col');
       }
     });
 
     board.addEventListener('dragover', function (e) {
-      if (dragCard) {
-        var body = e.target.closest ? e.target.closest('.col-body') : null;
-        if (!body) return;
-        var destCol = body.closest ? body.closest('.col') : null;
-        // 兜底列不是真实电脑，不能作为投放目标
-        if (!destCol || destCol.classList.contains('col-orphan')) return;
-        e.preventDefault();
-        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-        var over = e.target.closest('.card');
-        if (!over) {
-          if (body !== dragCard.parentNode) {
-            var ph = body.querySelector('.col-empty');
-            if (ph) body.insertBefore(dragCard, ph); else body.appendChild(dragCard);
-            dragMoved = true;
-          }
-          return;
-        }
-        if (over === dragCard) return;
-        var rect = over.getBoundingClientRect();
-        var after = (e.clientY - rect.top) > rect.height / 2;
-        if (after) body.insertBefore(dragCard, over.nextSibling);
-        else body.insertBefore(dragCard, over);
-        dragMoved = true;
-        return;
-      }
-      if (dragCol) {
-        e.preventDefault();
-        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-        var target = e.target.closest ? e.target.closest('.col') : null;
-        if (!target || target === dragCol || target.classList.contains('col-orphan')) return;
-        var r = target.getBoundingClientRect();
-        // 列宽自适应后，列可能并排（同一行）也可能换行（多行）。
-        // 与被拖列同一行 → 按 clientX 判断左右；不同行 → 按 clientY 判断上下。
-        var dr = dragCol.getBoundingClientRect();
-        var sameRow = Math.abs(dr.top - r.top) < dr.height / 2;
-        var after = sameRow
-          ? ((e.clientX - r.left) > r.width / 2)
-          : ((e.clientY - r.top) > r.height / 2);
-        board.insertBefore(dragCol, after ? target.nextSibling : target);
-        dragMoved = true;
-      }
+      if (!dragCol) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      var target = e.target.closest ? e.target.closest('.col') : null;
+      // 兜底列不是真实电脑，不能作为投放目标
+      if (!target || target === dragCol || target.classList.contains('col-orphan')) return;
+      var r = target.getBoundingClientRect();
+      var dr = dragCol.getBoundingClientRect();
+      var sameRow = Math.abs(dr.top - r.top) < dr.height / 2;
+      var after = sameRow
+        ? ((e.clientX - r.left) > r.width / 2)
+        : ((e.clientY - r.top) > r.height / 2);
+      board.insertBefore(dragCol, after ? target.nextSibling : target);
+      dragMoved = true;
     });
 
-    board.addEventListener('drop', function (e) { e.preventDefault(); });
-
     board.addEventListener('dragend', function () {
-      if (dragCard) {
-        var body2 = dragCard.parentNode;
-        var cardEl = dragCard;
-        dragCard.classList.remove('dragging');
-        dragCard = null;
-        if (dragMoved && body2) {
-          var toCol = body2.closest ? body2.closest('.col') : null;
-          var toId = toCol ? toCol.getAttribute('data-machine-id') : null;
-          var crossed = !!(toId && dragFromMachineId && toId !== dragFromMachineId);
-          if (crossed) dropCardIntoColumn(cardEl, toId);
-          if (!S.q) persistCardOrder(body2);
-          else toast('搜索状态下只移动电脑，不保存卡片顺序');
-        }
-        dragFromMachineId = null;
-      }
-      if (dragCol) {
-        dragCol.classList.remove('dragging');
-        dragCol = null;
-        if (dragMoved) persistColumnOrder();
-      }
-      if (dragMoved) {
-        justDragged = true;
-        setTimeout(function () { justDragged = false; }, 120);
-      }
+      if (!dragCol) return;
+      dragCol.classList.remove('dragging');
+      dragCol = null;
+      if (!dragMoved) return;
+      persistColumnOrder();
+      markJustDragged();
     });
   }
 
-  document.addEventListener('click', function (e) {
-    if (justDragged) return;
-    var el = e.target;
+  // 卡片拖：列内排序 + 跨列移动。dragover 只改 DOM，**顺序只在 dragend 落库**，
+  // 否则拖一次会按中途经过的位置写十几次库。
+  function bindCardDrag(board) {
+    board.addEventListener('dragstart', function (e) {
+      var card = e.target.closest ? e.target.closest('.card') : null;
+      if (!card) return;
+      dragCard = card;
+      dragMoved = false;
+      var fromCol = card.closest ? card.closest('.col') : null;
+      dragFromMachineId = fromCol ? fromCol.getAttribute('data-machine-id') : null;
+      card.classList.add('dragging');
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', 'card');
+      }
+    });
 
-    // ── 空看板里的「清除搜索」：只清搜索词，视图不变 ──
-    var clr = el.closest ? el.closest('[data-clear-view]') : null;
-    if (clr) {
-      e.stopPropagation();
+    board.addEventListener('dragover', function (e) {
+      if (!dragCard) return;
+      var body = e.target.closest ? e.target.closest('.col-body') : null;
+      if (!body) return;
+      var destCol = body.closest ? body.closest('.col') : null;
+      // 兜底列不是真实电脑，不能作为投放目标
+      if (!destCol || destCol.classList.contains('col-orphan')) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      var over = e.target.closest('.card');
+      if (!over) {
+        if (body !== dragCard.parentNode) {
+          var ph = body.querySelector('.col-empty');
+          if (ph) body.insertBefore(dragCard, ph); else body.appendChild(dragCard);
+          dragMoved = true;
+        }
+        return;
+      }
+      if (over === dragCard) return;
+      var rect = over.getBoundingClientRect();
+      // 落在卡片下半 → 插到它后面，上半 → 插到它前面
+      if ((e.clientY - rect.top) > rect.height / 2) body.insertBefore(dragCard, over.nextSibling);
+      else body.insertBefore(dragCard, over);
+      dragMoved = true;
+    });
+
+    board.addEventListener('dragend', function () {
+      if (!dragCard) return;
+      var body2 = dragCard.parentNode;
+      var cardEl = dragCard;
+      dragCard.classList.remove('dragging');
+      dragCard = null;
+      if (dragMoved && body2) {
+        var toCol = body2.closest ? body2.closest('.col') : null;
+        var toId = toCol ? toCol.getAttribute('data-machine-id') : null;
+        var crossed = !!(toId && dragFromMachineId && toId !== dragFromMachineId);
+        if (crossed) dropCardIntoColumn(cardEl, toId);
+        // 搜索态下卡片位置不代表真实顺序：只允许换电脑，不保存顺序
+        if (!S.ui.q) persistCardOrder(body2);
+        else toast('搜索状态下只移动电脑，不保存卡片顺序');
+      }
+      dragFromMachineId = null;
+      if (dragMoved) markJustDragged();
+    });
+  }
+
+  // 装配：列拖与卡片拖各自独立监听（两边都只认自己的状态，
+  // 同一时刻 dragCol / dragCard 只有一个非空，所以互不干扰）
+  function bindDrag() {
+    var board = $('board');
+    bindColumnDrag(board);
+    bindCardDrag(board);
+    board.addEventListener('drop', function (e) { e.preventDefault(); });
+  }
+
+
+  // ── 全局点击路由表（重构第 4 步）──
+  // 委托是「先匹配先执行」。以前顺序由代码位置表达，改一个分支要数一遍上下文；
+  // 现在顺序就是数组顺序：加路由只要插到对的位置，越具体的越靠前。
+  // 每项：sel 选择器 / stop 是否 stopPropagation / run(命中节点, 事件)
+  // 铁律：整卡判定（[data-open] / [data-repo-open]）必须排在所有「卡内按钮」之后。
+  var CLICK_ROUTES = [
+    // 空态里的两个「清除」：只清这一块的搜索词 / 筛选，不动其它状态
+    { sel: '[data-clear-view]', stop: true, run: function () {
       var qEl = $('q');
       if (qEl) qEl.value = '';
-      S.q = '';
+      setUi('q', '');
       renderSummary();
       renderBoard();
-      return;
-    }
-    // ── GitHub 看板空态里的「清除筛选」：清掉电脑 + 未同步两个筛选 ──
-    var gclr = el.closest ? el.closest('[data-clear-gh-filter]') : null;
-    if (gclr) {
-      e.stopPropagation();
-      S.ghFilter.machine = '';
-      S.ghFilter.unsync = false;
+    } },
+    { sel: '[data-clear-gh-filter]', stop: true, run: function () {
+      setGhFilter({ machine: '', unsync: false });
       renderGithub();
-      return;
-    }
-    // ── 管理模式：批量操作按钮 / 选中切换（优先于其它点击行为）──
-    var mact = el.closest ? el.closest('[data-mb]') : null;
-    if (mact) { e.stopPropagation(); manageAct(mact.getAttribute('data-mb'), mact); return; }
-    var addm = el.closest ? el.closest('[data-add]') : null;
-    if (addm) {
-      e.stopPropagation();
-      var what = addm.getAttribute('data-add');
+    } },
+    // 管理模式的批量操作按钮，优先于其它点击行为
+    { sel: '[data-mb]', stop: true, run: function (n) { manageAct(n.getAttribute('data-mb'), n); } },
+    { sel: '[data-add]', stop: true, run: function (n) {
+      var what = n.getAttribute('data-add');
       closeMenus();
       if (what === 'task') {
         // 没有登记电脑时任务无处安放，先提示而不是打开空表单
-        if (!S.machines.length) { toast('先加一台电脑，任务才有地方放'); return; }
+        if (!S.data.machines.length) { toast('先加一台电脑，任务才有地方放'); return; }
         gotoSheet({ kind: 'taskForm', id: null, repo: '' }, 'root');
       }
       else if (what === 'gh') gotoSheet({ kind: 'ghForm', id: null, repo: '' }, 'root');
       else if (what === 'machine') openMachineModal();
       else if (what === 'guide') openAiGuide();
-      return;
-    }
-    var sprio = el.closest ? el.closest('[data-sel-prio]') : null;
-    if (sprio) { closeMenus(); batchUpdateTasks(Object.keys(selTasks), { '优先级': { select: sprio.getAttribute('data-sel-prio') } }); return; }
-    var smove = el.closest ? el.closest('[data-sel-move]') : null;
-    if (smove) { closeMenus(); batchUpdateTasks(Object.keys(selTasks), { '所在电脑': { text: smove.getAttribute('data-sel-move') } }); return; }
-    if (S.manage) {
-      var mcard = el.closest('.card');
-      if (mcard && mcard.getAttribute('data-task-id')) {
-        e.stopPropagation();
-        var mid = mcard.getAttribute('data-task-id');
-        if (selTasks[mid]) delete selTasks[mid]; else selTasks[mid] = true;
-        mcard.classList.toggle('sel', !!selTasks[mid]);
-        renderManageBar();
-        return;
-      }
-      var ment = el.closest('.repo-entry');
-      if (ment && ment.getAttribute('data-gh-id')) {
-        e.stopPropagation();
-        var gid = ment.getAttribute('data-gh-id');
-        if (selGh[gid]) delete selGh[gid]; else selGh[gid] = true;
-        ment.classList.toggle('sel', !!selGh[gid]);
-        renderManageBar();
-        return;
-      }
-    }
-
-    // ── 列头账号胶囊 → 账号面板（切换 / 新增 / 改名 / 删除 都在面板里）──
-    var sw = el.closest ? el.closest('[data-switch]') : null;
-    if (sw) {
-      e.stopPropagation();
-      var parts = sw.getAttribute('data-switch').split(':');
-      openAccPanel(sw, parts[0], parts[1]);
-      return;
-    }
-    var accRen = el.closest ? el.closest('[data-acc-rename]') : null;
-    if (accRen) {
-      e.stopPropagation();
-      startAccRename(accRen.getAttribute('data-acc-rename'));
-      return;
-    }
-    var accDelBtn = el.closest ? el.closest('[data-acc-del]') : null;
-    if (accDelBtn) {
-      e.stopPropagation();
-      confirmDelAcc(accDelBtn.getAttribute('data-acc-del'));
-      return;
-    }
-    var accPickRow = el.closest ? el.closest('[data-acc-pick]') : null;
-    if (accPickRow) {
-      e.stopPropagation();
-      pickSharedAcc(accPickRow.getAttribute('data-acc-pick'));
-      return;
-    }
-    var accAddBtn = el.closest ? el.closest('[data-acc-add]') : null;
-    if (accAddBtn) {
-      e.stopPropagation();
-      startAccAdd();
-      return;
-    }
-    var accClearBtn = el.closest ? el.closest('[data-acc-clear]') : null;
-    if (accClearBtn) {
-      e.stopPropagation();
-      clearCurrentAcc();
-      return;
-    }
-    var accSaveBtn = el.closest ? el.closest('[data-acc-save]') : null;
-    if (accSaveBtn) {
-      e.stopPropagation();
-      commitAccForm();
-      return;
-    }
-    var accCancelBtn = el.closest ? el.closest('[data-acc-cancel]') : null;
-    if (accCancelBtn) {
-      e.stopPropagation();
-      cancelAccForm();
-      return;
-    }
-    var ed = el.closest ? el.closest('[data-edit]') : null;
-    if (ed) { e.stopPropagation(); startEdit(ed); return; }
-
+    } },
+    { sel: '[data-sel-prio]', run: function (n) {
+      closeMenus();
+      batchUpdateTasks(Object.keys(S.sel.tasks), { '优先级': { select: n.getAttribute('data-sel-prio') } });
+    } },
+    { sel: '[data-sel-move]', run: function (n) {
+      closeMenus();
+      batchUpdateTasks(Object.keys(S.sel.tasks), { '所在电脑': { text: n.getAttribute('data-sel-move') } });
+    } },
+    // 列头账号胶囊 → 账号面板（切换 / 新增 / 改名 / 删除 都在面板里）
+    { sel: '[data-switch]', stop: true, run: function (n) {
+      var parts = n.getAttribute('data-switch').split(':');
+      openAccPanel(n, parts[0], parts[1]);
+    } },
+    { sel: '[data-acc-rename]', stop: true, run: function (n) { startAccRename(n.getAttribute('data-acc-rename')); } },
+    { sel: '[data-acc-del]', stop: true, run: function (n) { confirmDelAcc(n.getAttribute('data-acc-del')); } },
+    { sel: '[data-acc-pick]', stop: true, run: function (n) { pickSharedAcc(n.getAttribute('data-acc-pick')); } },
+    { sel: '[data-acc-add]', stop: true, run: function () { startAccAdd(); } },
+    { sel: '[data-acc-clear]', stop: true, run: function () { clearCurrentAcc(); } },
+    { sel: '[data-acc-save]', stop: true, run: function () { commitAccForm(); } },
+    { sel: '[data-acc-cancel]', stop: true, run: function () { cancelAccForm(); } },
+    // 任务详情的就地编辑（状态 / 优先级 / 待办 / 文字）：
+    // 这四类必须排在 [data-edit] 之前，否则详情里的标题会被通用行内编辑抢走
+    { sel: '[data-dt-set]', run: function (n) {
+      closeMenus();
+      var dsv = n.getAttribute('data-dt-set').split('|');
+      applyDtSet(dsv[0], dsv[1]);
+    } },
+    { sel: '[data-dt-menu]', stop: true, run: function (n) { openDtMenu(n, n.getAttribute('data-dt-menu')); } },
+    { sel: '[data-dt-todo]', stop: true, run: function (n) {
+      var dtp = n.getAttribute('data-dt-todo').split(':');
+      toggleTodo(dtp[0], parseInt(dtp[1], 10));
+      if (S.ui.sheet.kind === 'taskDetail') renderSheetLayer(S.ui.sheet); // 就地刷新勾选态与计数
+    } },
+    { sel: '[data-dt-edit]', stop: true, run: function (n) { startDtEdit(n); } },
+    { sel: '[data-edit]', stop: true, run: function (n) { startEdit(n); } },
     // 卡片「编辑」按钮：直接进编辑态（跳过详情），是详情路径之外的快捷方式
-    var edt = el.closest ? el.closest('[data-edit-task]') : null;
-    if (edt) { e.stopPropagation(); gotoSheet({ kind: 'taskForm', id: edt.getAttribute('data-edit-task'), repo: '' }, 'root'); return; }
-
-    var mm = el.closest ? el.closest('[data-machine-menu]') : null;
-    if (mm) { e.stopPropagation(); openMachineMenu(mm, mm.getAttribute('data-machine-menu')); return; }
-
-    var ma = el.closest ? el.closest('[data-mact]') : null;
-    if (ma) {
+    { sel: '[data-edit-task]', stop: true, run: function (n) { gotoSheet({ kind: 'taskForm', id: n.getAttribute('data-edit-task'), repo: '' }, 'root'); } },
+    { sel: '[data-machine-menu]', stop: true, run: function (n) { openMachineMenu(n, n.getAttribute('data-machine-menu')); } },
+    { sel: '[data-mact]', run: function (n) {
       closeMenus();
-      doMachineAction(ma.getAttribute('data-mact'), ma.getAttribute('data-mid'));
-      return;
-    }
-
-    var tm = el.closest ? el.closest('[data-task-menu]') : null;
-    if (tm) { e.stopPropagation(); openTaskMenu(tm, tm.getAttribute('data-task-menu')); return; }
-
-    var ac = el.closest ? el.closest('[data-act]') : null;
-    if (ac) {
+      doMachineAction(n.getAttribute('data-mact'), n.getAttribute('data-mid'));
+    } },
+    { sel: '[data-task-menu]', stop: true, run: function (n) { openTaskMenu(n, n.getAttribute('data-task-menu')); } },
+    { sel: '[data-act]', run: function (n) {
       closeMenus();
-      doTaskAction(ac.getAttribute('data-act'), ac.getAttribute('data-tid'));
-      return;
-    }
-
-    var cp = el.closest ? el.closest('[data-copy]') : null;
-    if (cp) {
-      e.stopPropagation();
-      var t = findTask(cp.getAttribute('data-copy'));
+      doTaskAction(n.getAttribute('data-act'), n.getAttribute('data-tid'));
+    } },
+    { sel: '[data-copy]', stop: true, run: function (n) {
+      var t = findTask(n.getAttribute('data-copy'));
       if (t) copyText(buildHandoff(t), '交接文本已复制，粘给 agent 即可接手');
-      return;
-    }
-    var cr = el.closest ? el.closest('[data-copy-repo]') : null;
-    if (cr) {
-      e.stopPropagation();
-      copyText(cr.getAttribute('data-copy-repo'), '仓库链接已复制');
-      return;
-    }
+    } },
+    { sel: '[data-copy-repo]', stop: true, run: function (n) { copyText(n.getAttribute('data-copy-repo'), '仓库链接已复制'); } },
+    // 仓库卡置顶：必须排在 [data-repo-open] 之前，否则点按钮会打开详情
+    { sel: '[data-pin-repo]', stop: true, run: function (n) { toggleRepoPin(n.getAttribute('data-pin-repo')); } },
     // 仓库详情弹窗里的记录行 → 钻取到那条记录的编辑表单（保留上一层，可返回）
-    var go = el.closest ? el.closest('[data-gh-open]') : null;
-    if (go) { e.stopPropagation(); gotoSheet({ kind: 'ghForm', id: go.getAttribute('data-gh-open'), repo: '' }, 'push'); return; }
-    var tg = el.closest ? el.closest('[data-toggle]') : null;
-    if (tg) {
-      e.stopPropagation();
-      var p = tg.getAttribute('data-toggle').split(':');
-      toggleTodo(p[0], parseInt(p[1], 10));
-      return;
-    }
-    var dtg = el.closest ? el.closest('[data-dtoggle]') : null;
-    if (dtg) {
-      e.stopPropagation();
-      var dp = dtg.getAttribute('data-dtoggle').split(':');
+    { sel: '[data-gh-open]', stop: true, run: function (n) { gotoSheet({ kind: 'ghForm', id: n.getAttribute('data-gh-open'), repo: '' }, 'push'); } },
+    { sel: '[data-dtoggle]', stop: true, run: function (n) {
+      var dp = n.getAttribute('data-dtoggle').split(':');
       toggleTodo(dp[0], parseInt(dp[1], 10));
       // 就地刷新抽屉里的勾选清单与原文，不重开抽屉（保留其它字段未保存的编辑）
       var t2 = findTask(dp[0]);
-      if (t2 && dtg.parentNode) {
+      if (t2 && n.parentNode) {
         var list2 = parseTodos(t2[F.t.todos]);
         var html2 = '';
-        for (var q2 = 0; q2 < list2.length; q2++) {
-          html2 += '<div class="todo-item' + (list2[q2].done ? ' done' : '') + '" data-dtoggle="' + escapeHtml(t2._id) + ':' + list2[q2].line + '">' +
-            '<span class="box' + (list2[q2].done ? ' on' : '') + '">✓</span>' +
-            '<span class="txt">' + escapeHtml(list2[q2].text) + '</span></div>';
+        for (var i = 0; i < list2.length; i++) {
+          html2 += '<div class="todo-item' + (list2[i].done ? ' done' : '') + '" data-dtoggle="' + escapeHtml(t2._id) + ':' + list2[i].line + '">' +
+            '<span class="box' + (list2[i].done ? ' on' : '') + '">✓</span>' +
+            '<span class="txt">' + escapeHtml(list2[i].text) + '</span></div>';
         }
-        dtg.parentNode.innerHTML = html2;
+        n.parentNode.innerHTML = html2;
         var ta2 = $('f_todos');
         if (ta2) ta2.value = txt(t2[F.t.todos]);
       }
-      return;
-    }
-    var op = el.closest ? el.closest('[data-open]') : null;
-    if (op) { gotoSheet({ kind: 'taskDetail', id: op.getAttribute('data-open'), repo: '' }, 'root'); return; }
-
-    var rt = el.closest ? el.closest('[data-repo-toggle]') : null;
-    if (rt) { var rtName = rt.getAttribute('data-repo-toggle'); S.ghExpanded[rtName] = !S.ghExpanded[rtName]; renderGithub(); return; }
-    var ra = el.closest ? el.closest('[data-repo-add]') : null;
-    if (ra) { gotoSheet({ kind: 'ghForm', id: null, repo: ra.getAttribute('data-repo-add') }, 'root'); return; }
-
-    var gm = el.closest ? el.closest('[data-gh-menu]') : null;
-    if (gm) { e.stopPropagation(); openGhMenu(gm, gm.getAttribute('data-gh-menu')); return; }
-    var ga = el.closest ? el.closest('[data-gact]') : null;
-    if (ga) {
+    } },
+    // ── 整卡判定：判定属性挂在卡片容器上，所以必须排在所有卡内按钮之后 ──
+    { sel: '[data-open]', run: function (n) { gotoSheet({ kind: 'taskDetail', id: n.getAttribute('data-open'), repo: '' }, 'root'); } },
+    { sel: '[data-repo-toggle]', run: function (n) { toggleGhExpanded(n.getAttribute('data-repo-toggle')); renderGithub(); } },
+    { sel: '[data-repo-add]', run: function (n) { gotoSheet({ kind: 'ghForm', id: null, repo: n.getAttribute('data-repo-add') }, 'root'); } },
+    { sel: '[data-gh-menu]', stop: true, run: function (n) { openGhMenu(n, n.getAttribute('data-gh-menu')); } },
+    { sel: '[data-gact]', run: function (n) {
       closeMenus();
-      doGhAction(ga.getAttribute('data-gact'), ga.getAttribute('data-gid'));
-      return;
+      doGhAction(n.getAttribute('data-gact'), n.getAttribute('data-gid'));
+    } },
+    // 仓库卡整卡判定：排在最后，否则点「查看全部 / ＋记录同步 / ⋯ 菜单 / 复制链接」会被卡片抢走
+    { sel: '[data-repo-open]', run: function (n) { gotoSheet({ kind: 'repoDetail', id: null, repo: n.getAttribute('data-repo-open') }, 'root'); } }
+  ];
+
+  document.addEventListener('click', function (e) {
+    if (justDragged) return;
+    var el = e.target;
+
+    // 管理模式：点卡片 / 记录行是「选择」而不是「打开」，必须先于所有打开类路由。
+    // 空态的两个「清除」路由不可能与卡片同时出现，所以把它放在最前不会抢。
+    if (S.ui.manage) {
+      var mcard = el.closest ? el.closest('.card') : null;
+      if (mcard && mcard.getAttribute('data-task-id')) {
+        e.stopPropagation();
+        toggleTaskSel(mcard);
+        return;
+      }
+      var ment = el.closest ? el.closest('.repo-entry') : null;
+      if (ment && ment.getAttribute('data-gh-id')) {
+        e.stopPropagation();
+        var gid = ment.getAttribute('data-gh-id');
+        if (S.sel.gh[gid]) delete S.sel.gh[gid]; else S.sel.gh[gid] = true;
+        ment.classList.toggle('sel', !!S.sel.gh[gid]);
+        renderManageBar();
+        return;
+      }
     }
 
-    // 仓库卡整卡判定：必须排在上面所有「卡片内部按钮」之后，
-    // 否则点「查看全部 / ＋记录同步 / ⋯ 菜单 / 复制链接」会被卡片抢走。
-    // 与任务看板的 [data-open] 同一套机制：判定范围 = 整张卡片。
-    var ro = el.closest ? el.closest('[data-repo-open]') : null;
-    if (ro) { gotoSheet({ kind: 'repoDetail', id: null, repo: ro.getAttribute('data-repo-open') }, 'root'); return; }
+    // 路由表：先匹配先执行（顺序 = 数组顺序）
+    for (var i = 0; i < CLICK_ROUTES.length; i++) {
+      var r = CLICK_ROUTES[i];
+      var hit = el.closest ? el.closest(r.sel) : null;
+      if (!hit) continue;
+      if (r.stop) e.stopPropagation();
+      r.run(hit, e);
+      return;
+    }
 
     if (!(el.closest && el.closest('.menu'))) closeMenus();
   });
 
-  $('q').addEventListener('input', function (e) { S.q = e.target.value; render(); });
+  // 键盘可达：卡片整卡是「按钮」语义，Tab 聚焦后按 Enter/Space 与点它等价。
+  // 只处理「焦点就在卡片容器上」的情况 —— 卡内的真按钮/输入框有自己的键盘行为，不抢。
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var el = e.target;
+    if (!el || !el.closest) return;
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.tagName === 'BUTTON') return;
+    if (S.ui.manage) {
+      // 管理模式里 Enter 应该是「选中/取消选中」，不是打开详情
+      var mc = el.closest('.card[data-task-id]');
+      if (mc) { e.preventDefault(); toggleTaskSel(mc); }
+      return;
+    }
+    var card = el.closest('[data-open]');
+    if (card) {
+      e.preventDefault();
+      gotoSheet({ kind: 'taskDetail', id: card.getAttribute('data-open'), repo: '' }, 'root');
+      return;
+    }
+    var repo = el.closest('[data-repo-open]');
+    if (repo) {
+      e.preventDefault();
+      gotoSheet({ kind: 'repoDetail', id: null, repo: repo.getAttribute('data-repo-open') }, 'root');
+    }
+  });
+
+  // 搜索只影响任务看板：KPI 数字与 GitHub 看板都不依赖搜索词，
+  // 所以这里既防抖又只重绘看板，避免每敲一个字就把整页四个区块重建一遍。
+  var searchTimer = null;
+  $('q').addEventListener('input', function (e) {
+    setUi('q', e.target.value);
+    if (searchTimer) clearTimeout(searchTimer);
+    searchTimer = setTimeout(function () { searchTimer = null; renderBoard(); }, 120);
+  });
   $('themeBtn').addEventListener('click', function () {
     var cur = document.documentElement.getAttribute('data-theme');
     var next = cur === 'dark' ? 'light' : 'dark';
@@ -4146,12 +4641,25 @@ var db = localDb();
     try { localStorage.setItem('awb.theme', next); } catch (err) {}
   });
   $('newBtn') && $('newBtn').addEventListener('click', function () {
-    if (!S.machines.length) { toast('先加一台电脑，任务才有地方放'); return; }
+    if (!S.data.machines.length) { toast('先加一台电脑，任务才有地方放'); return; }
     gotoSheet({ kind: 'taskForm', id: null, repo: '' }, 'root');
   });
   $('addMachineBtn') && $('addMachineBtn').addEventListener('click', openMachineModal);
   $('addBtn').addEventListener('click', function (e) { e.stopPropagation(); openAddMenu(e.currentTarget); });
   $('aiGuideBtn').addEventListener('click', function (e) { e.stopPropagation(); openAiGuide(); });
+  // 快捷指南：选电脑 → 复制契约，不弹窗。与弹窗共用 S.ui.aiMachine，两个控件互相同步。
+  $('aiQuickMachine').addEventListener('change', function (e) {
+    setUi('aiMachine', e.target.value);
+    try { localStorage.setItem('awb.aiMachine', S.ui.aiMachine); } catch (err) {}
+    var inDrawer = $('aiMachine');
+    if (inDrawer) inDrawer.value = S.ui.aiMachine;
+  });
+  $('aiQuickCopy').addEventListener('click', function (e) {
+    e.stopPropagation();
+    var sel = $('aiQuickMachine');
+    if (sel && sel.value) setUi('aiMachine', sel.value);
+    copyText(aiMarkdown(), '契约已复制（示例里的电脑 = ' + (S.ui.aiMachine || '—') + '）');
+  });
   $('aiClose').addEventListener('click', closeAiGuide);
   $('aiMask').addEventListener('click', closeAiGuide);
   $('aiFull').addEventListener('click', function () {
@@ -4163,8 +4671,10 @@ var db = localDb();
   $('aiCopyEx').addEventListener('click', function () { copyText(JSON.stringify(aiExample(), null, 2), '示例 payload 已复制（已填好电脑名）'); });
   $('aiBody').addEventListener('change', function (e) {
     if (e.target && e.target.id === 'aiMachine') {
-      S.aiMachine = e.target.value;
+      setUi('aiMachine', e.target.value);
+      try { localStorage.setItem('awb.aiMachine', S.ui.aiMachine); } catch (err) {}
       renderAiGuide();
+      renderAiQuick(); // 顶栏下拉跟着切，关掉弹窗后仍是刚选的电脑
     }
   });
   $('closeMachineModal').addEventListener('click', closeMachineModal);
@@ -4177,7 +4687,7 @@ var db = localDb();
   $('closeDrawer').addEventListener('click', closeDrawer);
   $('mask').addEventListener('click', closeDrawer);
   // 只有「新建任务」抽屉才写草稿；同步记录抽屉里打字不能把任务草稿冲掉（P-07）
-  function canDraft() { return S.sheet.kind === 'taskForm' && !S.sheet.id; }
+  function canDraft() { return S.ui.sheet.kind === 'taskForm' && !S.ui.sheet.id; }
   $('drawerBody').addEventListener('input', function () {
     if (!canDraft()) return;
     if (draftTimer) clearTimeout(draftTimer);
@@ -4192,29 +4702,29 @@ var db = localDb();
     // 详情 → 编辑：钻取一层（保留详情在栈里），可以「返回」回到只读详情。
     // 用 replace 的话编辑就回不去了 —— 详情与表单是同一实体的两种形态，
     // 但作为导航路径，「编辑」确实是往下一层走。
-    gotoSheet({ kind: 'taskForm', id: S.sheet.id, repo: '' }, 'push');
+    gotoSheet({ kind: 'taskForm', id: S.ui.sheet.id, repo: '' }, 'push');
   });
   $('copyBtn').addEventListener('click', function () {
-    var t = S.sheet.id ? findTask(S.sheet.id) : null;
+    var t = S.ui.sheet.id ? findTask(S.ui.sheet.id) : null;
     if (t) copyText(buildHandoff(t), '交接文本已复制');
   });
   $('repoAddBtn').addEventListener('click', function () {
     // 仓库详情 → 记一次同步，仓库名预填（钻取一层，返回时回到仓库详情）
-    gotoSheet({ kind: 'ghForm', id: null, repo: S.sheet.repo }, 'push');
+    gotoSheet({ kind: 'ghForm', id: null, repo: S.ui.sheet.repo }, 'push');
   });
   $('repoCopyBtn').addEventListener('click', function () {
-    copyText('https://github.com/' + S.sheet.repo, '仓库链接已复制');
+    copyText('https://github.com/' + S.ui.sheet.repo, '仓库链接已复制');
   });
   $('delBtn').addEventListener('click', function () {
-    if (S.sheet.kind === 'ghForm') { delGh(S.sheet.id); return; }
-    if (S.sheet.kind === 'taskForm' || S.sheet.kind === 'taskDetail') delTask();
+    if (S.ui.sheet.kind === 'ghForm') { delGh(S.ui.sheet.id); return; }
+    if (S.ui.sheet.kind === 'taskForm' || S.ui.sheet.kind === 'taskDetail') delTask();
   });
   $('drawerBack').addEventListener('click', backSheet);
   document.addEventListener('keydown', function (e) {
     // Esc：先关浮在最上的确认框；否则退一层（栈里还有上一层就返回），再否则关闭弹窗
     if (e.key === 'Escape') {
       if ($('cMask').classList.contains('on')) { closeConfirm(); return; }
-      if (S.sheetStack.length) { backSheet(); }
+      if (S.ui.sheetStack.length) { backSheet(); }
       else { closeDrawer(); }
       closeMenus(); closeMachineModal(); closeAiGuide();
       return;
@@ -4227,18 +4737,18 @@ var db = localDb();
     if (th) document.documentElement.setAttribute('data-theme', th);
   } catch (err) {}
 
-  $('manageBtn').addEventListener('click', function () { setManage(!S.manage); });
+  $('manageBtn').addEventListener('click', function () { setManage(!S.ui.manage); });
 
   (function bindGithubUI() {
     var ghAdd = $('ghAddBtn');
     if (ghAdd) ghAdd.addEventListener('click', function () { gotoSheet({ kind: 'ghForm', id: null, repo: '' }, 'root'); });    var gfM = $('ghF_machine');
-    if (gfM) gfM.addEventListener('change', function (e) { S.ghFilter.machine = e.target.value; renderGithub(); });
+    if (gfM) gfM.addEventListener('change', function (e) { setGhFilter({ machine: e.target.value }); renderGithub(); });
     var gs = $('ghKpis');
     if (gs) gs.addEventListener('click', function (e) {
       var k = e.target.closest ? e.target.closest('.kpi') : null;
       if (!k) return;
       if (k.getAttribute('data-gk') === 'unsync') {
-        S.ghFilter.unsync = !S.ghFilter.unsync;
+        setGhFilter({ unsync: !S.ui.ghFilter.unsync });
         renderGithub();
       }
     });
@@ -4249,8 +4759,8 @@ var db = localDb();
       var rb = e.target.closest ? e.target.closest('[data-gi-range]') : null;
       if (rb) {
         var r = rb.getAttribute('data-gi-range'); // 'week' | 'month' | 'q3'，字符串本身就是唯一事实
-        if (r !== S.ghIntensityRange) {
-          S.ghIntensityRange = r;
+        if (r !== S.ui.ghIntensityRange) {
+          setUi('ghIntensityRange', r);
           renderGhIntensity();
         }
         return;
@@ -4306,16 +4816,16 @@ var db = localDb();
       if (yb) {
         var now = new Date();
         var dir = yb.getAttribute('data-hm-year') === 'prev' ? -1 : 1;
-        var y = (typeof S.hmYear === 'number' ? S.hmYear : now.getFullYear()) + dir;
+        var y = (typeof S.ui.hmYear === 'number' ? S.ui.hmYear : now.getFullYear()) + dir;
         if (y > now.getFullYear() || y < 2000) return; // 未来没有数据，过去不早于 2000
-        S.hmYear = y;
-        if (S.sheet.kind === 'intensity') renderIntensitySheet();
+        setUi('hmYear', y);
+        if (S.ui.sheet.kind === 'intensity') renderIntensitySheet();
         return;
       }
       if (e.target.closest('[data-hm-num]')) {
-        S.showHmNum = !S.showHmNum;
-        try { localStorage.setItem('awb.hmnum', S.showHmNum ? '1' : ''); } catch (err) {}
-        if (S.sheet.kind === 'intensity') renderIntensitySheet();
+        setUi('showHmNum', !S.ui.showHmNum);
+        try { localStorage.setItem('awb.hmnum', S.ui.showHmNum ? '1' : ''); } catch (err) {}
+        if (S.ui.sheet.kind === 'intensity') renderIntensitySheet();
       }
     });
   })();
@@ -4426,7 +4936,7 @@ var db = localDb();
   // v 一定是合法视图值 —— 所有调用点都经过 viewOfSeg / viewOfKpi 映射（返回字面量），
   // 所以这里不需要「非法值兜底」的守卫：查表查不到就是 bug，应当立刻暴露而不是被静默吞掉。
   function setView(v) {
-    S.view = v;
+    setUi('view', v);
     var segEl = $('segTabs');
     if (segEl) {
       var want = VIEW_SEG_OF[v];
@@ -4470,7 +4980,7 @@ var db = localDb();
       var key = k.getAttribute('data-k');
       var target = viewOfKpi(key);
       // 点当前已激活的卡片 → 回到默认视图（取消）
-      setView(S.view === target ? 'doing' : target);
+      setView(S.ui.view === target ? 'doing' : target);
     });
   })();
 
@@ -4487,7 +4997,7 @@ var db = localDb();
   /* ── 窄屏分页：底部 T-bar 在 看板 / 仓库 之间切页，主操作一并下沉 ──
      宽屏不插手：左右分屏照旧，顶部小标题仍是「放大本栏 / 还原」。 */
   (function bindMobilePages() {
-    var MQ = window.matchMedia('(max-width: 640px)');
+    var MQ = window.matchMedia('(max-width: 700px)');
     function isMobile() { return MQ.matches; }
     function setPage(p) {
       p = p || 'board';
@@ -4521,7 +5031,7 @@ var db = localDb();
         '<button data-add="task">＋ 新建任务<' + '/button>' +
         '<button data-add="gh">＋ 记录一次同步<' + '/button>' +
         '<button data-add="machine">＋ 添加电脑<' + '/button>' +
-        '<button data-tbact="manage">' + (S.manage ? '✓ 退出管理' : '☰ 管理') + '<' + '/button>' +
+        '<button data-tbact="manage">' + (S.ui.manage ? '✓ 退出管理' : '☰ 管理') + '<' + '/button>' +
         '<button data-tbact="theme">切换主题<' + '/button>';
       document.body.appendChild(menu);
       var r = mo.getBoundingClientRect(), mr = menu.getBoundingClientRect();
@@ -4534,9 +5044,9 @@ var db = localDb();
       var k = m.getAttribute('data-tbact');
       closeMenus();
       if (k === 'manage') {
-        setManage(!S.manage);
+        setManage(!S.ui.manage);
         var top = $('manageBtn');
-        if (top) top.classList.toggle('on', S.manage);
+        if (top) top.classList.toggle('on', S.ui.manage);
       }
       if (k === 'theme') { var t = $('themeBtn'); if (t) t.click(); }
     });
