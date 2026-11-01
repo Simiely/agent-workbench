@@ -5058,16 +5058,18 @@ var Repo = (function () {
 
   bindDrag();
 
-  // 顶栏版本号：以 /health 返回为准（= package.json），页面本身不写死，避免双处漂移
+  // 顶栏版本号：以 {API_BASE}health 返回为准（= package.json），页面本身不写死，避免双处漂移。
+  // 必须走 API_BASE：平台反代挂在 /tool/agent-workbench/ 下，
+  // 绝对路径 /health 会打到平台根（那里没有该接口）→ 版本号永远是空的（v1.5.3 修）
   (function syncVersion() {
+    var el = document.getElementById('appVer');
+    function hide() { if (el) el.style.display = 'none'; }
     try {
-      fetch('/health', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (h) {
-        if (h && h.version) {
-          var el = document.getElementById('appVer');
-          if (el) el.textContent = 'v' + h.version;
-        }
-      }).catch(function () {});
-    } catch (e) {}
+      fetch(API_BASE + 'health', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (h) {
+        if (el && h && h.version) el.textContent = 'v' + h.version;
+        else hide();
+      }).catch(hide);
+    } catch (e) { hide(); }
   })();
 
   loadAllData(function (err) {
