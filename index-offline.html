@@ -754,12 +754,11 @@
 
   .boot { flex: 1; display: grid; place-items: center; text-align: center; color: var(--text-3); font-size: 12.5px; line-height: 1.9; }
 
-  @media (max-width: 1100px) {
-    /* 窄屏：左右分屏叠回上下，整页滚动 */
-    main.split { flex-direction: column; overflow-y: auto; }
-    .split-divider { display: none; }
-    .view { width: auto !important; overflow: visible; }
-  }
+  /* 原「≤1100px 左右分屏叠回上下」的中间态已移除：
+     中间宽度再堆叠成上下两栏，两栏各自半屏、都得滚，比一次看一页更难用。
+     现在 ≤1100px 直接进手机形态（T-bar 一次一页），见下方「手机形态」断点。
+     ⚠️ 该块里的 .view{width:auto!important} 已补进手机形态块——少了这条，
+        左右分屏的 #viewBoard{width:58%} 会在单栏下继续生效，看板只占一半宽。 */
   @media (max-width: 900px) {
     .row2 { grid-template-columns: 1fr; }
   }
@@ -1254,8 +1253,10 @@
   .tb-item, .tb-add { -webkit-tap-highlight-color: transparent; }
 
   /* 手机形态：一次只看一页，导航下沉到底部 T-bar。命中任一条件即生效：
-     ① 窄屏 ≤700px（宽度断点定在 700：能覆盖所有手机；同时测试器默认视口是 748，
-        保持宽屏形态，避免「改断点顺手改坏一批几何断言」。平板竖屏 768 仍是左右分屏）
+     ① 窄屏 ≤1100px（原来定在 700，中间 700~1100 会先叠成上下两栏——
+        那个中间态已删，现在直接进手机形态）
+        ⚠️ 测试器必须显式指定宽屏视口：run_all.py 用的是 --window-size=1152,720
+        （1152 > 1100，保持宽屏）。若降到 1100 以下，几何断言会被判成手机形态全挂。
      ② 上下分屏 —— 屏幕被上下切成两块后高度只剩一半，纵向空间放不下两栏；
         此时横向还很宽（1920×1080 上下分 → 视口约 1920×450，扁平比 4+），
         纯宽度断点识别不出来，故按「矮 + 扁」双重判断。
@@ -1264,7 +1265,7 @@
         实测会把测试环境误判成上下分屏、直接改坏 V5b_fit 的几何断言。
      ⚠️ 两处断点必须同步：本行 CSS 与 bindMobilePages() 里的 matchMedia 字符串。
         改一个忘另一个会导致「JS 切了页、CSS 没隐藏另一页」的半吊子状态。 */
-  @media (max-width: 700px), (max-height: 560px) and (min-aspect-ratio: 2/1) {
+  @media (max-width: 1100px), (max-height: 560px) and (min-aspect-ratio: 2/1) {
     .topbar { padding: 13px 14px 0; gap: 9px; flex-wrap: wrap; }
     .topbar #manageBtn, .topbar #aiGuideBtn, .topbar #addBtn, .topbar #themeBtn { display: none; }
     .ai-quick { display: none; } /* 手机上「指南」在底部 T-bar 中央键里 */
@@ -1280,7 +1281,7 @@
     /* 没有左右分屏了：一次只显示一页，由底部 T-bar 切换 */
     body[data-page="board"] #viewGithub { display: none; }
     body[data-page="gh"] #viewBoard { display: none; }
-    .view { padding: 0 14px 24px; overflow: visible; border-radius: 20px; }
+    .view { width: auto !important; padding: 0 14px 24px; overflow: visible; border-radius: 20px; }
     /* 手机上一次只看一页、且滚动容器是 main.split，栏顶再钉住会吃掉半屏高度；
        这里退回普通文档流，随页面一起上移，把纵向空间全留给内容。 */
     .pane-top { position: static; margin: 0 -14px; padding: 15px 14px 8px; border-radius: 20px 20px 0 0; }
@@ -6365,7 +6366,7 @@ var Repo = (function () {
      ⚠️ 这个断点字符串必须与 CSS 里「手机形态」的 @media 条件逐字一致
         （含「上下分屏」的高度+扁平比分支），否则会出现 JS 与 CSS 判断不一致。 */
   (function bindMobilePages() {
-    var MQ = window.matchMedia('(max-width: 700px), (max-height: 560px) and (min-aspect-ratio: 2/1)');
+    var MQ = window.matchMedia('(max-width: 1100px), (max-height: 560px) and (min-aspect-ratio: 2/1)');
     function isMobile() { return MQ.matches; }
     function setPage(p) {
       p = p || 'board';

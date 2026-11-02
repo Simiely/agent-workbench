@@ -74,6 +74,9 @@ def run_html(chrome, path):
     try:
         p = subprocess.run(
             [chrome, '--headless', '--disable-gpu', '--no-sandbox',
+             # 必须显式指定宽屏视口：无头默认是 780×493，而手机形态断点已提到 1100px，
+             # 不指定会被判成手机形态，V5_split / V5b_fit 等左右分屏几何断言全部失效。
+             '--window-size=1152,720',
              '--dump-dom', '--virtual-time-budget=25000',
              'file:///' + path.replace('\\', '/')],
             capture_output=True, timeout=120)
