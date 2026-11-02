@@ -1081,7 +1081,9 @@
     body[data-page="board"] #viewGithub { display: none; }
     body[data-page="gh"] #viewBoard { display: none; }
     .view { padding: 0 14px 24px; overflow: visible; border-radius: 20px; }
-    .pane-top { margin: 0 -14px; padding: 15px 14px 8px; border-radius: 20px 20px 0 0; }
+    /* 手机上一次只看一页、且滚动容器是 main.split，栏顶再钉住会吃掉半屏高度；
+       这里退回普通文档流，随页面一起上移，把纵向空间全留给内容。 */
+    .pane-top { position: static; margin: 0 -14px; padding: 15px 14px 8px; border-radius: 20px 20px 0 0; }
 
     /* 列按内容高度排：grid 默认会把每行拉满，卡片会超出列高、压到下一列 */
     .board { grid-template-columns: minmax(0, 1fr); grid-auto-rows: max-content; align-content: start; }
@@ -1158,7 +1160,7 @@
     <svg aria-hidden="true" fill="none" height="13" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13">
       <circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>
     </svg>
-    <input id="q" placeholder="搜任务、目录、进度" type="text">
+    <input id="q" placeholder="搜任务 / 仓库、内容、版本" type="text">
   </div>
   <!-- 快捷指南：选电脑 + 复制契约，一步到位（完整契约仍可点右侧 🤖 打开） -->
   <div class="ai-quick" id="aiQuick" title="选一台电脑后复制契约：示例 payload 里的「所在电脑」会填好">
@@ -1608,6 +1610,16 @@ var Repo = (function () {
     var blob = (txt(t[F.t.title]) + ' ' + txt(t[F.t.progress]) + ' ' + txt(t[F.t.dir]) + ' ' + txt(t[F.t.handoff]) + ' ' + txt(t[F.t.todos])).toLowerCase();
     return blob.indexOf(q) >= 0;
   }
+  // GitHub 侧的同名判定：一条同步记录是否命中搜索词。
+  // 覆盖仓库名 / 同步内容 / 版本号 / 账号 / 电脑 / 同步状态——
+  // 卡面上看得见的字都该搜得到，否则用户会以为「搜了没反应」。
+  function ghMatch(r) {
+    if (!S.ui.q) return true;
+    var q = S.ui.q.toLowerCase();
+    var blob = (txt(r[F.g.repo]) + ' ' + txt(r[F.g.content]) + ' ' + txt(r[F.g.versions]) + ' ' +
+      txt(r[F.g.account]) + ' ' + txt(r[F.g.machine]) + ' ' + txt(r[F.g.result])).toLowerCase();
+    return blob.indexOf(q) >= 0;
+  }
 
   // 空看板时要说清「为什么空」，并给出一步清除的入口。
   // 依据：UI Coach Filter UX「让人能说清列表为什么短，否则筛选 UI 就失败了」；
@@ -1956,42 +1968,59 @@ var Repo = (function () {
     return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
   }
 
+  // 仓库分组。分两步：先按全量记录聚出仓库级属性（归档 / 置顶 / 都涉及哪些电脑），
+  // 再按搜索词裁切 g.records（卡里真正显示的记录）。
+  // 这么拆是为了让「仓库级」属性不被搜索抹掉——某条记录被搜掉了，
+  // 但仓库已归档 / 已置顶 / 在这台电脑上同步过，这些事实不该跟着消失。
   function ghRepoGroups() {
     var map = {}, arr = [];
     for (var i = 0; i < S.data.gh.length; i++) {
       var r = S.data.gh[i];
       var name = txt(r[F.g.repo]) || '未命名仓库';
       if (!map[name]) {
-        map[name] = { name: name, records: [], latest: 0, versions: [], machines: [], accounts: [], archived: false, pinned: false };
+        map[name] = { name: name, all: [], records: [], latest: 0, versions: [], machines: [], accounts: [], archived: false, pinned: false };
         arr.push(map[name]);
       }
       var g = map[name];
-      g.records.push(r);
+      g.all.push(r);
       var t = toTime(normDate(r[F.g.time]));
       if (t > g.latest) g.latest = t;
-      var vs = txt(r[F.g.versions]).split(/[\n,，]/);
-      for (var vi = 0; vi < vs.length; vi++) {
-        var v = vs[vi].replace(/^\s+|\s+$/g, '');
-        if (v && g.versions.indexOf(v) < 0) g.versions.push(v);
-      }
       var mc = txt(r[F.g.machine]); if (mc && g.machines.indexOf(mc) < 0) g.machines.push(mc);
-      var ac = txt(r[F.g.account]); if (ac && g.accounts.indexOf(ac) < 0) g.accounts.push(ac);
       if (r[F.g.archived]) g.archived = true; // 仓库归档是仓库级属性：任一条记录勾了就算
       if (r[F.g.pinned]) g.pinned = true;     // 置顶同理：任一条记录勾了就算
     }
-    for (var j = 0; j < arr.length; j++) {
-      arr[j].records.sort(function (a, b) { return toTime(normDate(b[F.g.time])) - toTime(normDate(a[F.g.time])); });
-    }
-    var out = [];
-    for (var k = 0; k < arr.length; k++) {
-      if (S.ui.ghFilter.machine && arr[k].machines.indexOf(S.ui.ghFilter.machine) < 0) continue;
-      out.push(arr[k]);
-    }
-    // 排序：置顶优先，其余（以及置顶之间）都按最近更新时间倒序
-    out.sort(function (a, b) {
+    // 排序：置顶优先，其余（以及置顶之间）都按最近更新时间倒序。
+    // 用全量 latest 排序，搜索时仓库的先后顺序不会跳来跳去。
+    arr.sort(function (a, b) {
       if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
       return b.latest - a.latest;
     });
+    var out = [];
+    for (var k = 0; k < arr.length; k++) {
+      var g = arr[k];
+      // 机器筛选走全量口径：电脑改名 / 删除后，历史记录仍挂在旧名上，
+      // 只看可见记录的话这些仓库就永远筛不到。
+      if (S.ui.ghFilter.machine && g.machines.indexOf(S.ui.ghFilter.machine) < 0) continue;
+      // 搜索：仓库名本身命中 → 整个仓库都算命中（看的是这个仓库的全部历史）；
+      // 否则只留下命中的记录，卡面才对得上用户搜的那个词。
+      var nameHit = !!S.ui.q && g.name.toLowerCase().indexOf(S.ui.q.toLowerCase()) >= 0;
+      g.records = nameHit ? g.all.slice() : g.all.filter(ghMatch);
+      if (!g.records.length) continue;
+      g.records.sort(function (a, b) { return toTime(normDate(b[F.g.time])) - toTime(normDate(a[F.g.time])); });
+      // 版本 / 账号 / 电脑按「可见记录」重算：搜 v1.5.8 时不该冒出一堆没搜到的版本号
+      g.versions = []; g.accounts = []; g.machines = [];
+      for (var ri = 0; ri < g.records.length; ri++) {
+        var rr = g.records[ri];
+        var vs = txt(rr[F.g.versions]).split(/[\n,，]/);
+        for (var vi = 0; vi < vs.length; vi++) {
+          var v = vs[vi].replace(/^\s+|\s+$/g, '');
+          if (v && g.versions.indexOf(v) < 0) g.versions.push(v);
+        }
+        var ac = txt(rr[F.g.account]); if (ac && g.accounts.indexOf(ac) < 0) g.accounts.push(ac);
+        var m2 = txt(rr[F.g.machine]); if (m2 && g.machines.indexOf(m2) < 0) g.machines.push(m2);
+      }
+      out.push(g);
+    }
     return out;
   }
 
@@ -2057,8 +2086,9 @@ var Repo = (function () {
         '<' + '/div><' + '/div>';
     }
 
-    // 全部同步记录（倒序），点一条 → 进那条记录的编辑态
-    html += '<div class="dt-sec"><div class="dt-label">全部记录</div><div class="rd-list">';
+    // 全部同步记录（倒序），点一条 → 进那条记录的编辑态。
+    // 搜索生效时这里只有命中的记录，标签跟着改，否则「全部记录：1 条」会让人以为数据丢了。
+    html += '<div class="dt-sec"><div class="dt-label">' + (S.ui.q ? '匹配的记录' : '全部记录') + '</div><div class="rd-list">';
     for (var r = 0; r < g.records.length; r++) {
       var rec = g.records[r];
       var d = normDate(rec[F.g.time]);
@@ -2400,14 +2430,20 @@ var Repo = (function () {
     var host = $('ghList');
     if (!host) return;
     if (!groups.length) {
-      // 空态要说清是哪个筛选造成的，并给出清除入口（与任务看板同一原则）
+      // 空态要说清是哪个筛选造成的，并给出清除入口（与任务看板同一原则）。
+      // 搜索与下拉筛选是两个独立成因，各自给一个按钮，别让用户猜是谁把列表清空了。
       var ghFilters = [];
-      if (S.ui.ghFilter.machine) ghFilters.push('电脑 ' + S.ui.ghFilter.machine);
+      if (S.ui.q) ghFilters.push('搜索「' + escapeHtml(S.ui.q) + '」');
+      if (S.ui.ghFilter.machine) ghFilters.push('电脑 ' + escapeHtml(S.ui.ghFilter.machine));
       if (S.ui.ghFilter.unsync) ghFilters.push('未同步');
-      host.innerHTML = ghFilters.length
-        ? '<div class="col-empty">当前筛选：' + ghFilters.join(' + ') + '<br>没有匹配的仓库<br>' +
-          '<button class="mini" data-clear-gh-filter="1">清除筛选</button></div>'
-        : '<div class="col-empty">' + (S.data.gh.length ? '没有匹配的仓库' : '还没有同步记录，点右上角「＋ 新增 → 记录一次同步」记一笔。') + '</div>';
+      if (ghFilters.length) {
+        var clears = '';
+        if (S.ui.q) clears += '<button class="mini" data-clear-view="1">清除搜索</button>';
+        if (S.ui.ghFilter.machine || S.ui.ghFilter.unsync) clears += '<button class="mini" data-clear-gh-filter="1">清除筛选</button>';
+        host.innerHTML = '<div class="col-empty">当前筛选：' + ghFilters.join(' + ') + '<br>没有匹配的仓库<br>' + clears + '</div>';
+        return;
+      }
+      host.innerHTML = '<div class="col-empty">' + (S.data.gh.length ? '没有匹配的仓库' : '还没有同步记录，点右上角「＋ 新增 → 记录一次同步」记一笔。') + '</div>';
       return;
     }
     var out = '';
@@ -4457,6 +4493,7 @@ var Repo = (function () {
       setUi('q', '');
       renderSummary();
       renderBoard();
+      renderGithub(); // 搜索同时作用于 GitHub 看板，清词也要把它一起放开
     } },
     { sel: '[data-clear-gh-filter]', stop: true, run: function () {
       setGhFilter({ machine: '', unsync: false });
@@ -4626,13 +4663,14 @@ var Repo = (function () {
     }
   });
 
-  // 搜索只影响任务看板：KPI 数字与 GitHub 看板都不依赖搜索词，
-  // 所以这里既防抖又只重绘看板，避免每敲一个字就把整页四个区块重建一遍。
+  // 搜索同时作用于两个看板（任务 + GitHub 仓库卡），所以两块都要重绘。
+  // KPI 数字是全量口径、不随搜索变动，这里不碰，避免每敲一个字就重建整页。
+  // 防抖 120ms：连打一串字只重绘一次。
   var searchTimer = null;
   $('q').addEventListener('input', function (e) {
     setUi('q', e.target.value);
     if (searchTimer) clearTimeout(searchTimer);
-    searchTimer = setTimeout(function () { searchTimer = null; renderBoard(); }, 120);
+    searchTimer = setTimeout(function () { searchTimer = null; renderBoard(); renderGithub(); }, 120);
   });
   $('themeBtn').addEventListener('click', function () {
     var cur = document.documentElement.getAttribute('data-theme');
