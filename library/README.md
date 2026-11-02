@@ -15,6 +15,8 @@
 
 **维护者请注意**：`agent-workbench-资料库版.html` 是生成物，不要手改。
 改了主项目跑 `node library/tools/build.mjs` 重新生成，再跑 `node library/tools/check.mjs` 校验。
+CI 工作流 `.github/workflows/library-align.yml` 已写好，但推送需要带 `workflow` scope 的
+token（当前 token 只有 `repo`，推 workflow 文件会 404）。生效前请先本地跑这两步。
 
 ## 目录内容
 
