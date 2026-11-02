@@ -1,82 +1,68 @@
 <!--
 ================================================================================
   Agent 工作台 · 资料库版 —— 数据源适配说明（给接手改造的 AI / 开发者看）
-================================================================================
 
-【一句话】本文件目前的数据落在「浏览器 localStorage」，接资料库 CSV 表格后
-         应改成「读平台表格 / 写平台表格」。下面说清改哪里、数据长什么样。
+  ⚠️ 本文件是【生成物】，请勿手改。改 public/index.html 或 server.mjs 后，
+     跑  node library/tools/build.mjs  重新生成。
 
 --------------------------------------------------------------------------------
 1. 数据读写出口（只有两处，全改完就接上了）
 --------------------------------------------------------------------------------
-  · 第 10 行附近     var KEY = 'awb.offline.db.empty'   ← 快照层（模拟后端 REST）
-  · 第 6442 行附近   var KEY = 'awb.offline.db.empty'   ← CSV 导入导出层
-  两处共用同一个 localStorage key：
+  两处共用同一个 localStorage key：'awb.offline.db.empty'
       localStorage.getItem('awb.offline.db.empty')
       localStorage.setItem('awb.offline.db.empty', JSON.stringify(db))
-  → 把这两处的「读 / 写」换成读表格、写表格即可，其余代码不用动。
+  → 把这两处的「读 / 写」换成读平台表格、写平台表格即可，其余代码不用动。
 
 --------------------------------------------------------------------------------
 2. 数据形状（db 对象）
 --------------------------------------------------------------------------------
-  db = {
-    tasks:    [ { _id, 任务标题, 状态, 优先级, 所在电脑, 目录, 进度, 待办, 交接内容, 更新时间, 排序 } ],
-    machines: [ { _id, 机器名, 位置, WorkBuddy账号, TRAE账号, 最后确认, 排序 } ],
-    accounts: [ { _id, 账号名, 平台, 所属电脑, 当前, 备注, 最后确认, 排序 } ],
-    github:   [ { _id, 同步时间, 电脑, GitHub账号, 仓库, 内容, 同步版本, 是否同步, 仓库归档, 仓库置顶 } ]
-  }
-  对应关系：一张表 = 一个 CSV 文件；一条记录 = CSV 一行；一个字段 = CSV 一列。
+  一张表 = 一个 CSV，一条记录 = 一行，一个字段 = 一列。
+  tasks: [ { _id, 任务标题, 状态, 优先级, 目录, 进度, 待办, 交接内容, 更新时间, 所在电脑, 排序 } ]
+  machines: [ { _id, 机器名, 位置, 最后确认, 排序 } ]
+  accounts: [ { _id, 账号名, 平台, 所属电脑, 当前, 备注, 最后确认, 排序 } ]
+  github: [ { _id, 同步时间, 电脑, GitHub账号, 仓库, 内容, 同步版本, 是否同步, 仓库归档, 仓库置顶 } ]
 
-  ⚠️ machines 的 WorkBuddy账号 / TRAE账号 是**派生只读**（由 accounts 表的「当前」算出），
+  ⚠️ machines 的 WorkBuddy账号 / TRAE账号 是派生只读（由 accounts 的「当前」算出），
      存储里不留第二份，CSV 里也没有这两列。接表格时不要给它俩建列。
 
 --------------------------------------------------------------------------------
 3. 字段口径（写入前必须校验，否则会写脏）
 --------------------------------------------------------------------------------
-  状态      = 进行中 / 已完成
-  优先级    = P0 / P1 / P2
-  平台      = WorkBuddy / TRAE
-  是否同步  = 已同步 / 未同步
+  tasks.状态 = 进行中 / 已完成
+  tasks.优先级 = P0 / P1 / P2
+  accounts.平台 = WorkBuddy / TRAE
+  github.是否同步 = 已同步 / 未同步
   当前 / 仓库归档 / 仓库置顶 = 布尔（CSV 里写「是 / 否」或 true / false 均可）
-  必填：tasks[任务标题,状态,优先级,所在电脑] machines[机器名]
-        accounts[账号名,平台,所属电脑]      github[电脑,仓库]
+  必填：tasks[任务标题,状态,优先级,所在电脑] machines[机器名] accounts[账号名,平台,所属电脑] github[电脑,仓库]
 
 --------------------------------------------------------------------------------
-4. 接手时请保留的能力（这些是用户已经在用的）
+4. 接手时请保留的能力（用户已经在用）
 --------------------------------------------------------------------------------
+  · 顶栏「复制提示词」：带现状骨架（电脑/任务/待办原文/仓库），AI 据以判断新建还是续写
   · 顶栏「批量导入」：AI 回写长文本 → 预览清单 → 确认后落库
-  · 顶栏「复制提示词」：带工作台现状骨架（电脑/任务/待办原文/仓库），AI 据此判断新建还是续写
   · 顶栏「CSV」面板：导出 4 个 CSV / 导入 CSV / 清空
   · 搜索同时检索任务看板与 GitHub 看板
   · 手机窄屏下栏顶不置顶
   → 换数据源时这些交互不能丢。
 
+  生成链路与维护说明见 library/维护指南.md
 ================================================================================
 -->
 <!DOCTYPE html>
 <html data-theme="dark" lang="zh-CN">
 <head>
 <script>
-/* ===== 离线快照层（仅为本地预览注入，未改动原项目任何代码） =====
-   真实服务在沙盒内无法从公网直连，这里用内嵌快照 + localStorage 冒充后端 REST：
-   页面自身的 localDb() / Repo 读写链路完全走原有逻辑，读写都落在浏览器本地。 */
+/* ===== 离线快照层（生成物，请勿手改；改 public/index.html 后重新 build） =====
+   内嵌空壳四表 + localStorage 冒充后端 REST。
+   页面自身的 localDb() / Repo 读写链路走原有逻辑，未改动主项目任何代码。 */
 (function () {
-  var SNAP = {"health":{"ok":true,"tool":"agent-workbench","version":"1.10.1","storage":{"ok":true,"dir":"/data/workspace/agent-workbench-data"},"db":{}},"schema":{"tasks":{"label":"Agent 任务台账","properties":[{"name":"任务标题","type":"text"},{"name":"状态","type":"select","config":{"options":[{"text":"进行中"},{"text":"已完成"}]}},{"name":"优先级","type":"select","config":{"options":[{"text":"P0"},{"text":"P1"},{"text":"P2"}]}},{"name":"目录","type":"text"},{"name":"进度","type":"text"},{"name":"待办","type":"text"},{"name":"交接内容","type":"text"},{"name":"更新时间","type":"date"},{"name":"所在电脑","type":"text"},{"name":"排序","type":"number"}]},"machines":{"label":"机器登录态","properties":[{"name":"机器名","type":"text"},{"name":"位置","type":"text"},{"name":"WorkBuddy账号","type":"text"},{"name":"TRAE账号","type":"text"},{"name":"最后确认","type":"date"},{"name":"排序","type":"number"}]},"accounts":{"label":"登录账号","properties":[{"name":"账号名","type":"text"},{"name":"平台","type":"select","config":{"options":[{"text":"WorkBuddy"},{"text":"TRAE"}]}},{"name":"所属电脑","type":"text"},{"name":"当前","type":"checkbox"},{"name":"备注","type":"text"},{"name":"最后确认","type":"date"},{"name":"排序","type":"number"}]},"github":{"label":"GitHub 同步记录","properties":[{"name":"同步时间","type":"date"},{"name":"电脑","type":"text"},{"name":"GitHub账号","type":"text"},{"name":"仓库","type":"text"},{"name":"内容","type":"text"},{"name":"同步版本","type":"text"},{"name":"是否同步","type":"select","config":{"options":[{"text":"已同步"},{"text":"未同步"}]}},{"name":"仓库归档","type":"checkbox"},{"name":"仓库置顶","type":"checkbox"}]}},"data":{"tasks":[],"machines":[],"accounts":[],"github":[]}};
+  var SNAP = {"schema":{"tasks":{"label":"Agent 任务台账","properties":[{"name":"任务标题","type":"text"},{"name":"状态","type":"select","config":{"options":[{"text":"进行中"},{"text":"已完成"}]}},{"name":"优先级","type":"select","config":{"options":[{"text":"P0"},{"text":"P1"},{"text":"P2"}]}},{"name":"目录","type":"text"},{"name":"进度","type":"text"},{"name":"待办","type":"text"},{"name":"交接内容","type":"text"},{"name":"更新时间","type":"date"},{"name":"所在电脑","type":"text"},{"name":"排序","type":"number"}]},"machines":{"label":"机器登录态","properties":[{"name":"机器名","type":"text"},{"name":"位置","type":"text"},{"name":"WorkBuddy账号","type":"text"},{"name":"TRAE账号","type":"text"},{"name":"最后确认","type":"date"},{"name":"排序","type":"number"}]},"accounts":{"label":"登录账号","properties":[{"name":"账号名","type":"text"},{"name":"平台","type":"select","config":{"options":[{"text":"WorkBuddy"},{"text":"TRAE"}]}},{"name":"所属电脑","type":"text"},{"name":"当前","type":"checkbox"},{"name":"备注","type":"text"},{"name":"最后确认","type":"date"},{"name":"排序","type":"number"}]},"github":{"label":"GitHub 同步记录","properties":[{"name":"同步时间","type":"date"},{"name":"电脑","type":"text"},{"name":"GitHub账号","type":"text"},{"name":"仓库","type":"text"},{"name":"内容","type":"text"},{"name":"同步版本","type":"text"},{"name":"是否同步","type":"select","config":{"options":[{"text":"已同步"},{"text":"未同步"}]}},{"name":"仓库归档","type":"checkbox"},{"name":"仓库置顶","type":"checkbox"}]}},"data":{"tasks":[],"machines":[],"accounts":[],"github":[]},"health":{"version":"1.10.1","storage":{"ok":true}}};
   var KEY = 'awb.offline.db.empty';
   var PLATFORMS = ['WorkBuddy', 'TRAE'];
   var MACHINE_ACC_FIELD = { 'WorkBuddy': 'WorkBuddy账号', 'TRAE': 'TRAE账号' };
   var ACC = { name: '账号名', plat: '平台', mach: '所属电脑', cur: '当前' };
-  var REQUIRED = {
-    tasks: ['任务标题', '状态', '优先级', '所在电脑'],
-    machines: ['机器名'],
-    accounts: ['账号名', '平台', '所属电脑'],
-    github: ['电脑', '仓库']
-  };
-  var ENUMS = {
-    tasks: { '状态': ['进行中', '已完成'], '优先级': ['P0', 'P1', 'P2'] },
-    accounts: { '平台': ['WorkBuddy', 'TRAE'] },
-    github: { '是否同步': ['已同步', '未同步'] }
-  };
+  var REQUIRED = {"tasks":["任务标题","状态","优先级","所在电脑"],"machines":["机器名"],"accounts":["账号名","平台","所属电脑"],"github":["电脑","仓库"]};
+  var ENUMS = {"tasks":{"状态":["进行中","已完成"],"优先级":["P0","P1","P2"]},"accounts":{"平台":["WorkBuddy","TRAE"]},"github":{"是否同步":["已同步","未同步"]}};
   function blank(v) {
     if (v === null || v === undefined) return true;
     if (typeof v === 'string') return !v.trim();
@@ -95,12 +81,11 @@
     }
     if (dbKey === 'machines' && isNew && !blank(rec['机器名'])) {
       var nm = String(rec['机器名']).trim();
-      var dup = (db()[('machines')] || []).some(function (m) { return m._id !== selfId && String(m['机器名'] || '').trim() === nm; });
+      var dup = (db().machines || []).some(function (m) { return m._id !== selfId && String(m['机器名'] || '').trim() === nm; });
       if (dup) return '已经有同名电脑了';
     }
     return null;
   }
-
   function newId() {
     var a = new Uint8Array(6);
     (window.crypto || {}).getRandomValues ? crypto.getRandomValues(a) : a.forEach(function (_, i) { a[i] = Math.floor(Math.random() * 256); });
@@ -113,12 +98,9 @@
     } catch (e) {}
     return JSON.parse(JSON.stringify(SNAP.data));
   }
-  function save(d) {
-    try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {}
-  }
+  function save(d) { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {} }
   var DB = null;
   function db() { if (!DB) DB = load(); return DB; }
-
   // 机器表账号字段按 accounts 实时派生（与服务端 deriveMachine 同口径）
   function derive(d, m) {
     var out = Object.assign({}, m);
@@ -132,39 +114,26 @@
     return out;
   }
   function unwrap(v) {
-    if (v && typeof v === 'object' && !Array.isArray(v)) {
-      for (var k in v) return v[k];
-      return undefined;
-    }
+    if (v && typeof v === 'object' && !Array.isArray(v)) { for (var k in v) return v[k]; return undefined; }
     return v;
   }
-  function ok(data) {
-    return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
-  }
-  function err(msg, code) {
-    return new Response(JSON.stringify({ error: msg }), { status: code || 400, headers: { 'Content-Type': 'application/json' } });
-  }
-
+  function ok(data) { return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } }); }
+  function err(msg, code) { return new Response(JSON.stringify({ error: msg }), { status: code || 400, headers: { 'Content-Type': 'application/json' } }); }
   var realFetch = window.fetch.bind(window);
   window.fetch = function (input, opt) {
     var url = typeof input === 'string' ? input : (input && input.url) || '';
     opt = opt || {};
     var method = (opt.method || (typeof input !== 'string' && input.method) || 'GET').toUpperCase();
-
     var mDb = url.match(/api\/(?:schema|query)\?db=([^&]+)/) || url.match(/api\/records\/[^/]+\?db=([^&]+)/);
     var key = mDb ? decodeURIComponent(mDb[1]) : null;
     var body = null;
     try { body = opt.body ? JSON.parse(opt.body) : null; } catch (e) {}
-    // POST /api/records 的 db 在请求体里（URL 上没有），先取出来再判断
     if (/api\/records/.test(url) && method !== 'GET' && body && body.db) key = String(body.db);
-    // 页面请求的是 API_BASE + 'health'（不是 /api/health）——真实服务的 /health 就在根上。
-    // 只写 api/health 会匹配不上，版本号徽标一直是空的。
+    // 页面请求 API_BASE + 'health'（不是 /api/health）——只匹配 api\/health 会漏，版本号徽标恒空
     if (/api\/health/.test(url) || /(^|\/)health(\?|$)/.test(url)) return Promise.resolve(ok(SNAP.health));
     if (!key) return realFetch(input, opt);
-
     var d = db();
     if (SNAP.schema[key] === undefined) return Promise.resolve(err('unknown db'));
-
     if (/api\/schema/.test(url) && method === 'GET') {
       var s = SNAP.schema[key];
       return Promise.resolve(ok({ label: s.label, properties: s.properties }));
@@ -184,8 +153,7 @@
       if (!rec['更新时间'] && body.db !== 'machines') rec['更新时间'] = new Date().toISOString();
       var cerr = check(body.db, rec, true);
       if (cerr) return Promise.resolve(err(cerr));
-      d[body.db].push(rec);
-      save(d);
+      d[body.db].push(rec); save(d);
       return Promise.resolve(ok({ id: rec._id }));
     }
     var mRec = url.match(/api\/records\/([^/?]+)/);
@@ -195,8 +163,7 @@
       var i = bucket.findIndex(function (r) { return r._id === id; });
       if (i < 0) return Promise.resolve(err('record not found', 404));
       if (method === 'PATCH') {
-        var patch = body || {};
-        var pp = patch.properties || {};
+        var patch = body || {}, pp = patch.properties || {};
         var merged = Object.assign({}, bucket[i]);
         for (var f in pp) merged[f] = unwrap(pp[f]);
         var perr = check(key, merged, false, id);
@@ -207,12 +174,9 @@
             if (a._id !== id && a[ACC.mach] === bucket[i][ACC.mach] && a[ACC.plat] === bucket[i][ACC.plat]) a[ACC.cur] = false;
           });
         }
-        save(d);
-        return Promise.resolve(ok({}));
+        save(d); return Promise.resolve(ok({}));
       }
-      bucket.splice(i, 1);
-      save(d);
-      return Promise.resolve(ok({}));
+      bucket.splice(i, 1); save(d); return Promise.resolve(ok({}));
     }
     return realFetch(input, opt);
   };
@@ -6485,23 +6449,20 @@ var Repo = (function () {
 })();
 </script>
 <script>
-/* ===== CSV 数据源层（资料库版专用，仅为让 HTML 能在资料库里独立使用） =====
-   数据在浏览器本地持久化；导出成 4 个标准 CSV（UTF-8 BOM，Excel 友好），
-   导入时按文件名认表，只覆盖导入的那几张表。 */
+/* ===== CSV 数据源层（生成物，请勿手改） =====
+   数据在浏览器本地持久化；导出成 4 个标准 CSV，导入时按文件名认表。 */
 (function () {
-  var FIELDS = {"tasks":["_id","任务标题","状态","优先级","所在电脑","目录","进度","待办","交接内容","更新时间","排序"],"machines":["_id","机器名","位置","最后确认","排序"],"accounts":["_id","账号名","平台","所属电脑","当前","备注","最后确认","排序"],"github":["_id","同步时间","电脑","GitHub账号","仓库","内容","同步版本","是否同步","仓库归档","仓库置顶"]};
-  var LABEL = {"tasks":"任务台账","machines":"机器登录态","accounts":"登录账号","github":"GitHub 同步记录"};
+  var FIELDS = {"tasks":["_id","任务标题","状态","优先级","目录","进度","待办","交接内容","更新时间","所在电脑","排序"],"machines":["_id","机器名","位置","最后确认","排序"],"accounts":["_id","账号名","平台","所属电脑","当前","备注","最后确认","排序"],"github":["_id","同步时间","电脑","GitHub账号","仓库","内容","同步版本","是否同步","仓库归档","仓库置顶"]};
   var TYPES = {"任务标题":"text","状态":"select","优先级":"select","目录":"text","进度":"text","待办":"text","交接内容":"text","更新时间":"date","所在电脑":"text","排序":"number","机器名":"text","位置":"text","WorkBuddy账号":"text","TRAE账号":"text","最后确认":"date","账号名":"text","平台":"select","所属电脑":"text","当前":"checkbox","备注":"text","同步时间":"date","电脑":"text","GitHub账号":"text","仓库":"text","内容":"text","同步版本":"text","是否同步":"select","仓库归档":"checkbox","仓库置顶":"checkbox"};
   var REQUIRED = {"tasks":["任务标题","状态","优先级","所在电脑"],"machines":["机器名"],"accounts":["账号名","平台","所属电脑"],"github":["电脑","仓库"]};
   var ENUMS = {"tasks":{"状态":["进行中","已完成"],"优先级":["P0","P1","P2"]},"accounts":{"平台":["WorkBuddy","TRAE"]},"github":{"是否同步":["已同步","未同步"]}};
   var KEY = 'awb.offline.db.empty';
   var ORDER = ['tasks', 'machines', 'accounts', 'github'];
-
   function esc(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
-  // ---- CSV 解析：手写，处理引号包裹、字段内换行/逗号、"" 转义、BOM、CRLF ----
+  // 手写 CSV 解析器：处理引号包裹、字段内换行/逗号、"" 转义、BOM、CRLF
   function parseCSV(text) {
     var rows = [], row = [], cur = '', i = 0, inQ = false, atStart = true;
     text = String(text || '').replace(/^\uFEFF/, '');
@@ -6550,29 +6511,23 @@ var Repo = (function () {
     document.body.appendChild(a); a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 400);
   }
-  // 按文件名认表：容忍用户改名，只要名字里含表名
   function tableOf(fname) {
     var f = String(fname || '').toLowerCase();
     for (var i = 0; i < ORDER.length; i++) if (f.indexOf(ORDER[i]) >= 0) return ORDER[i];
     return null;
   }
-
-  // ---------- UI ----------
   var panel = null;
   function status(msg, bad) {
     var el = document.getElementById('csvStatus');
     if (!el) return;
     el.innerHTML = '<div style="margin-top:10px;padding:8px 10px;border-radius:8px;font-size:12.5px;line-height:1.65;'
-      + (bad ? 'background:rgba(224,108,108,.12);color:#e06c6c' : 'background:rgba(120,200,140,.12);color:#6cc08c') + '">'
-      + msg + '</div>';
+      + (bad ? 'background:rgba(224,108,108,.12);color:#e06c6c' : 'background:rgba(120,200,140,.12);color:#6cc08c') + '">' + msg + '</div>';
   }
   function closePanel() { if (panel) { panel.remove(); panel = null; } }
   function openPanel() {
     if (panel) { closePanel(); return; }
     var db = readDb();
-    var cnt = ORDER.map(function (t) {
-      return LABEL[t] + ' ' + ((db[t] || []).length);
-    }).join(' · ');
+    var cnt = ORDER.map(function (t) { return (t === 'tasks' ? '任务' : t === 'machines' ? '机器' : t === 'accounts' ? '账号' : 'GitHub') + ' ' + ((db[t] || []).length); }).join(' · ');
     panel = document.createElement('div');
     panel.id = 'csvPanel';
     panel.style.cssText = 'position:fixed;z-index:9999;right:14px;top:52px;width:320px;max-height:78vh;overflow:auto;'
@@ -6584,12 +6539,9 @@ var Repo = (function () {
       + '<button id="csvX" type="button" style="background:none;border:0;color:inherit;cursor:pointer;font-size:16px;line-height:1">×</button></div>'
       + '<div style="font-size:12px;opacity:.72;line-height:1.7;margin-bottom:10px">'
       + '当前：' + esc(cnt) + '<br>数据存在<b>本机浏览器</b>里。导出可备份与迁移，导入可恢复或批量改数据。</div>'
-      + '<button id="csvExport" type="button" style="width:100%;margin-bottom:7px;padding:8px;border-radius:8px;'
-      + 'border:1px solid var(--border,#333);background:var(--panel-3,#252527);color:inherit;cursor:pointer;font-size:12.5px">导出 4 个 CSV</button>'
-      + '<button id="csvImport" type="button" style="width:100%;margin-bottom:7px;padding:8px;border-radius:8px;'
-      + 'border:1px solid var(--border,#333);background:var(--panel-3,#252527);color:inherit;cursor:pointer;font-size:12.5px">导入 CSV 文件（可多选）</button>'
-      + '<button id="csvClear" type="button" style="width:100%;padding:8px;border-radius:8px;'
-      + 'border:1px solid rgba(224,108,108,.4);background:rgba(224,108,108,.1);color:#e06c6c;cursor:pointer;font-size:12.5px">清空全部数据</button>'
+      + '<button id="csvExport" type="button" style="width:100%;margin-bottom:7px;padding:8px;border-radius:8px;border:1px solid var(--border,#333);background:var(--panel-3,#252527);color:inherit;cursor:pointer;font-size:12.5px">导出 4 个 CSV</button>'
+      + '<button id="csvImport" type="button" style="width:100%;margin-bottom:7px;padding:8px;border-radius:8px;border:1px solid var(--border,#333);background:var(--panel-3,#252527);color:inherit;cursor:pointer;font-size:12.5px">导入 CSV 文件（可多选）</button>'
+      + '<button id="csvClear" type="button" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(224,108,108,.4);background:rgba(224,108,108,.1);color:#e06c6c;cursor:pointer;font-size:12.5px">清空全部数据</button>'
       + '<div id="csvStatus"></div>'
       + '<input id="csvFile" type="file" accept=".csv,text/csv" multiple style="display:none">';
     document.body.appendChild(panel);
@@ -6599,7 +6551,6 @@ var Repo = (function () {
     panel.querySelector('#csvFile').addEventListener('change', doImport);
     panel.querySelector('#csvClear').addEventListener('click', doClear);
   }
-
   function doExport() {
     var db = readDb(), n = 0, i = 0;
     ORDER.forEach(function (t) {
@@ -6613,7 +6564,6 @@ var Repo = (function () {
     });
     status('已导出 ' + n + ' 条（4 个文件，文件名 awb-*.csv）。浏览器可能询问「是否允许下载多个文件」，选允许。');
   }
-
   function doImport(e) {
     var files = Array.prototype.slice.call((e.target.files) || []);
     if (!files.length) return;
@@ -6627,11 +6577,8 @@ var Repo = (function () {
         if (!rows.length) { errs.push(esc(file.name) + '：空文件'); if (--pending === 0) finish(); return; }
         var head = rows[0].map(function (h) { return String(h || '').trim(); });
         var idx = {}, missing = [];
-        FIELDS[t].forEach(function (f) {
-          var p = head.indexOf(f);
-          if (p < 0) missing.push(f); else idx[f] = p;
-        });
-        // _id 允许缺失（新建时服务端会补），其余字段缺列就报错
+        FIELDS[t].forEach(function (f) { var p = head.indexOf(f); if (p < 0) missing.push(f); else idx[f] = p; });
+        // _id 允许缺失（新建时页面会补），其余缺列就报错
         var hard = missing.filter(function (f) { return f !== '_id'; });
         if (hard.length) { errs.push(esc(file.name) + '：缺少列 ' + hard.join('、')); if (--pending === 0) finish(); return; }
         var recs = [], bad = [];
@@ -6644,19 +6591,16 @@ var Repo = (function () {
             o[f] = conv(f, raw);
           });
           if (!Object.keys(o).length) continue;
-          var req = REQUIRED[t] || [];
-          for (var k = 0; k < req.length; k++) {
-            if (blank(o[req[k]])) { bad.push('第 ' + (i + 1) + ' 行：' + req[k] + '不能为空'); break; }
-          }
+          var req = REQUIRED[t] || [], skip = false;
+          for (var k = 0; k < req.length; k++) if (blank(o[req[k]])) { bad.push('第 ' + (i + 1) + ' 行：' + req[k] + '不能为空'); skip = true; break; }
+          if (skip) continue;
           var en = ENUMS[t] || {};
-          for (var f2 in en) {
-            if (!blank(o[f2]) && en[f2].indexOf(o[f2]) < 0) { bad.push('第 ' + (i + 1) + ' 行：' + f2 + '只能是 ' + en[f2].join(' / ')); break; }
-          }
+          for (var f2 in en) if (!blank(o[f2]) && en[f2].indexOf(o[f2]) < 0) { bad.push('第 ' + (i + 1) + ' 行：' + f2 + '只能是 ' + en[f2].join(' / ')); break; }
           recs.push(o);
         }
         if (bad.length) { errs.push(esc(file.name) + '：' + bad.slice(0, 4).join('；') + (bad.length > 4 ? ' 等 ' + bad.length + ' 处' : '')); if (--pending === 0) finish(); return; }
         db[t] = recs;
-        done.push(LABEL[t] + ' ' + recs.length + ' 条');
+        done.push(esc(file.name) + ' ' + recs.length + ' 条');
         if (--pending === 0) finish();
       };
       fr.onerror = function () { errs.push(esc(file.name) + '：读取失败'); if (--pending === 0) finish(); };
@@ -6669,15 +6613,12 @@ var Repo = (function () {
       setTimeout(function () { location.reload(); }, 700);
     }
   }
-
   function doClear() {
     if (!window.confirm('清空全部数据？四张表都会变空，且无法撤销。\n\n建议先「导出 4 个 CSV」备份。')) return;
     localStorage.setItem(KEY, JSON.stringify({ tasks: [], machines: [], accounts: [], github: [] }));
     status('已清空，正在刷新…');
     setTimeout(function () { location.reload(); }, 500);
   }
-
-  // 顶栏加按钮：紧跟「批量导入」
   function mount() {
     var imp = document.getElementById('impBtn');
     if (!imp || document.getElementById('csvBtn')) return;
