@@ -176,6 +176,35 @@
     background: var(--panel-3); border-radius: 8px; padding: 10px 12px; overflow-x: auto; line-height: 1.6; white-space: pre;
   }
   .ai-warn { color: var(--warn); }
+
+  /* ===== 批量导入：长文本输入 + 解析预览 ===== */
+  .imp-ta {
+    width: 100%; min-height: 240px; resize: vertical; box-sizing: border-box;
+    font-family: ui-monospace, Consolas, monospace; font-size: 12px; line-height: 1.7;
+    color: var(--text); background: var(--panel-3);
+    border: 1px solid var(--border-strong); border-radius: 10px; padding: 11px 13px;
+  }
+  .imp-ta:focus { outline: none; border-color: var(--accent); }
+  .imp-hint { font-size: 11.5px; color: var(--text-3); line-height: 1.7; }
+  /* 预览清单：一行一条待写入的变更，左侧动作标签区分新建 / 更新 */
+  .imp-list { display: flex; flex-direction: column; gap: 7px; }
+  .imp-item {
+    display: flex; align-items: flex-start; gap: 9px; padding: 9px 11px;
+    border-radius: 9px; background: var(--panel-2); border: 1px solid var(--border);
+  }
+  .imp-item.bad { background: var(--warn-soft); border-color: var(--warn); }
+  .imp-act {
+    flex: none; font-size: 10px; line-height: 16px; padding: 0 6px; border-radius: 4px;
+    background: var(--accent); color: var(--btn-fg); margin-top: 1px;
+  }
+  .imp-item.bad .imp-act { background: var(--warn); }
+  .imp-main { min-width: 0; flex: 1; }
+  .imp-title { font-size: 12.5px; color: var(--text); font-weight: 500; word-break: break-all; }
+  .imp-sub { font-size: 11px; color: var(--text-3); margin-top: 3px; line-height: 1.6; }
+  .imp-sum { font-size: 12px; color: var(--text-2); margin-bottom: 10px; }
+  .imp-sum b { color: var(--text); }
+  .imp-err { color: var(--warn); }
+
   .ai-pick { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 8px; }
   .ai-pick select {
     background: var(--panel-3); border: 1px solid var(--border-strong); border-radius: 8px;
@@ -894,7 +923,7 @@
     .ai-quick { padding-left: 9px; }
   }
   @media (max-width: 1100px) {
-    .topbar #aiGuideBtn .gt { display: none; } /* 指南只留 🤖 图标，完整契约仍可开 */
+    .topbar #aiGuideBtn .gt { display: none; } /* 指南只留 🤖 图标，完整说明仍可开 */
     .search { min-width: 200px; }
   }
   /* 再窄：搜索整行独占一行，按钮留在上一行 —— 比把搜索压成图标 / 让「新增」单独掉一行更可用 */
@@ -1133,7 +1162,7 @@
     .drawer, .modal { width: 94vw; max-height: 84vh; border-radius: 22px; }
     .drawer-foot, .modal-foot { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
 
-    /* AI 指南弹窗在手机上只要「选电脑 + 复制」，完整契约按需展开 */
+    /* AI 指南弹窗在手机上只显示「① 怎么用」（ai-sec-pick），其余块按需展开 */
     #aiFull { display: inline-flex; }
     #aiDrawer .ai-sec:not(.ai-sec-pick) { display: none; }
     #aiDrawer .ai-machlist { display: none; }
@@ -1162,11 +1191,11 @@
     </svg>
     <input id="q" placeholder="搜任务 / 仓库、内容、版本" type="text">
   </div>
-  <!-- 快捷指南：选电脑 + 复制契约，一步到位（完整契约仍可点右侧 🤖 打开） -->
-  <div class="ai-quick" id="aiQuick" title="选一台电脑后复制契约：示例 payload 里的「所在电脑」会填好">
-    <span class="lab">电脑</span>
-    <select id="aiQuickMachine" title="选择电脑：决定示例里的「所在电脑」"></select>
-    <button id="aiQuickCopy" type="button" title="复制完整契约（已按所选电脑填好示例）">复制契约</button>
+  <!-- 批量导入闭环：复制提示词给 AI → AI 回一段长文本 → 粘进来批量落库。
+       提示词里带上工作台现状骨架，AI 才知道该新建卡片还是续写已有卡片。 -->
+  <div class="ai-quick" id="aiQuick" title="复制提示词给 AI，或粘贴 AI 回写的长文本批量导入">
+    <button id="aiQuickCopy" type="button" title="复制提示词：含工作台现状骨架 + 输出格式">复制提示词</button>
+    <button id="impBtn" type="button" title="粘贴长文本，批量新建 / 更新卡片">批量导入</button>
   </div>
   <button class="icon-btn" id="themeBtn" title="切换主题" aria-label="切换主题">
     <svg aria-hidden="true" fill="none" height="15" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" width="15">
@@ -1282,16 +1311,29 @@
 <aside class="drawer wide" id="aiDrawer">
   <div class="drawer-head">
     <h3>🤖 AI 写入指南</h3>
-    <button class="ghost-btn" id="aiFull" title="展开/收起完整契约" style="height:26px;padding:0 8px;font-size:11.5px">完整契约</button>
+    <button class="ghost-btn" id="aiFull" title="展开/收起完整说明" style="height:26px;padding:0 8px;font-size:11.5px">完整说明</button>
     <button class="icon-btn" id="aiClose" style="width:27px; height:27px" aria-label="关闭 AI 指南">
       <svg aria-hidden="true" fill="none" height="12" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </div>
   <div class="drawer-body" id="aiBody"></div>
   <div class="drawer-foot">
-    <button class="btn-primary" id="aiCopy">复制契约（粘给 AI）</button>
-    <button class="btn-ghost" id="aiCopyEx">复制示例 JSON</button>
+    <button class="btn-primary" id="aiCopy">复制提示词（粘给 AI）</button>
+    <button class="btn-ghost" id="aiCopyEx">复制格式示例</button>
   </div>
+</aside>
+
+<div class="drawer-mask" id="impMask"></div>
+<aside class="drawer wide" id="impDrawer">
+  <div class="drawer-head">
+    <h3>📥 批量导入</h3>
+    <button class="ghost-btn" id="impFormat" title="查看输出格式说明" style="height:26px;padding:0 8px;font-size:11.5px">格式说明</button>
+    <button class="icon-btn" id="impClose" style="width:27px; height:27px" aria-label="关闭批量导入">
+      <svg aria-hidden="true" fill="none" height="12" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body" id="impBody"></div>
+  <div class="drawer-foot" id="impFoot"></div>
 </aside>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -1972,7 +2014,7 @@ var Repo = (function () {
   // 再按搜索词裁切 g.records（卡里真正显示的记录）。
   // 这么拆是为了让「仓库级」属性不被搜索抹掉——某条记录被搜掉了，
   // 但仓库已归档 / 已置顶 / 在这台电脑上同步过，这些事实不该跟着消失。
-  function ghRepoGroups() {
+  function ghRepoGroups(allMode) {
     var map = {}, arr = [];
     for (var i = 0; i < S.data.gh.length; i++) {
       var r = S.data.gh[i];
@@ -1998,6 +2040,25 @@ var Repo = (function () {
     var out = [];
     for (var k = 0; k < arr.length; k++) {
       var g = arr[k];
+      // allMode：给「现状骨架」用的全量口径。复制提示词时可能正开着搜索 / 机器筛选，
+      // 若沿用过滤后的结果，AI 拿到的仓库清单会缺一大块，进而把已存在的仓库判成新建。
+      if (allMode) {
+        g.records = g.all.slice();
+        g.records.sort(function (a, b) { return toTime(normDate(b[F.g.time])) - toTime(normDate(a[F.g.time])); });
+        g.versions = []; g.accounts = []; g.machines = [];
+        for (var ai = 0; ai < g.records.length; ai++) {
+          var ar = g.records[ai];
+          var avs = txt(ar[F.g.versions]).split(/[\n,，]/);
+          for (var avi = 0; avi < avs.length; avi++) {
+            var av = avs[avi].replace(/^\s+|\s+$/g, '');
+            if (av && g.versions.indexOf(av) < 0) g.versions.push(av);
+          }
+          var aac = txt(ar[F.g.account]); if (aac && g.accounts.indexOf(aac) < 0) g.accounts.push(aac);
+          var amc = txt(ar[F.g.machine]); if (amc && g.machines.indexOf(amc) < 0) g.machines.push(amc);
+        }
+        out.push(g);
+        continue;
+      }
       // 机器筛选走全量口径：电脑改名 / 删除后，历史记录仍挂在旧名上，
       // 只看可见记录的话这些仓库就永远筛不到。
       if (S.ui.ghFilter.machine && g.machines.indexOf(S.ui.ghFilter.machine) < 0) continue;
@@ -3443,6 +3504,7 @@ var Repo = (function () {
     menu.className = 'menu';
     menu.innerHTML =
       '<button data-add="task">＋ 新建任务</button>' +
+      '<button data-add="import">📥 批量导入（粘 AI 长文本）</button>' +
       '<button data-add="gh">＋ 记录一次同步</button>' +
       '<button data-add="machine">＋ 添加电脑</button>' +
       '<button data-add="guide">🤖 查看 AI 写入指南</button>';
@@ -3496,15 +3558,14 @@ var Repo = (function () {
       ]}
     ],
     rules: [
-      '写库时表名参数叫 `db`（不是 `databaseId`）：查询是 `?db=tasks`，写库的请求体是 `{ "db": "tasks", "properties": {...} }`；四张表的 key 是 tasks / machines / accounts / github',
-      '写任务前先读机器表，「所在电脑」必须是已登记的机器名；没有就先登记电脑，否则任务会落进「未识别电脑」兜底列',
-      '一台电脑可以登录多个账号：多号写在「登录账号」表，同一台机同一平台只允许一条「当前」',
-      '账号是共享名单：同一平台按「账号名」去重，一个号可以被多台电脑各登记一条；改名要同步所有同名登记，解绑只删那一台电脑的登记',
-      '机器表上的 WorkBuddy账号 / TRAE账号 是派生只读值；往这两个字段写 = 把那个号设为当前（库里没有会自动补一条）',
-      '枚举值严格照抄：状态=进行中/已完成，优先级=P0/P1/P2，是否同步=已同步/未同步；旧的「结果」字段已不存在',
-      '待办只认行首的 [ ] 与 [x]，不要用 - [ ] 或 ● 之类',
-      '每次写入都带上「更新时间」，否则卡片会被判为「久未动」',
-      '一份记录 = 一件事：一个任务 = 一个可交付的活；一个同步记录 = 一个版本的一次同步'
+      '块头只能是「## 任务（新建）」「## 任务（更新）」「## 同步（新建）」三种；括号里的动作必须写',
+      '（更新）块必须有定位：优先「编号：#xxx」（照抄现状里的卡片 id），或用「标题：」且一字不差',
+      '「电脑」只能填现状里列出的电脑名，写别的会被拦下',
+      '枚举只能填给定取值：状态=进行中/已完成，优先级=P0/P1/P2，是否同步=已同步/未同步',
+      '待办行首只认 [x] 与 [ ]，不要写成 - [ ] 或 ●',
+      '（更新）块的待办请照抄现状里的原文，改写措辞会追加出重复项',
+      '「时间」写成 2026-11-02 或 2026-11-02 14:30，写不出来就别写（会补此刻）',
+      '一份记录 = 一件事：一个任务 = 一个可交付的活；一条同步 = 一个版本的一次同步'
     ],
     example: {
       // 示例是给 AI 直接打 REST 用的，字段名必须是服务端认的 `db`。
@@ -3525,9 +3586,9 @@ var Repo = (function () {
   };
   // 顶栏快捷指南：与弹窗里的「① 先定电脑」共用同一个 S.ui.aiMachine，
   // 选完直接复制契约，不用先开弹窗。机器清单来自同一份 sortedMachines()。
+  // 顶栏不再有「选电脑」下拉：提示词里带的是完整现状骨架，
+  // AI 自己判断落到哪台电脑，不需要人先选一台。这里只负责维护记住的那台电脑名。
   function renderAiQuick() {
-    var sel = $('aiQuickMachine');
-    if (!sel) return;
     var ms = sortedMachines();
     var names = ms.map(function (x) { return txt(x[F.m.name]); });
     // 记住的电脑被删掉 / 改名后要能自愈：退回第一台，并把存储里的旧值一起纠正
@@ -3535,35 +3596,13 @@ var Repo = (function () {
       setUi('aiMachine', '');
       try { localStorage.setItem('awb.aiMachine', ''); } catch (e) {}
     }
-    var cur = S.ui.aiMachine || (names.length ? names[0] : '');
-    var h = '';
-    if (!ms.length) h = '<option value="">（未登记电脑）</option>';
-    for (var i = 0; i < ms.length; i++) {
-      h += '<option value="' + escapeHtml(names[i]) + '"' + (names[i] === cur ? ' selected' : '') + '>' + escapeHtml(names[i]) + '</option>';
-    }
-    sel.innerHTML = h;
     if (names.length) {
+      var cur = S.ui.aiMachine || names[0];
       setUi('aiMachine', cur);
       try { localStorage.setItem('awb.aiMachine', cur); } catch (e) {}
     }
   }
 
-  function aiMachineOptions() {
-    var ms = sortedMachines();
-    if (!ms.length) return '<option value="">（还没有登记电脑，先去「新增 → 添加电脑」）</option>';
-    var h = '';
-    for (var i = 0; i < ms.length; i++) {
-      var m = ms[i];
-      var name = txt(m[F.m.name]);
-      var info = [];
-      if (txt(m[F.m.place])) info.push(txt(m[F.m.place]));
-      if (txt(m[F.m.wb])) info.push(txt(m[F.m.wb]).indexOf('WB') >= 0 ? txt(m[F.m.wb]) : 'WB ' + txt(m[F.m.wb]));
-      if (txt(m[F.m.trae])) info.push(txt(m[F.m.trae]).indexOf('TRAE') >= 0 ? txt(m[F.m.trae]) : 'TRAE ' + txt(m[F.m.trae]));
-      h += '<option value="' + escapeHtml(name) + '"' + (name === S.ui.aiMachine ? ' selected' : '') + '>' +
-        escapeHtml(name) + (info.length ? '　（' + escapeHtml(info.join(' · ')) + '）' : '') + '<' + '/option>';
-    }
-    return h;
-  }
   function aiMachineListHTML() {
     var ms = sortedMachines();
     if (!ms.length) {
@@ -3581,13 +3620,6 @@ var Repo = (function () {
     }
     return h + '</table>';
   }
-  function aiExample() {
-    var ex = JSON.parse(JSON.stringify(AI_CONTRACT.example));
-    var ms = sortedMachines();
-    var pick = S.ui.aiMachine || (ms.length ? txt(ms[0][F.m.name]) : '');
-    ex.properties['所在电脑'] = { text: pick || '台式机-家' };
-    return ex;
-  }
   function aiTable(db) {
     var h = '<h4>' + escapeHtml(db.name) + '<span class="dbid">' + escapeHtml(db.id) + '</span></h4>' +
       '<table class="ai-table"><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr>';
@@ -3600,61 +3632,984 @@ var Repo = (function () {
     }
     return h + '</table>';
   }
-  function aiMarkdown() {
-    var L = ['# Agent 工作台 · 数据写入契约', ''];
-    L.push('## 当前已登记的电脑（「所在电脑」只能填这些名字）');
-    var ms = sortedMachines();
-    if (!ms.length) {
-      L.push('- （还没有登记电脑）——先登记，否则任务会落进「未识别电脑」列');
-    } else {
-      for (var mi = 0; mi < ms.length; mi++) {
-        var m = ms[mi];
-        var info = [];
-        if (txt(m[F.m.place])) info.push(txt(m[F.m.place]));
-        if (txt(m[F.m.wb])) info.push(txt(m[F.m.wb]).indexOf('WB') >= 0 ? txt(m[F.m.wb]) : 'WB ' + txt(m[F.m.wb]));
-        if (txt(m[F.m.trae])) info.push(txt(m[F.m.trae]).indexOf('TRAE') >= 0 ? txt(m[F.m.trae]) : 'TRAE ' + txt(m[F.m.trae]));
-        L.push('- ' + txt(m[F.m.name]) + (info.length ? '（' + info.join(' · ') + '）' : ''));
+  /* ===================== 批量导入 =====================
+     让 AI 直接拼 JSON payload 门槛太高：要背字段名、枚举值、{text}/{select} 包裹格式，
+     写错一个就 400。改成「AI 写一段人也能读的长文本 → 工作台解析落库」。
+     格式刻意贴近普通会议记录：## 分节、「字段名：值」、待办用 [x]/[ ]，
+     这样 AI 不容易写歪，人拿到也能直接改。
+
+     闭环：复制提示词（含工作台现状）→ AI 回长文本 → 粘贴 → 预览 → 确认写入。 */
+
+  // 块内键名 → 真实字段名的映射。「标题」在更新块里同时承担「定位哪张卡」的作用。
+  // 「待办：」本身没有值，只是引出后面一串 [x]/[ ] 行的标记——单独标出来，
+  // 否则会被当成认不出的字段名，把整个块判废。
+  var IMP_KEYS = {
+    task: { '标题': '任务标题', '新标题': '__newTitle', '编号': '__id', '电脑': '所在电脑', '状态': '状态',
+            '优先级': '优先级', '目录': '目录', '进度': '进度', '交接': '交接内容', '待办': '__todos' },
+    gh:   { '仓库': '仓库', '电脑': '电脑', '账号': 'GitHub账号', '版本': '同步版本',
+            '内容': '内容', '状态': '是否同步' },
+    machine: { '机器名': '机器名', '电脑': '机器名', '新机器名': '__newName', '位置': '位置' },
+    account: { '账号名': '账号名', '平台': '平台', '电脑': '所属电脑', '备注': '备注' }
+  };
+  // 「时间」是块类型相关的：任务落到更新时间，同步落到同步时间。用块类型分开映射，
+  // 避免同一个键在不同块里指向不同字段（AI 只会写「时间：」这一个词）。
+  var IMP_TIME = { task: '更新时间', gh: '同步时间' };
+  // 勾选类字段：写作「归档：是」「当前：是」。值是布尔，不用 text 包裹。
+  var IMP_BOOL = {
+    gh: { '归档': '仓库归档', '置顶': '仓库置顶' },
+    account: { '当前': '当前' }
+  };
+  var IMP_ENUMS = {
+    '状态': ['进行中', '已完成'], '优先级': ['P0', 'P1', 'P2'], '是否同步': ['已同步', '未同步'],
+    '平台': ['WorkBuddy', 'TRAE']
+  };
+  // 默认值：AI 省略这些键时补上，比直接报「缺字段」更贴合实际书写习惯
+  var IMP_DEFAULTS = { '状态': '进行中', '优先级': 'P1', '是否同步': '已同步' };
+
+  /* ===================== 容错：从「校验器」改为「推断器」 =====================
+     AI 输出天生有抖动——规范写得再细它也会飘。逐个拦截的结果是「4 条全废」，
+     用户根本用不起来。所以策略是：能推断的就推断，推断了就在预览里标出来让人否决，
+     只在真正无从推断时才拦下（比如连标题都没有）。
+
+     不静默猜：每一处推断都往 p.notes 里记一条，预览统一展示「已推断：……」。 */
+
+  // 枚举容错：AI 常用写法 → 平台取值。大小写、中英文、空格、同义词都要收。
+  var IMP_ENUM_MAP = {
+    '状态': { '进行中': '进行中', 'doing': '进行中', '进行': '进行中', '未完成': '进行中', '未完成中': '进行中',
+              '待办': '进行中', 'todo': '进行中', 'open': '进行中', 'wip': '进行中', 'active': '进行中',
+              '已完成': '已完成', 'done': '已完成', '完成': '已完成', 'closed': '已完成', 'finish': '已完成',
+              '结束': '已完成', '已结束': '已完成', '已完结': '已完成' },
+    '优先级': { 'p0': 'P0', '高': 'P0', '最高': 'P0', '紧急': 'P0', '最急': 'P0', 'hurry': 'P0', 'urgent': 'P0',
+                'p1': 'P1', '中': 'P1', '中高': 'P1', '普通': 'P1', 'normal': 'P1', 'medium': 'P1', 'mid': 'P1',
+                'p2': 'P2', '低': 'P2', '最低': 'P2', '不急': 'P2', 'low': 'P2', 'later': 'P2' },
+    '是否同步': { '已同步': '已同步', '同步': '已同步', '同步了': '已同步', '已推送': '已同步', '推送': '已同步',
+                  'pushed': '已同步', 'success': '已同步', '成功': '已同步', '是': '已同步', 'yes': '已同步',
+                  '未同步': '未同步', '未推送': '未同步', '没同步': '未同步', '待同步': '未同步', 'pending': '未同步',
+                  'failed': '未同步', '失败': '未同步', '否': '未同步', 'no': '未同步' },
+    '平台': { 'workbuddy': 'WorkBuddy', 'wb': 'WorkBuddy', '微伴': 'WorkBuddy',
+              'trae': 'TRAE', 'trai': 'TRAE' }
+  };
+  // 归一化：去空格、转小写，两边都归一再查表
+  function enumNorm(v) { return String(v == null ? '' : v).replace(/\s/g, '').toLowerCase(); }
+  function resolveEnum(field, raw) {
+    var v = String(raw == null ? '' : raw).replace(/^\s+|\s+$/g, '');
+    if (!v) return null;
+    if (IMP_ENUMS[field] && IMP_ENUMS[field].indexOf(v) >= 0) return v;
+    var map = IMP_ENUM_MAP[field] || {};
+    var hit = map[enumNorm(v)];
+    if (hit) return hit;
+    // 再宽容一层：模糊包含（「高优先级」→ P0，「已同步到远程」→ 已同步）
+    var n = enumNorm(v);
+    for (var k in map) { if (n.indexOf(k) >= 0 || k.indexOf(n) >= 0) return map[k]; }
+    return null;
+  }
+
+  // 相似度：0~1。中文按字符 bigram 比（单字比会高估，「本地」和「本机」会撞）
+  function similarity(a, b) {
+    a = String(a || ''); b = String(b || '');
+    if (a === b) return 1;
+    if (!a || !b) return 0;
+    function gram(x) {
+      var s = String(x).replace(/\s/g, '').toLowerCase(), out = {};
+      if (s.length === 1) { out[s] = 1; return out; }
+      for (var i = 0; i < s.length - 1; i++) out[s.substr(i, 2)] = (out[s.substr(i, 2)] || 0) + 1;
+      return out;
+    }
+    var ga = gram(a), gb = gram(b), inter = 0, sa = 0, sb = 0, k;
+    for (k in ga) { sa += ga[k]; if (gb[k]) inter += Math.min(ga[k], gb[k]); }
+    for (k in gb) sb += gb[k];
+    return (sa + sb) ? (2 * inter) / (sa + sb) : 0;
+  }
+  // 匹配阈值：≥AUTO 自动命中；≥SUGGEST 列候选让人点；低于则按新建
+  var MATCH_AUTO = 0.85, MATCH_SUGGEST = 0.6;
+
+  // 在标题里找最像的那张卡。返回 {rec, score} 或 null
+  function bestTaskMatch(title) {
+    var best = null, bs = 0;
+    for (var i = 0; i < S.data.tasks.length; i++) {
+      var sc = similarity(title, txt(S.data.tasks[i][F.t.title]));
+      if (sc > bs) { bs = sc; best = S.data.tasks[i]; }
+    }
+    return bs >= MATCH_SUGGEST ? { rec: best, score: bs } : null;
+  }
+  function bestMachineMatch(name) {
+    var best = null, bs = 0;
+    for (var i = 0; i < S.data.machines.length; i++) {
+      var sc = similarity(name, txt(S.data.machines[i][F.m.name]));
+      if (sc > bs) { bs = sc; best = S.data.machines[i]; }
+    }
+    return bs >= MATCH_SUGGEST ? { rec: best, score: bs } : null;
+  }
+  // 版本号归一化：AI 写 1.5.9 / v1.5.9 / 1.5.9-beta 都要能跟库里的 v1.5.9 对上
+  function verNorm(v) {
+    return String(v == null ? '' : v).replace(/^\s+|\s+$/g, '').replace(/^[vV]/, '').toLowerCase();
+  }
+  // 同步块定位：仓库精确 + 版本归一化比对；都不中就在同仓库里取最近一条
+  function findGhFlexible(repo, ver) {
+    var r = String(repo || '').replace(/^\s+|\s+$/g, '');
+    var v = verNorm(ver);
+    var pool = [], i;
+    for (i = 0; i < S.data.gh.length; i++) {
+      if (txt(S.data.gh[i][F.g.repo]).replace(/^\s+|\s+$/g, '') === r) pool.push(S.data.gh[i]);
+    }
+    if (!pool.length) {
+      // 仓库名也容错一次：大小写 / 去空格后比对
+      var rn = String(r).replace(/\s/g, '').toLowerCase();
+      for (i = 0; i < S.data.gh.length; i++) {
+        if (String(txt(S.data.gh[i][F.g.repo])).replace(/\s/g, '').toLowerCase() === rn) pool.push(S.data.gh[i]);
       }
     }
+    if (!pool.length) return null;
+    if (v) {
+      for (i = 0; i < pool.length; i++) {
+        if (verNorm(pool[i][F.g.versions]).indexOf(v) >= 0 || v.indexOf(verNorm(pool[i][F.g.versions])) >= 0) {
+          return { rec: pool[i], exact: true };
+        }
+      }
+    }
+    // 版本对不上：给该仓库最近一条，让人确认
+    var latest = pool[0], lt = 0;
+    for (i = 0; i < pool.length; i++) {
+      var t = toTime(normDate(pool[i][F.g.time]));
+      if (t >= lt) { lt = t; latest = pool[i]; }
+    }
+    return { rec: latest, exact: false };
+  }
+  // 「建议」：只用于在报错里提示人（不自动采用）。机器不猜，但帮人一眼看出写歪在哪。
+  function machineSuggest(name) {
+    var m = bestMachineMatch(name);
+    return (m && m.score >= 0.5) ? txt(m.rec[F.m.name]) : '';
+  }
+  function taskSuggest(title) {
+    var m = bestTaskMatch(title);
+    return (m && m.score >= 0.5) ? txt(m.rec[F.t.title]) : '';
+  }
+  // 电脑名定位：精确 → 本批新建 → 模糊。返回 {name, kind}
+  // kind: 'exact' 已有 / 'batch' 本批新建 / 'fuzzy' 匹配到已有(改写) / 'new' 需新建
+  function resolveMachine(name, available, batchNew) {
+    var v = String(name || '').replace(/^\s+|\s+$/g, '');
+    if (!v) return null;
+    if (available[v]) return { name: v, kind: 'exact' };
+    if (batchNew[v]) return { name: v, kind: 'batch' };
+    var m = bestMachineMatch(v);
+    if (m && m.score >= MATCH_AUTO) return { name: txt(m.rec[F.m.name]), kind: 'fuzzy', score: m.score, from: v };
+    if (m) return { name: txt(m.rec[F.m.name]), kind: 'fuzzy-suggest', score: m.score, from: v };
+    return { name: v, kind: 'new' };
+  }
+  // 「最近用过的电脑」：AI 完全没写电脑时兜底用这个，而不是直接判废
+  function defaultMachine() {
+    var best = null, bt = -1, i;
+    for (i = 0; i < S.data.tasks.length; i++) {
+      var t = toTime(normDate(S.data.tasks[i][F.t.updated]));
+      if (t > bt) { bt = t; best = txt(S.data.tasks[i][F.t.machine]); }
+    }
+    if (best) return best;
+    var ms = sortedMachines();
+    return ms.length ? txt(ms[0][F.m.name]) : '';
+  }
+
+  // 时间解析：AI 知道自己什么时候做的，允许它写回真实时间（补录历史数据时尤其需要）。
+  // 服务端默认补「当前时间」，写了就用写的。解析不出来 → 返回 null，整块拦下，
+  // 别把非法字符串写进库里（那样卡片会永远显示「—」）。
+  function parseImpTime(s) {
+    var v = String(s == null ? '' : s).replace(/^\s+|\s+$/g, '');
+    if (!v) return '';
+    var t = Date.parse(v);
+    if (isNaN(t)) return null;
+    return new Date(t).toISOString();
+  }
+  // 布尔解析：认 是/否 与 true/false 两类写法，认不出返回 null（按错误处理，不猜）
+  function parseImpBool(s) {
+    var v = String(s == null ? '' : s).replace(/^\s+|\s+$/g, '').toLowerCase();
+    if (v === '是' || v === 'true' || v === '1' || v === 'yes' || v === 'y' || v === '√' || v === '勾') return true;
+    if (v === '否' || v === 'false' || v === '0' || v === 'no' || v === 'n' || v === '×') return false;
+    return null;
+  }
+
+  var IMP_SAMPLE_EMPTY = [
+    '## 电脑（新建）',
+    '机器名：台式机-家',
+    '位置：家',
+    '',
+    '## 任务（新建）',
+    '标题：合并 floorplan 低频工具',
+    '电脑：台式机-家',
+    '进度：paint/fill/sample/split 已合并成多步流程',
+    '',
+    '## 同步（新建）',
+    '仓库：Simiely/ae-tools',
+    '电脑：台式机-家',
+    '版本：v1.5.9',
+    '内容：低频工具合并后补一次同步'
+  ].join('\n');
+
+  var IMP_SAMPLE = [
+    '## 任务（更新）',
+    '编号：<照抄现状里的 #xxx>',
+    '进度：CHANGELOG 与测试文件已同步，等沙箱验证',
+    '待办：',
+    '[x] 版本号对齐 v1.5.8',
+    '[ ] 沙箱验证后推 remote',
+    '',
+    '## 任务（新建）',
+    '标题：合并 floorplan 低频工具',
+    '电脑：台式机-家',
+    '进度：paint/fill/sample/split 已合并成多步流程',
+    '待办：',
+    '[ ] 渲染端与模块源码对齐',
+    '',
+    '## 同步（新建）',
+    '仓库：Simiely/ae-tools',
+    '电脑：台式机-家',
+    '版本：v1.5.9',
+    '内容：低频工具合并后补一次同步',
+    '状态：未同步'
+  ].join('\n');
+
+  // 第一步：纯文本 → 块结构。只管切分，不校验业务含义。
+  function parseImportText(text) {
+    var lines = String(text || '').replace(/\r\n?/g, '\n').split('\n');
+    var items = [], errors = [], cur = null;
+    function flush() { if (cur) { items.push(cur); cur = null; } }
+    for (var i = 0; i < lines.length; i++) {
+      var t = String(lines[i]).replace(/^\s+|\s+$/g, '');
+      if (!t) continue;
+      var mh = t.match(/^#{1,3}\s*(.*)$/);
+      if (mh) {
+        flush();
+        var head = mh[1].replace(/^\s+|\s+$/g, '');
+        // 块头要能认出写的是哪张表 + 是新建还是更新；认不出就单独报错，不猜。
+        // 顺序有讲究：先判「账号」再判「同步」——「账号」块里含「电脑」键但块头不含，
+        // 而「同步」块头里可能出现「仓库」，不能让它抢在「账号」前面。
+        var kind = '';
+        if (/账号|登录/i.test(head)) kind = 'account';
+        else if (/电脑|机器|主机/i.test(head)) kind = 'machine';
+        else if (/同步|仓库|Github|github/i.test(head)) kind = 'gh';
+        else if (/任务|卡片|待办/i.test(head)) kind = 'task';
+        var act = /更新|修改|续写|补充/.test(head) ? 'update' : 'create';
+        if (!kind) {
+          errors.push({ line: i + 1, msg: '认不出这是「任务 / 同步 / 电脑 / 账号」（块头写清楚）', raw: head });
+          continue;
+        }
+        cur = { kind: kind, act: act, fields: {}, todos: [], line: i + 1, head: head };
+        continue;
+      }
+      // 块头之前的游离行：原来直接 `continue` 静默忽略——
+      // 用户写了待办/字段，界面显示「新增 1 条」看起来成功，内容却没了（实测确认）。
+      // 静默丢数据比报错更糟：改成明确报出来。
+      if (!cur) {
+        var isTodo = /^\[(x|X|\s*)\]/.test(t);
+        errors.push({
+          line: i + 1,
+          msg: (isTodo ? '这行待办不在任何块里（前面没有 ## 块头），不会被写入' : '这行不在任何块里（前面没有 ## 块头），不会被写入'),
+          raw: t
+        });
+        continue;
+      }
+      var mt = t.match(/^\[(x|X|\s*)\]\s*(.*)$/);
+      if (mt) { cur.todos.push({ done: /x/i.test(mt[1]), text: mt[2].replace(/^\s+|\s+$/g, '') }); continue; }
+      var mk = t.match(/^([^：:]{1,12})[：:]\s*(.*)$/);
+      if (mk) {
+        cur.fields[String(mk[1]).replace(/^\s+|\s+$/g, '')] = String(mk[2]).replace(/^\s+|\s+$/g, '');
+        continue;
+      }
+      errors.push({ line: i + 1, msg: '这行看不懂（要写成「字段名：值」或 [ ] 待办）', raw: t });
+    }
+    flush();
+    return { items: items, errors: errors };
+  }
+
+  function findTaskByTitle(title) {
+    var k = String(title || '').replace(/^\s+|\s+$/g, '');
+    if (!k) return null;
+    for (var i = 0; i < S.data.tasks.length; i++) {
+      if (txt(S.data.tasks[i][F.t.title]).replace(/^\s+|\s+$/g, '') === k) return S.data.tasks[i];
+    }
+    return null;
+  }
+  function findGhByRepoVer(repo, ver) {
+    var r = String(repo || '').replace(/^\s+|\s+$/g, '');
+    var v = String(ver || '').replace(/^\s+|\s+$/g, '');
+    if (!r) return null;
+    for (var i = 0; i < S.data.gh.length; i++) {
+      var g = S.data.gh[i];
+      if (txt(g[F.g.repo]).replace(/^\s+|\s+$/g, '') !== r) continue;
+      if (v && txt(g[F.g.versions]).indexOf(v) < 0) continue;
+      return g;
+    }
+    return null;
+  }
+
+  function findMachineByName(name) {
+    var k = String(name || '').replace(/^\s+|\s+$/g, '');
+    if (!k) return null;
+    for (var i = 0; i < S.data.machines.length; i++) {
+      if (txt(S.data.machines[i][F.m.name]).replace(/^\s+|\s+$/g, '') === k) return S.data.machines[i];
+    }
+    return null;
+  }
+
+  // 第二步：块结构 → 可执行的变更计划。定位、补全默认值、校验都在这里，
+  // 出错的块单独标 err，不影响其它块（批量导入最怕一处错整批废掉）。
+  function buildImportPlan(parsed) {
+    var plan = [], keys, i, k;
+    var machineNames = {};
+    for (i = 0; i < S.data.machines.length; i++) machineNames[txt(S.data.machines[i][F.m.name])] = 1;
+    // 本批要新建的电脑名：计划是一次性构建的，后面若出现「改这台电脑」的块，
+    // 目标此刻还不存在，需要给出可操作的提示而不是干巴巴的「找不到」。
+    var batchNewMachines = {};
+    for (i = 0; i < parsed.items.length; i++) {
+      if (parsed.items[i].kind === 'machine' && parsed.items[i].act === 'create') {
+        var bn = String(parsed.items[i].fields['机器名'] || parsed.items[i].fields['电脑'] || '').replace(/^\s+|\s+$/g, '');
+        if (bn) batchNewMachines[bn] = 1;
+      }
+    }
+    // 校验口径 = 库里已有的 ∪ 本批要新建的。
+    // 少了后半截，空库首次导入时任务/账号/同步块会全部因「电脑没登记过」被拦下，
+    // 只剩电脑块自己成功（表现：提示「成功 1 条」，其余全废）。
+    var availableMachines = {};
+    for (k in machineNames) availableMachines[k] = 1;
+    for (k in batchNewMachines) availableMachines[k] = 1;
+    // 本批新建/改名的任务标题。计划是一次性构建的，本批新建的卡此刻还没落库，
+    // 后面的「更新」块引用它必然找不到——与空库电脑死锁是同一类问题。
+    var batchTaskTitles = {};
+    for (i = 0; i < parsed.items.length; i++) {
+      if (parsed.items[i].kind !== 'task') continue;
+      var bt = String(parsed.items[i].fields['标题'] || parsed.items[i].fields['新标题'] || '').replace(/^\s+|\s+$/g, '');
+      // 只记第一次出现的行号：记最后一次的话，同名的第二块查到自己（line 不小于自己），
+      // 判断恒为 false，查重就失效了（实测确认：两块同名仍报「新增 2 条」）
+      if (bt && !batchTaskTitles[bt]) batchTaskTitles[bt] = parsed.items[i].line;
+    }
+    // 报错时列哪些名字：只列库里已有的（本批新建的还没落库，列出来像已存在会误导）。
+    // 一个都没有时给可操作的引导，而不是「可用：」后面空着。
+    var knownList = Object.keys(machineNames).join('、');
+    // 报错要「可执行」：只说「写个电脑块」没用——用户/AI 不知道那块长什么样。
+    // 直接给出可照抄的模板。
+    function machineHint(name) {
+      if (knownList) return '电脑「' + name + '」没登记过（可用：' + knownList + '）';
+      return '电脑「' + name + '」没登记过——库里还没有任何电脑。'
+        + '请在文本最前面补：## 电脑（新建）→ 机器名：' + name + '（位置：可留空），再写任务/同步块';
+    }
+    // 缺「电脑」键时的引导，同理给模板
+    function machineMissingHint() {
+      if (knownList) return '缺「电脑」（可用：' + knownList + '）';
+      return '缺「电脑」——库里还没有任何电脑，请先写「## 电脑（新建）」块：机器名：<电脑名>（位置：可留空）';
+    }
+
+    for (i = 0; i < parsed.items.length; i++) {
+      var it = parsed.items[i];
+      keys = IMP_KEYS[it.kind];
+      var p = { kind: it.kind, act: it.act, line: it.line, props: {}, todos: it.todos,
+                err: null, target: null, label: '', newTitle: '', notes: [] };
+      var unknown = [];
+      for (k in it.fields) {
+        var val = it.fields[k];
+        if (k in keys) {
+          if (keys[k] === '__newTitle') { p.newTitle = val; continue; }
+          if (keys[k] === '__newName') { p.newName = val; continue; }
+          if (keys[k] === '__id') { p.impId = String(val).replace(/^#/, '').replace(/^\s+|\s+$/g, ''); continue; }
+          if (keys[k] === '__todos') continue; // 真正的待办在 it.todos 里，这里的值只是空标记
+          p.props[keys[k]] = val;
+          continue;
+        }
+        // 「时间」是块类型相关的：任务→更新时间，同步→同步时间。AI 只写「时间：」这一个词
+        if (k === '时间' || k === '更新时间' || k === '同步时间') {
+          var tf = IMP_TIME[it.kind];
+          if (!tf) { unknown.push(k); continue; }
+          var tv = parseImpTime(val);
+          if (tv === null) { p.err = '「时间」看不懂：' + val + '（写成 2026-11-02 或 2026-11-02 14:30）'; break; }
+          if (tv) p.props[tf] = tv;
+          continue;
+        }
+        var bmap = IMP_BOOL[it.kind] || {};
+        if (k in bmap) {
+          var bv = parseImpBool(val);
+          if (bv === null) { p.err = '「' + k + '」只能填 是 / 否，这里写的是：' + val; break; }
+          p.props[bmap[k]] = bv;
+          continue;
+        }
+        unknown.push(k);
+      }
+      if (p.err) { plan.push(p); continue; }
+      // 同步记录没有「更新」。必须在「认不出的字段」之前拦：
+      // 否则写「## 同步（更新）」+ 任意字段，都会被报成字段名不认识，
+      // 用户会一直改字段名而不知道真正的问题是动作写错了
+      if (it.kind === 'gh' && it.act === 'update') {
+        p.err = '同步记录不支持「更新」——一次同步 = 一个版本的一条记录，只能写「## 同步（新建）」';
+        plan.push(p); continue;
+      }
+      if (unknown.length) {
+        // 只说「认不出」不够，要顺带给出这个块能写哪些键，否则用户只能猜
+        var canUse = [];
+        for (var uk in IMP_KEYS[it.kind]) if (IMP_KEYS[it.kind][uk].indexOf('__') !== 0) canUse.push(uk);
+        for (var ub in (IMP_BOOL[it.kind] || {})) canUse.push(ub);
+        if (IMP_TIME[it.kind]) canUse.push('时间');
+        p.err = '认不出的字段：' + unknown.join('、') + '——这个块能写的键只有：' + canUse.join('、');
+        plan.push(p); continue;
+      }
+
+      // ── 枚举：严格校验。认不出就报错，但用容错表给出「是不是想写 X」的建议 —— 
+      // 建议只给人看，机器不擅自采用。
+      for (k in p.props) {
+        if (!IMP_ENUMS[k] || p.props[k] === '' || p.props[k] == null) continue;
+        if (IMP_ENUMS[k].indexOf(p.props[k]) >= 0) continue;
+        var guess = resolveEnum(k, p.props[k]);
+        p.err = k + '只能填 ' + IMP_ENUMS[k].join(' / ') + '，这里写的是「' + p.props[k] + '」' +
+          (guess ? '——是不是想写 ' + guess + '？' : '');
+        break;
+      }
+      if (p.err) { plan.push(p); continue; }
+
+      if (it.kind === 'machine') {
+        var mname = p.props['机器名'] || '';
+        if (!mname) { p.err = '缺「机器名」'; plan.push(p); continue; }
+        if (it.act === 'update') {
+          p.target = findMachineByName(mname);
+          if (!p.target && batchNewMachines[mname]) {
+            // 本批新建过这台电脑 → 合并成一次新建（等价于「改名后建」），不判废
+            p.target = null; p.act = 'create'; p.label = p.newName || mname;
+            if (p.newName) { p.props['机器名'] = p.newName; p.newName = ''; }
+          } else if (!p.target) {
+            var ms0 = machineSuggest(mname);
+            p.err = '找不到电脑「' + mname + '」' + (ms0 ? '（是不是想写 ' + ms0 + '？）'
+              : (knownList ? '（可用：' + knownList + '）' : '——库里还没有任何电脑，请先写一个「## 电脑（新建）」块登记'));
+            plan.push(p); continue;
+          } else {
+            p.label = mname;
+          }
+          if (p.act === 'update') {
+            if (p.newName) p.props['机器名'] = p.newName;
+            else delete p.props['机器名'];
+          }
+        } else {
+          if (machineNames[mname]) { p.err = '电脑「' + mname + '」已经存在，要改它请写「（更新）」'; plan.push(p); continue; }
+          p.label = mname;
+        }
+      } else if (it.kind === 'account') {
+        var aname = p.props['账号名'] || '';
+        if (!aname) { p.err = '缺「账号名」'; plan.push(p); continue; }
+        if (!p.props['平台']) { p.err = '缺「平台」（只能填 WorkBuddy / TRAE）'; plan.push(p); continue; }
+        if (!p.props['所属电脑']) { p.err = '缺「电脑」'; plan.push(p); continue; }
+        if (!availableMachines[String(p.props['所属电脑']).replace(/^\s+|\s+$/g, '')]) {
+          var as0 = machineSuggest(p.props['所属电脑']);
+          p.err = '电脑「' + p.props['所属电脑'] + '」没登记过' + (as0 ? '（是不是想写 ' + as0 + '？）'
+            : (knownList ? '（可用：' + knownList + '）' : '——请先写一个「## 电脑（新建）」块登记'));
+          plan.push(p); continue;
+        }
+        if (it.act === 'update') {
+          p.err = '账号只支持新建登记（改名是全局的、解绑只删本机那条，请在账号面板里操作）';
+          plan.push(p); continue;
+        }
+        p.label = aname + '（' + p.props['平台'] + ' · ' + p.props['所属电脑'] + '）';
+      } else if (it.kind === 'task') {
+        var title = p.props['任务标题'] || '';
+        if (!title && !(it.act === 'update' && p.impId)) {
+          p.err = '缺「标题」（新建要写标题；更新可用「编号」或「标题」定位）';
+          plan.push(p); continue;
+        }
+        // 注意：不能在这里 delete 标题——新建块还要靠它入库。
+        // 更新块的「定位用标题」在下面 update 分支里单独删。
+        if (it.act === 'update') {
+          // 编号优先：它是短数字，不会抄错；标题只在没编号时才用
+          if (p.impId) {
+            p.target = findTaskByOutlineId(p.impId);
+            if (!p.target) {
+              p.err = '编号 #' + p.impId + ' 对不上任何任务（编号是卡片 id，请照抄现状里的 #xxx，不要自己编）';
+              plan.push(p); continue;
+            }
+            p.label = txt(p.target[F.t.title]);
+          } else {
+            p.target = findTaskByTitle(title);
+          }
+          if (!p.target && !p.err) {
+            var ts0 = taskSuggest(title);
+            p.err = '找不到标题为「' + title + '」的任务' + (ts0 ? '（是不是想写「' + ts0 + '」？标题要一字不差）'
+              : (batchTaskTitles[title]
+                 ? '——这是本批第 ' + batchTaskTitles[title] + ' 行新建的卡，此刻还没落库。'
+                   + '请把两块合并成一个「（新建）」块，或分成两次导入'
+                 : '——上面现状里没有它，要新建请写「（新建）」'));
+            plan.push(p); continue;
+          }
+          // 用编号定位时 label 已由目标卡的标题填好（此时 title 是空的），别用空串覆盖掉
+          if (!p.impId) p.label = title;
+          if (p.newTitle) p.props['任务标题'] = p.newTitle;
+          else delete p.props['任务标题'];
+        } else {
+          if (!title) { p.err = '缺「标题」'; plan.push(p); continue; }
+          if (findTaskByTitle(title)) { p.err = '已经有同名任务「' + title + '」了，要续写请写「（更新）」'; plan.push(p); continue; }
+          // 本批内也要查重：只查库里的话，同批写两块同名「新建」会造出两张重名卡
+          // （库里重名被拦、本批重名不拦，两条路径行为不一致）。实测确认。
+          if (batchTaskTitles[title] && batchTaskTitles[title] < it.line) {
+            p.err = '本批第 ' + batchTaskTitles[title] + ' 行已经新建了同名任务「' + title + '」——'
+              + '要分两张卡请改个标题，要续写请合并成一个块';
+            plan.push(p); continue;
+          }
+          if (!p.props['状态']) p.props['状态'] = IMP_DEFAULTS['状态'];
+          if (!p.props['优先级']) p.props['优先级'] = IMP_DEFAULTS['优先级'];
+          p.label = title;
+        }
+        if ('所在电脑' in p.props && p.props['所在电脑']) {
+          if (!availableMachines[String(p.props['所在电脑']).replace(/^\s+|\s+$/g, '')]) {
+            var ts1 = machineSuggest(p.props['所在电脑']);
+            p.err = '电脑「' + p.props['所在电脑'] + '」没登记过' + (ts1 ? '（是不是想写 ' + ts1 + '？）'
+              : (knownList ? '（可用：' + knownList + '）' : '——请先写一个「## 电脑（新建）」块登记'));
+            plan.push(p); continue;
+          }
+        } else if (it.act === 'create') {
+          p.err = knownList ? '缺「电脑」（可用：' + knownList + '）'
+            : machineMissingHint();
+          plan.push(p); continue;
+        }
+      } else {
+        var repo = p.props['仓库'] || '';
+        if (!repo) { p.err = '缺「仓库」'; plan.push(p); continue; }
+        if (it.act === 'update') {
+          var fg = findGhFlexible(repo, p.props['同步版本']);
+          if (!fg) {
+            p.err = '找不到这个仓库' + (p.props['同步版本'] ? '下版本为 ' + p.props['同步版本'] + ' 的' : '的') + '同步记录';
+            plan.push(p); continue;
+          }
+          if (!fg.exact) {
+            p.err = '这个仓库下没有版本为 ' + p.props['同步版本'] + ' 的记录（最近一条是 ' +
+              (txt(fg.rec[F.g.versions]) || '—') + '）——版本要能对上';
+            plan.push(p); continue;
+          }
+          p.target = fg.rec;
+          p.label = repo + (p.props['同步版本'] ? ' ' + p.props['同步版本'] : '');
+        } else {
+          p.label = repo + (p.props['同步版本'] ? ' ' + p.props['同步版本'] : '');
+          // 同仓库 + 同版本 已有记录：按「一份同步 = 一个版本的一次同步」这属重复。
+          // 服务端不校验会照写（造出两条一模一样的），这里给提示但不硬拦——
+          // 补录两个分支的同版本号是合理场景，由人判断。
+          if (p.props['同步版本']) {
+            var dupGh = findGhFlexible(repo, p.props['同步版本']);
+            if (dupGh && dupGh.exact) {
+              p.notes.push('⚠ 这个仓库下已经有版本为 ' + p.props['同步版本'] + ' 的同步记录了，'
+                + '再写一条会是重复的——确认是补录吗？');
+            }
+          }
+          if (!p.props['是否同步']) p.props['是否同步'] = IMP_DEFAULTS['是否同步'];
+          if (!p.props['电脑']) { p.err = '缺「电脑」'; plan.push(p); continue; }
+          if (!availableMachines[String(p.props['电脑']).replace(/^\s+|\s+$/g, '')]) {
+            var gs0 = machineSuggest(p.props['电脑']);
+            p.err = '电脑「' + p.props['电脑'] + '」没登记过' + (gs0 ? '（是不是想写 ' + gs0 + '？）'
+              : (knownList ? '（可用：' + knownList + '）' : '——请先写一个「## 电脑（新建）」块登记'));
+            plan.push(p); continue;
+          }
+        }
+      }
+
+      // 更新块不能没有东西可改，否则白写一次库
+      if (!p.err && it.act === 'update' && !Object.keys(p.props).length && !p.newTitle && !p.newName && !it.todos.length) {
+        p.err = '这个（更新）块没写任何要改的字段';
+      }
+      plan.push(p);
+    }
+    return plan;
+  }
+
+  var IMP_KIND_LABEL = { task: '任务', gh: '同步记录', machine: '电脑', account: '账号' };
+  // 预览里「改了什么」的显示格式：日期截到分钟，布尔转成 是/否，
+  // 否则扔一长串 ISO 给用户看，等于没说。
+  function impFieldLabel(k, v) {
+    if (v === true) return k + '=是';
+    if (v === false) return k + '=否';
+    if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v)) {
+      return k + '=' + v.slice(0, 16).replace('T', ' ');
+    }
+    return k;
+  }
+
+  // 待办合并：更新语义是「按原文匹配已有项改勾选，匹配不上就追加」——
+  // AI 续写时只会写自己刚做完的那几条，不该让它把整份待办列表重新抄一遍。
+  function mergeTodos(oldText, incoming) {
+    var exist = parseTodos(oldText);
+    for (var i = 0; i < incoming.length; i++) {
+      var inc = incoming[i], hit = false;
+      for (var j = 0; j < exist.length; j++) {
+        if (exist[j].text === inc.text) { exist[j].done = inc.done; hit = true; break; }
+      }
+      if (!hit) exist.push({ done: inc.done, text: inc.text });
+    }
+    var out = [];
+    for (var k = 0; k < exist.length; k++) out.push((exist[k].done ? '[x] ' : '[ ] ') + exist[k].text);
+    return out.join('\n');
+  }
+
+  // 第三步：执行。串行写，一条失败不中断整批，最后汇总成功/失败数。
+  function applyImportPlan(plan, done) {
+    var ok = 0, fail = 0, failed = [];
+    var queue = [];
+    for (var i = 0; i < plan.length; i++) if (!plan[i].err) queue.push(plan[i]);
+    // 电脑块排到最前面落库：AI 可能把「## 电脑（新建）」写在任务之后，
+    // 而任务/账号/同步都要引用电脑名。服务端不校验跨表引用（能写进去），
+    // 但顺序反了会让这批记录短暂落在「未识别电脑」列——重排一次就省掉这个中间态。
+    queue.sort(function (a, b) {
+      var am = a.kind === 'machine' ? 0 : 1, bm = b.kind === 'machine' ? 0 : 1;
+      return am - bm;
+    });
+    if (!queue.length) { done(0, 0, []); return; }
+    var idx = 0;
+    function step() {
+      if (idx >= queue.length) { done(ok, fail, failed); return; }
+      var p = queue[idx++];
+      var props = {};
+      for (var k in p.props) props[k] = p.props[k];
+      if (p.kind === 'task' && p.todos.length) {
+        props[F.t.todos] = p.act === 'update' && p.target
+          ? mergeTodos(p.target[F.t.todos], p.todos)
+          : p.todos.map(function (x) { return (x.done ? '[x] ' : '[ ] ') + x.text; }).join('\n');
+      }
+      // kind 是块类型（task/gh/machine/account），Repo 上挂的是表名
+      // （tasks/github/machines/accounts）——别写混，否则 Repo[undefined] 直接抛错，整批静默不写。
+      var table = p.kind === 'task' ? Repo.tasks
+                : p.kind === 'gh' ? Repo.github
+                : p.kind === 'machine' ? Repo.machines
+                : Repo.accounts;
+      var req = p.act === 'update'
+        ? table.update(p.target._id, props)
+        : table.create(props);
+      req.then(function () { ok++; step(); })
+         .catch(function (e) {
+           fail++; failed.push(p.label + '：' + (e && e.message ? e.message : '写入失败'));
+           step();
+         });
+    }
+    step();
+  }
+
+  // 任务在「现状骨架」里的编号顺序。骨架按电脑分组输出，组内保持数据顺序，孤儿排最后。
+  // 编号定位依赖这个顺序——两边必须用同一个函数，不能各写一份遍历。
+  function outlineTaskOrder() {
+    var out = [], i, k;
+    var ms = sortedMachines();
+    for (i = 0; i < ms.length; i++) {
+      var mn = txt(ms[i][F.m.name]);
+      for (k = 0; k < S.data.tasks.length; k++) {
+        if (txt(S.data.tasks[k][F.t.machine]) === mn) out.push(S.data.tasks[k]);
+      }
+    }
+    var known = {};
+    for (i = 0; i < ms.length; i++) known[txt(ms[i][F.m.name])] = 1;
+    for (i = 0; i < S.data.tasks.length; i++) {
+      if (!known[txt(S.data.tasks[i][F.t.machine])]) out.push(S.data.tasks[i]);
+    }
+    return out;
+  }
+  // 「编号：<id>」→ 那张卡。用记录自身的 _id，不用位置序号——
+  // 位置序号会随任何增/删/改顺序而位移：复制提示词后又加了一张卡，
+  // 原来的 #1 就不再是那张卡了，导入会静默写错目标（实测已复现）。
+  // _id 是稳定的，卡片被删则直接报「找不到」，也不会误写别人。
+  function taskOutlineId(t) {
+    var id = t && (t._id || t.id);
+    return id ? String(id) : '';
+  }
+  function findTaskByOutlineId(id) {
+    var key = String(id || '').replace(/^#/, '').replace(/^\s+|\s+$/g, '');
+    if (!key) return null;
+    for (var i = 0; i < S.data.tasks.length; i++) {
+      if (taskOutlineId(S.data.tasks[i]) === key) return S.data.tasks[i];
+    }
+    return null;
+  }
+
+  /* ── 工作台现状骨架 ──
+     提示词里带这个，AI 才知道哪些卡片已经存在（该续写）、哪些没有（该新建）。
+     取舍：给得越多 AI 判断越准，但提示词越长越稀释格式说明。原则是——
+     「该续写哪张卡」必需的信息都给（待办原文、更新时间、目录、账号池、电脑登录态），
+     「这张卡做过什么」的细节不给（进度全文、交接内容）。
+     待办原文只给进行中的任务（已完成的不需要续写），每条最多 5 条。 */
+  function wbOutline() {
+    var L = [], i, k;
+    var ms = sortedMachines();
+    var impSeq = 0;
+
+    // ── 电脑 + 登录态 ──
+    L.push('电脑（' + ms.length + ' 台）：');
+    if (!ms.length) {
+      L.push('  （还没登记任何电脑——「电脑」无从填写，请先写「## 电脑（新建）」块登记）');
+    }
+    for (i = 0; i < ms.length; i++) {
+      var m = ms[i];
+      L.push('  · ' + txt(m[F.m.name]) + (txt(m[F.m.place]) ? '（' + txt(m[F.m.place]) + '）' : '') +
+        ' ｜ WB:' + (txt(m[F.m.wb]) || '未登录') + ' / TRAE:' + (txt(m[F.m.trae]) || '未登录'));
+    }
+
+    // ── 账号池 ──
+    // 语义必须分开：这里的 WB/TRAE 是「机器登录态」的登录账号，
+    // 而同步块的「账号」落到的是 GitHub 账号，两者不是一回事。
+    // 旧文案写「同步记录的「账号」从这些里选」，AI 会把 WB-主号 填进 GitHub 账号列——
+    // 实测库里 GitHub账号 全是 Simiely，属素材与程序不符（写脏数据）。
+    var pool = { WorkBuddy: [], TRAE: [] };
+    for (i = 0; i < S.data.accounts.length; i++) {
+      var a = S.data.accounts[i], pl = txt(a[F.a.plat]), nm = txt(a[F.a.name]);
+      if (pool[pl] && nm && pool[pl].indexOf(nm) < 0) pool[pl].push(nm);
+    }
+    var ghAcc = [], ghSeen = {};
+    for (i = 0; i < S.data.gh.length; i++) {
+      var ga = txt(S.data.gh[i][F.g.acc]);
+      if (ga && !ghSeen[ga]) { ghSeen[ga] = 1; ghAcc.push(ga); }
+    }
     L.push('');
-    for (var i = 0; i < AI_CONTRACT.dbs.length; i++) {
-      var db = AI_CONTRACT.dbs[i];
-      L.push('## ' + db.name + '（db: ' + db.id + '）');
-      L.push('| 字段 | 类型 | 必填 | 说明 |');
-      L.push('| --- | --- | --- | --- |');
-      for (var j = 0; j < db.fields.length; j++) {
-        var f = db.fields[j];
-        L.push('| ' + f.n + ' | ' + f.t + ' | ' + (f.req ? '是' : '否') + ' | ' + f.d + (f.en ? '（取值：' + f.en + '）' : '') + ' |');
+    L.push('机器登录账号（WB/TRAE，只用于机器登录态，不要填进同步记录）：WorkBuddy → ' +
+      (pool.WorkBuddy.length ? pool.WorkBuddy.join('、') : '（无）') + '；TRAE → ' +
+      (pool.TRAE.length ? pool.TRAE.join('、') : '（无）'));
+    L.push('GitHub 账号（同步记录的「账号」只能从这些里选）：' +
+      (ghAcc.length ? ghAcc.join('、') : '（库里还没有同步记录，无从推断）'));
+
+    // ── 任务 ──
+    L.push('');
+    if (!S.data.tasks.length) {
+      L.push('已有任务：0 条（看板是空的，全部走「新建」）');
+    } else {
+      var nDoing = 0, nDone = 0;
+      for (i = 0; i < S.data.tasks.length; i++) {
+        if (txt(S.data.tasks[i][F.t.status]) === ST_DONE) nDone++; else nDoing++;
+      }
+      L.push('已有任务 ' + S.data.tasks.length + ' 条（进行中 ' + nDoing + ' / 已完成 ' + nDone + '）：');
+
+      function taskBlock(t, indent) {
+        var st = todoStat(t);
+        var isDone = txt(t[F.t.status]) === ST_DONE;
+        // #<id> 是给 AI 定位用的稳定编号——标题是长中文，AI 抄必错；
+        // 用记录 id 而非位置序号，复制提示词后数据再变动也不会指错卡
+        var head = indent + '· #' + (taskOutlineId(t) || ('i' + (++impSeq))) + ' ' + txt(t[F.t.title]) +
+          ' ｜ ' + txt(t[F.t.status]) + ' ' + txt(t[F.t.prio]);
+        var ut = toTime(normDate(t[F.t.updated]));
+        head += ut ? ' ｜ ' + rel(t[F.t.updated]) + '更新' : ' ｜ 无更新时间';
+        // 「久未动」= 进行中且超过 7 天没更新：AI 该优先续写这些
+        if (isStale(t)) head += ' ⚠久未动';
+        L.push(head);
+        var dir = txt(t[F.t.dir]);
+        if (dir) L.push(indent + '  目录：' + dir);
+        // 待办原文对所有卡都给（含已完成的）：更新块靠原文匹配改勾选，
+        // 看不到原文 AI 只能凭印象写，措辞一变就追加出重复项——这与 1.6.1 修的是同一类问题，
+        // 当初为控长度只给「进行中」，等于把隐患留在了已完成的卡上。
+        if (st.total) {
+          L.push(indent + '  待办 ' + st.done + '/' + st.total + '：');
+          var cap = Math.min(st.list.length, 5);
+          for (var q = 0; q < cap; q++) {
+            L.push(indent + '    ' + (st.list[q].done ? '[x] ' : '[ ] ') + st.list[q].text);
+          }
+          if (st.list.length > cap) L.push(indent + '    （还有 ' + (st.list.length - cap) + ' 条未列出）');
+        } else {
+          L.push(indent + '  （没有待办清单）');
+        }
+      }
+
+      for (i = 0; i < ms.length; i++) {
+        var mn = txt(ms[i][F.m.name]);
+        var mine = [];
+        for (k = 0; k < S.data.tasks.length; k++) {
+          if (txt(S.data.tasks[k][F.t.machine]) === mn) mine.push(S.data.tasks[k]);
+        }
+        if (!mine.length) continue;
+        L.push('[' + mn + ']');
+        for (k = 0; k < mine.length; k++) taskBlock(mine[k], '  ');
+      }
+      var known = {};
+      for (i = 0; i < ms.length; i++) known[txt(ms[i][F.m.name])] = 1;
+      var orph = [];
+      for (i = 0; i < S.data.tasks.length; i++) {
+        if (!known[txt(S.data.tasks[i][F.t.machine])]) orph.push(S.data.tasks[i]);
+      }
+      if (orph.length) {
+        L.push('[未识别电脑]');
+        for (i = 0; i < orph.length; i++) {
+          // 带上任务原本写的电脑名：AI 才知道该建议新建哪台电脑来归位
+          L.push('  · ' + txt(orph[i][F.t.title]) + '（所在电脑写的是「' +
+            txt(orph[i][F.t.machine]) + '」，没登记过——可写「## 电脑（新建）」补登记让它归位）');
+        }
+      }
+    }
+
+    // ── 仓库 ──
+    L.push('');
+    var groups = ghRepoGroups(1); // 全量口径：不受当前搜索 / 机器筛选影响
+    if (!groups.length) {
+      L.push('GitHub 仓库：0 个');
+    } else {
+      L.push('GitHub 仓库 ' + groups.length + ' 个：');
+      for (i = 0; i < groups.length; i++) {
+        var g = groups[i], un = 0;
+        for (k = 0; k < g.records.length; k++) {
+          if (txt(g.records[k][F.g.result]) === '未同步') un++;
+        }
+        var tail = [];
+        tail.push(g.records.length + ' 条');
+        tail.push('最近 ' + g.versions.slice(0, 3).join('/') + (g.versions.length > 3 ? '…' : ''));
+        if (un) tail.push(un + ' 条未同步');
+        if (g.pinned) tail.push('已置顶');
+        if (g.archived) tail.push('已归档');
+        if (g.machines.length) tail.push('电脑：' + g.machines.join('、'));
+        L.push('  · ' + g.name + '（' + tail.join('，') + '）');
+      }
+    }
+    return L.join('\n');
+  }
+
+  // 提示词：给 AI 的完整说明（现状骨架 + 输出格式 + 取值 + 规则）
+  // 每张卡片的字段规范：「写这个键 → 落到哪一列 → 何时必填 → 取值要求」。
+  // 这是提示词的核心——AI 照着填就不会错，错了也能自己对照发现。
+  // 只保留两种卡片：任务看板、GitHub 同步看板（电脑/账号是辅助，不在主线里）。
+  function impCardSpec() {
+    var ms = sortedMachines(), i;
+    var mnames = [];
+    for (i = 0; i < ms.length; i++) mnames.push(txt(ms[i][F.m.name]));
+    var empty = !mnames.length;          // 库里一台电脑都没有
+    var mlist = mnames.length ? mnames.join(' / ') : '（库里还没有电脑，必须先用下面的「电脑」块登记）';
+    var nTask = outlineTaskOrder().length;
+
+    var specs = [];
+    // 空库时把「电脑」块排在最前面并标注为前置——否则形成死锁：
+    // 任务/同步都要求电脑已登记，报错让人「写个电脑块」，但提示词里没教怎么写。
+    if (empty) {
+      specs.push({
+        head: '电脑（新建）　【前置：库里没有电脑时必须先写】',
+        to: '机器登录态（machines）',
+        locate: '放在整段文本的最前面，先于所有任务/同步块',
+        fields: [
+          ['机器名', '机器名', '必填', '电脑的名字。任务/同步块里写的「电脑」必须在这里登记过'],
+          ['位置', '位置', '可选', '如：家 / 随身 / 客厅']
+        ]
+      });
+    }
+    return specs.concat([
+      {
+        head: '任务（新建） 或 任务（更新）',
+        to: '任务看板（tasks）',
+        locate: '（更新）用「编号」或「标题」定位已有卡片，二者选其一',
+        fields: [
+          ['编号', '（只用于定位，不入库）', '更新时 二选一',
+           '照抄现状里任务行开头的 #xxx（那是卡片 id，稳定不变）。如：编号：'
+           + (nTask ? taskOutlineId(outlineTaskOrder()[0]) : 'xxxxxxxx')
+           + '。不要用数字序号——序号会随增删变动'],
+          ['标题', '任务标题', '新建必填；更新时与「编号」二选一',
+           '新建：不能与已有任务重名。更新：必须与现状里的标题一字不差，'
+           + '（建议改用「编号」，标题太长容易抄错）'],
+          ['电脑', '所在电脑', '新建必填；更新可选',
+           '只能是：' + mlist],
+          ['进度', '进度', '每次都写',
+           '一句话，说清本次做了什么。这是卡片上唯一显示进展的地方'],
+          ['待办', '待办', '可选',
+           '多行，行首必须是 [x]（已完成）或 [ ]（未完成）。'
+           + '更新时会按原文匹配已有项改勾选，匹配不上则追加——'
+           + '所以请照抄现状里的待办原文，不要改写措辞'],
+          ['交接', '交接内容', '可选', '下一步要注意什么 / 回滚点'],
+          ['目录', '目录', '可选', '项目路径'],
+          ['状态', '状态', '可选（不写默认 进行中）', '只能是 进行中 / 已完成'],
+          ['优先级', '优先级', '可选（不写默认 P1）', '只能是 P0 / P1 / P2'],
+          ['时间', '更新时间', '可选（不写默认此刻）', '2026-11-02 或 2026-11-02 14:30']
+        ]
+      },
+      {
+        head: '同步（新建）',
+        to: 'GitHub 同步看板（github）',
+        locate: '同步记录每次都是新增一条，没有「更新」',
+        fields: [
+          ['仓库', '仓库', '必填', '形如 Simiely/ae-tools，与现状里的仓库名一致'],
+          ['电脑', '电脑', '必填', '只能是：' + mlist],
+          ['版本', '同步版本', '每次都写', '形如 v1.5.9。一份同步 = 一个版本的一次同步'],
+          ['内容', '内容', '必填', '一句话，这次同步了什么'],
+          ['状态', '是否同步', '可选（不写默认 已同步）', '只能是 已同步 / 未同步'],
+          ['账号', 'GitHub账号', '可选',
+           '只能是 GitHub 账号名（如现状「GitHub 账号」列出的那些）。'
+           + '不要填 WB/TRAE 登录账号——那是机器登录态用的，不是 GitHub 账号'],
+          ['时间', '同步时间', '可选（不写默认此刻）', '2026-11-02 或 2026-11-02 14:30'],
+          ['归档', '仓库归档', '可选', '是 / 否。仓库级属性，勾上则整个仓库归档'],
+          ['置顶', '仓库置顶', '可选', '是 / 否。仓库级属性，勾上则整个仓库置顶']
+        ]
+      }
+    ]);
+  }
+
+  function importPromptText() {
+    var L = [], i, j;
+    L.push('# Agent 工作台 · 批量导入');
+    L.push('');
+    L.push('你在给一个「Agent 工作台」写一段长文本，工作台会把每个块解析成一张卡片。');
+    L.push('只输出文本本身，不要解释、不要代码块之外的闲话。');
+    L.push('');
+    L.push('## 一、工作台现状（决定你该新建还是续写）');
+    L.push('');
+    L.push(wbOutline());
+    L.push('');
+    L.push('判断规则：');
+    L.push('- 上面现状里已经有的任务 → 写「## 任务（更新）」，用「编号：#xxx」定位（照抄卡片 id，最稳）');
+    L.push('- 上面没有的工作 → 写「## 任务（新建）」');
+    L.push('- 同步记录每次都是新增一条 → 一律写「## 同步（新建）」');
+    if (!sortedMachines().length) {
+      L.push('- **库里还没有任何电脑**：必须在最前面先写「## 电脑（新建）」块登记，'
+        + '否则后面的任务/同步块都会因为「电脑没登记过」被拦下');
+    }
+    L.push('');
+    L.push('## 二、两种卡片的格式');
+    L.push('');
+    L.push('块头决定写到哪张看板，块内的「键：值」决定写到哪一列。');
+    L.push('');
+    L.push('```');
+    L.push(sortedMachines().length ? IMP_SAMPLE : IMP_SAMPLE_EMPTY);
+    L.push('```');
+    L.push('');
+    L.push('## 三、字段规范（照着填就不会错）');
+    L.push('');
+    var specs = impCardSpec();
+    for (i = 0; i < specs.length; i++) {
+      var sp = specs[i];
+      L.push('### 卡片：' + sp.head);
+      L.push('写入看板：' + sp.to);
+      L.push('定位方式：' + sp.locate);
+      L.push('');
+      for (j = 0; j < sp.fields.length; j++) {
+        var f = sp.fields[j];
+        L.push('- 写 `' + f[0] + '：` → 落到「' + f[1] + '」');
+        L.push('  什么时候填：' + f[2]);
+        L.push('  要求：' + f[3]);
       }
       L.push('');
     }
-    L.push('## 写入约定');
-    for (var k = 0; k < AI_CONTRACT.rules.length; k++) L.push('- ' + AI_CONTRACT.rules[k]);
+    L.push('## 四、硬性规则（违反会被拦下）');
     L.push('');
-    L.push('## 示例 payload');
-    L.push('```json');
-    L.push(JSON.stringify(aiExample(), null, 2));
-    L.push('```');
+    for (i = 0; i < AI_CONTRACT.rules.length; i++) L.push('- ' + AI_CONTRACT.rules[i]);
     return L.join('\n');
   }
+
+
+  function aiMarkdown() { return importPromptText(); }
+
   function renderAiGuide() {
     var ms = sortedMachines();
     if (!S.ui.aiMachine && ms.length) setUi('aiMachine', txt(ms[0][F.m.name]));
-    var h = '';
-    h += '<div class="ai-sec ai-sec-pick"><h4>① 先定电脑<span class="dbid">AI 不知道你的机器叫什么</span></h4>' +
-      '<div class="ai-pick"><select id="aiMachine">' + aiMachineOptions() + '</select>' +
-      '</div>' +
+    var h = '', i, j;
+    // ① 「怎么用」是唯一在手机上默认可见的块（CSS：#aiDrawer .ai-sec:not(.ai-sec-pick) 隐藏其余）
+    h += '<div class="ai-sec ai-sec-pick"><h4>① 怎么用<span class="dbid">复制 → AI 写 → 粘贴</span></h4>' +
+      '<ol class="ai-note" style="margin:0 0 10px 18px;padding:0">' +
+      '<li>点底部「复制提示词」——里面带着工作台现状（有哪些电脑 / 任务 / 仓库）</li>' +
+      '<li>粘给 AI，它就知道该新建卡片还是续写已有卡片，并按格式回一段长文本</li>' +
+      '<li>点顶部「批量导入」把那段文本粘进去，预览确认后落库</li>' +
+      '</ol>' +
       '<div class="ai-machlist">' + aiMachineListHTML() + '</div>' +
-      '<div class="ai-pick-tip">选中的机器会写进示例 payload，直接复制给 AI 即可</div>' +
       '</div>';
-    for (var i = 0; i < AI_CONTRACT.dbs.length; i++) h += '<div class="ai-sec">' + aiTable(AI_CONTRACT.dbs[i]) + '</div>';
+    h += '<div class="ai-sec"><h4>② 工作台现状<span class="dbid">会一起复制给 AI</span></h4>' +
+      '<div class="ai-pre">' + escapeHtml(wbOutline()) + '</div>' +
+      '<div class="ai-pick-tip">只给框架数据（标题 / 状态 / 待办进度），不给进度详情与交接内容——提示词太长反而稀释格式说明</div>' +
+      '</div>';
+    h += '<div class="ai-sec"><h4>③ 输出格式<span class="dbid">AI 按这个写</span></h4>' +
+      '<div class="ai-pre">' + escapeHtml(IMP_SAMPLE) + '</div>' +
+      '<ul class="ai-note" style="margin-top:8px">' +
+      '<li>任务：标题=任务标题、电脑=所在电脑、时间=更新时间，其余用原字段名（状态 / 优先级 / 目录 / 进度 / 交接）；待办写多行 [x] / [ ]</li>' +
+      '<li>同步：仓库、电脑、账号=GitHub账号、版本=同步版本、内容、状态=是否同步、时间=同步时间、归档 / 置顶（是 / 否）</li>' +
+      '<li>电脑：机器名、位置（更新时可写新机器名）</li>' +
+      '<li>账号：账号名、平台（WorkBuddy / TRAE）、电脑=所属电脑、备注、当前（是 / 否）</li>' +
+      '<li>不写括号里的动作默认按新建；「（更新）」块的定位键（标题 / 仓库+版本 / 机器名）要一字不差</li>' +
+      '</ul></div>';
+    for (i = 0; i < AI_CONTRACT.dbs.length; i++) h += '<div class="ai-sec">' + aiTable(AI_CONTRACT.dbs[i]) + '</div>';
     h += '<div class="ai-sec"><h4>写入约定</h4><ul class="ai-note">';
-    for (var j = 0; j < AI_CONTRACT.rules.length; j++) h += '<li>' + escapeHtml(AI_CONTRACT.rules[j]) + '</li>';
+    for (j = 0; j < AI_CONTRACT.rules.length; j++) h += '<li>' + escapeHtml(AI_CONTRACT.rules[j]) + '</li>';
     h += '</ul></div>';
-    h += '<div class="ai-sec"><h4>示例 payload（已按所选电脑填好）</h4><div class="ai-pre">' + escapeHtml(JSON.stringify(aiExample(), null, 2)) + '</div></div>';
-    h += '<div class="ai-sec ai-note"><span class="ai-warn">提示：</span>本契约与页面共用同一套字段名，改字段请同步更新这里；本地版还提供 <span class="ai-enum">GET /api/contract</span> 供 agent 直接拉取。</div>';
+    h += '<div class="ai-sec ai-note"><span class="ai-warn">提示：</span>导入会先解析出预览清单（新建几条 / 更新几条 / 哪几条有问题），确认后才写入，写歪了能当场看到；每次写盘前服务会自动备份一份。</div>';
     $('aiBody').innerHTML = h;
-    renderAiQuick(); // 弹窗打开时也把顶栏下拉的选中项对齐
+    renderAiQuick();
   }
   function openAiGuide() {
     renderAiGuide();
@@ -3664,6 +4619,208 @@ var Repo = (function () {
   function closeAiGuide() {
     $('aiMask').classList.remove('on');
     $('aiDrawer').classList.remove('on');
+  }
+
+  /* ── 批量导入弹窗 ──
+     两态：'input' 粘长文本 → 'preview' 看解析清单。写入前必须过预览，
+     批量操作一旦写歪，靠人工逐条比对很难发现。 */
+  var impState = { view: 'input', text: '', plan: null, parsed: null };
+
+  function openImport() {
+    impState.view = 'input';
+    impState.plan = null;
+    impState.parsed = null;
+    renderImportSheet();
+    $('impMask').classList.add('on');
+    $('impDrawer').classList.add('on');
+    var ta = $('impText');
+    if (ta) setTimeout(function () { try { ta.focus(); } catch (e) {} }, 60);
+  }
+  function closeImport() {
+    $('impMask').classList.remove('on');
+    $('impDrawer').classList.remove('on');
+  }
+
+  function renderImportSheet() {
+    var body = $('impBody'), foot = $('impFoot');
+    if (!body || !foot) return;
+
+    // 写入结果视图：失败时把每一条都列出来。
+    // 原来只用 toast 显示 failed[0]，1.9 秒就没了，且批量导入失败多条时根本看不全。
+    if (impState.view === 'result') {
+      var r = impState.result || { ok: 0, fail: 0, failed: [] };
+      var rh = '<div class="imp-sum">写入完成：成功 <b>' + r.ok + '</b> 条' +
+        (r.fail ? ' · <span class="imp-err">失败 <b>' + r.fail + '</b> 条</span>' : '') + '</div>';
+      if (r.failed.length) {
+        rh += '<div class="imp-list">';
+        for (var ri = 0; ri < r.failed.length; ri++) {
+          rh += '<div class="imp-item bad"><span class="imp-act">失败</span><div class="imp-main">' +
+            '<div class="imp-sub imp-err">' + escapeHtml(r.failed[ri]) + '</div></div></div>';
+        }
+        rh += '</div>';
+      } else {
+        rh += '<div class="imp-sum">全部写入成功</div>';
+      }
+      body.innerHTML = rh;
+      foot.innerHTML = '<button class="btn-primary" id="impDone">完成</button>';
+      $('impDone').addEventListener('click', function () { closeImport(); });
+      return;
+    }
+
+    if (impState.view === 'format') {
+      body.innerHTML = '<div class="ai-sec"><h4>输出格式</h4>' +
+        '<div class="ai-pre">' + escapeHtml(IMP_SAMPLE) + '</div></div>' +
+        '<div class="ai-sec"><h4>规则</h4><ul class="ai-note">' +
+        '<li>块头 <span class="ai-enum">## 任务（新建）</span> / <span class="ai-enum">## 任务（更新）</span> / <span class="ai-enum">## 同步（新建）</span>' +
+        ' / <span class="ai-enum">## 电脑（新建）</span> / <span class="ai-enum">## 账号（新建）</span>；不写括号里的动作默认是新建</li>' +
+        '<li>块内写 <span class="ai-enum">字段名：值</span>（半角 : 也认）；待办直接写 <span class="ai-enum">[x] 已完成</span> / <span class="ai-enum">[ ] 未完成</span></li>' +
+        '<li>（更新）块的定位键要一字不差：任务用「标题」、同步用「仓库」+「版本」、电脑用「机器名」；写「新标题：」/「新机器名：」可顺带改名</li>' +
+        '<li>（更新）块的待办按原文匹配已有项改勾选，匹配不上就追加——<b>请照抄现状里的待办原文</b>，改写措辞会追加出重复项</li>' +
+        '<li><span class="ai-enum">时间：</span>写真实发生时刻（2026-11-02 或 2026-11-02 14:30）；不写则补当前时间。任务→更新时间，同步→同步时间</li>' +
+        '<li>勾选类写 <span class="ai-enum">是</span> / <span class="ai-enum">否</span>：同步的「归档」「置顶」是仓库级属性；账号的「当前」= 该电脑在用这个号</li>' +
+        '<li>电脑名必须是已登记的，否则会被拦下并列出可用电脑名（不会静默落进「未识别电脑」列）——可先写「## 电脑（新建）」登记</li>' +
+        '<li>账号只支持新建登记：改名是全局的、解绑只删本机那条，这两件事请在账号面板里做</li>' +
+        // 上面两条已经提到「## 电脑（新建）」和账号块，就必须把字段也教全——
+        // 只提块名不给字段 = 让人猜。主线是两种卡片，这两个是辅助块，单独成行说明。
+        '<li><b>辅助块</b>（主线用不到，登记电脑/账号时才写）：'
+        + '<span class="ai-enum">## 电脑（新建）</span> → 机器名、位置；'
+        + '<span class="ai-enum">## 账号（新建）</span> → 账号名、平台（WorkBuddy / TRAE）、电脑、备注、当前（是 / 否）</li>' +
+        '</ul></div>';
+      foot.innerHTML = '<button class="btn-primary" id="impBack">返回</button>';
+      $('impBack').addEventListener('click', function () { impState.view = 'input'; renderImportSheet(); });
+      return;
+    }
+
+    if (impState.view !== 'preview' || !impState.plan) {
+      body.innerHTML = '<div class="ai-sec"><h4>粘贴 AI 回写的长文本</h4>' +
+        '<textarea id="impText" class="imp-ta" spellcheck="false" ' +
+        'placeholder="## 任务（新建）&#10;标题：……&#10;电脑：……&#10;待办：&#10;[ ] 第一步"></textarea>' +
+        '<div class="imp-hint" style="margin-top:8px">按「## 任务（新建）/（更新）」分节，块内写「字段名：值」，待办用行首 [x] / [ ]。' +
+        '不确定格式就点右上角「格式说明」。</div></div>';
+      var ta = $('impText');
+      if (ta) {
+        ta.value = impState.text || '';
+        ta.addEventListener('input', function (e) { impState.text = e.target.value; });
+      }
+      foot.innerHTML = '<button class="btn-primary" id="impParse">解析并预览</button>' +
+        '<button class="btn-ghost" id="impCancel">取消</button>';
+      $('impCancel').addEventListener('click', closeImport);
+      $('impParse').addEventListener('click', function () {
+        var el = $('impText');
+        impState.text = el ? el.value : '';
+        if (!String(impState.text || '').replace(/\s/g, '')) { toast('先粘贴一段文本'); return; }
+        impState.parsed = parseImportText(impState.text);
+        impState.plan = buildImportPlan(impState.parsed);
+        impState.view = 'preview';
+        renderImportSheet();
+      });
+      return;
+    }
+
+    // ── 预览态 ──
+    var plan = impState.plan, errs = impState.parsed ? impState.parsed.errors : [];
+    var nNew = 0, nUpd = 0, nBad = 0, i;
+    for (i = 0; i < plan.length; i++) {
+      if (plan[i].err) nBad++;
+      else if (plan[i].act === 'update') nUpd++;
+      else nNew++;
+    }
+    // ── 同批多次命中同一条记录 ──
+    // 执行阶段按顺序 PATCH 两次，后一次整体覆盖前一次——前一块写的进度/交接会静默丢失。
+    // 不自动合并（合并语义要猜，容易猜错），但必须在预览里标出来让人看见并自己决定。
+    var seenT = {}, nDup = 0;
+    for (i = 0; i < plan.length; i++) {
+      var q = plan[i];
+      if (q.err || !q.target) continue;
+      var tkey = q.kind + '|' + (q.target._id || q.target.id || '');
+      if (seenT[tkey]) {
+        nDup++;
+        q.dupOfLine = seenT[tkey];
+      } else {
+        seenT[tkey] = q.line;
+      }
+    }
+    var h = '<div class="imp-sum">解析结果：新增 <b>' + nNew + '</b> 条 · 更新 <b>' + nUpd + '</b> 条' +
+      (nBad || errs.length ? ' · <span class="imp-err"><b>' + (nBad + errs.length) + '</b> 条有问题</span>' : '') + '</div>';
+    if (nDup) {
+      h += '<div class="imp-sum imp-err">⚠ 有 <b>' + nDup + '</b> 块与前面的块指向同一条记录，'
+        + '后面的会覆盖前面的改动——要都保留请合并成一个块写</div>';
+    }
+    h += '<div class="imp-list">';
+    for (i = 0; i < plan.length; i++) {
+      var p = plan[i];
+      if (p.err) {
+        h += '<div class="imp-item bad"><span class="imp-act">跳过</span><div class="imp-main">' +
+          '<div class="imp-title">' + escapeHtml(p.label || '第 ' + p.line + ' 行附近的块') + '</div>' +
+          '<div class="imp-sub imp-err">' + escapeHtml(p.err) + '</div></div></div>';
+        continue;
+      }
+      var fields = [];
+      for (var k in p.props) fields.push(impFieldLabel(k, p.props[k]));
+      var sub = [];
+      var KIND_LABEL = { task: '任务', gh: '同步记录', machine: '电脑', account: '账号' };
+      sub.push(KIND_LABEL[p.kind] || p.kind);
+      if (fields.length) sub.push('改：' + fields.join('、'));
+      if (p.kind === 'task' && p.todos.length) {
+        // 原来无论匹配还是追加都写「追加 N 条」——预览在撒谎：
+        // 用户以为会多出一条，其实只是勾了已有的一条；真要追加重复项时也看不出来。
+        // 这里真的算一遍：匹配上几条、会新增几条，分别说。
+        if (p.act === 'update') {
+          var ex = parseTodos(p.target ? p.target[F.t.todos] : '');
+          var nm = 0, na = 0;
+          for (var ti = 0; ti < p.todos.length; ti++) {
+            var hit = false;
+            for (var tj = 0; tj < ex.length; tj++) if (ex[tj].text === p.todos[ti].text) { hit = true; break; }
+            if (hit) nm++; else na++;
+          }
+          var bits = [];
+          if (nm) bits.push('勾选已有 ' + nm + ' 条');
+          if (na) bits.push('新增 ' + na + ' 条');
+          sub.push('待办：' + (bits.join('，') || '无'));
+        } else {
+          sub.push('待办 ' + p.todos.length + ' 条');
+        }
+      }
+      if (p.newTitle) sub.push('改名为：' + p.newTitle);
+      if (p.act === 'update' && p.target) sub.push('匹配到已有记录');
+      if (p.dupOfLine) sub.push('⚠ 与第 ' + p.dupOfLine + ' 行那块是同一条，会覆盖它的改动');
+      for (var ni = 0; ni < (p.notes || []).length; ni++) sub.push(p.notes[ni]);
+      h += '<div class="imp-item"><span class="imp-act">' + (p.act === 'update' ? '更新' : '新建') + '</span>' +
+        '<div class="imp-main"><div class="imp-title">' + escapeHtml(p.label) + '</div>' +
+        '<div class="imp-sub">' + escapeHtml(sub.join(' · ')) + '</div></div></div>';
+    }
+    for (i = 0; i < errs.length; i++) {
+      h += '<div class="imp-item bad"><span class="imp-act">跳过</span><div class="imp-main">' +
+        '<div class="imp-title">第 ' + errs[i].line + ' 行：' + escapeHtml(errs[i].raw || '') + '</div>' +
+        '<div class="imp-sub imp-err">' + escapeHtml(errs[i].msg) + '</div></div></div>';
+    }
+    h += '</div>';
+    if (!plan.length && !errs.length) {
+      h += '<div class="imp-hint">没解析出任何块。块头要写成「## 任务（新建）」这样。</div>';
+    }
+    body.innerHTML = h;
+    foot.innerHTML = (nNew + nUpd)
+      ? '<button class="btn-primary" id="impApply">确认写入 ' + (nNew + nUpd) + ' 条</button>' +
+        '<button class="btn-ghost" id="impBack">返回修改</button>'
+      : '<button class="btn-primary" id="impBack">返回修改</button>';
+    $('impBack').addEventListener('click', function () { impState.view = 'input'; renderImportSheet(); });
+    var ap = $('impApply');
+    if (ap) ap.addEventListener('click', function () {
+      ap.disabled = true;
+      ap.textContent = '写入中…';
+      applyImportPlan(impState.plan, function (ok, fail, failed) {
+        loadAllData(function () { render(); });
+        if (fail) {
+          // 有失败：留在弹窗里把每条原因列出来（toast 一闪而过看不全）
+          impState.result = { ok: ok, fail: fail, failed: failed };
+          impState.view = 'result';
+          renderImportSheet();
+        } else {
+          closeImport();
+          toast('已写入 ' + ok + ' 条');
+        }
+      });
+    });
   }
 
   function showConfirm(title, text, onOk) {    $('cTitle').textContent = title;
@@ -4513,6 +5670,7 @@ var Repo = (function () {
         gotoSheet({ kind: 'taskForm', id: null, repo: '' }, 'root');
       }
       else if (what === 'gh') gotoSheet({ kind: 'ghForm', id: null, repo: '' }, 'root');
+      else if (what === 'import') openImport();
       else if (what === 'machine') openMachineModal();
       else if (what === 'guide') openAiGuide();
     } },
@@ -4688,36 +5846,24 @@ var Repo = (function () {
   $('addMachineBtn') && $('addMachineBtn').addEventListener('click', openMachineModal);
   $('addBtn').addEventListener('click', function (e) { e.stopPropagation(); openAddMenu(e.currentTarget); });
   $('aiGuideBtn').addEventListener('click', function (e) { e.stopPropagation(); openAiGuide(); });
-  // 快捷指南：选电脑 → 复制契约，不弹窗。与弹窗共用 S.ui.aiMachine，两个控件互相同步。
-  $('aiQuickMachine').addEventListener('change', function (e) {
-    setUi('aiMachine', e.target.value);
-    try { localStorage.setItem('awb.aiMachine', S.ui.aiMachine); } catch (err) {}
-    var inDrawer = $('aiMachine');
-    if (inDrawer) inDrawer.value = S.ui.aiMachine;
-  });
   $('aiQuickCopy').addEventListener('click', function (e) {
     e.stopPropagation();
-    var sel = $('aiQuickMachine');
-    if (sel && sel.value) setUi('aiMachine', sel.value);
-    copyText(aiMarkdown(), '契约已复制（示例里的电脑 = ' + (S.ui.aiMachine || '—') + '）');
+    copyText(aiMarkdown(), '提示词已复制（含工作台现状：' + S.data.tasks.length + ' 条任务 / ' + ghRepoGroups(1).length + ' 个仓库）');
   });
   $('aiClose').addEventListener('click', closeAiGuide);
   $('aiMask').addEventListener('click', closeAiGuide);
   $('aiFull').addEventListener('click', function () {
     var d = $('aiDrawer');
     var on = d.classList.toggle('ai-full');
-    this.textContent = on ? '收起契约' : '完整契约';
+    this.textContent = on ? '收起说明' : '完整说明';
   });
-  $('aiCopy').addEventListener('click', function () { copyText(aiMarkdown(), '契约已复制（含已登记电脑清单）'); });
-  $('aiCopyEx').addEventListener('click', function () { copyText(JSON.stringify(aiExample(), null, 2), '示例 payload 已复制（已填好电脑名）'); });
-  $('aiBody').addEventListener('change', function (e) {
-    if (e.target && e.target.id === 'aiMachine') {
-      setUi('aiMachine', e.target.value);
-      try { localStorage.setItem('awb.aiMachine', S.ui.aiMachine); } catch (err) {}
-      renderAiGuide();
-      renderAiQuick(); // 顶栏下拉跟着切，关掉弹窗后仍是刚选的电脑
-    }
-  });
+  // ── 批量导入入口 ──
+  $('impBtn').addEventListener('click', function (e) { e.stopPropagation(); openImport(); });
+  $('impClose').addEventListener('click', closeImport);
+  $('impMask').addEventListener('click', closeImport);
+  $('impFormat').addEventListener('click', function () { impState.view = 'format'; renderImportSheet(); });
+  $('aiCopy').addEventListener('click', function () { copyText(aiMarkdown(), '提示词已复制（含工作台现状 + 输出格式）'); });
+  $('aiCopyEx').addEventListener('click', function () { copyText(IMP_SAMPLE, '格式示例已复制'); });
   $('closeMachineModal').addEventListener('click', closeMachineModal);
   $('m_cancel').addEventListener('click', closeMachineModal);
   $('m2Mask').addEventListener('click', closeMachineModal);
@@ -5070,6 +6216,7 @@ var Repo = (function () {
       menu.setAttribute('data-tbmenu', '1');
       menu.innerHTML =
         '<button data-add="task">＋ 新建任务<' + '/button>' +
+        '<button data-add="import">📥 批量导入<' + '/button>' +
         '<button data-add="gh">＋ 记录一次同步<' + '/button>' +
         '<button data-add="machine">＋ 添加电脑<' + '/button>' +
         '<button data-tbact="manage">' + (S.ui.manage ? '✓ 退出管理' : '☰ 管理') + '<' + '/button>' +

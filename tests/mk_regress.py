@@ -44,7 +44,14 @@ var db = {
   getSchema:function(o){return Promise.resolve({properties:(window.SCHEMAS[o.databaseId]||[])});},
   query:function(o){return Promise.resolve({results:(window.DATA[o.databaseId]||[]),hasMore:false,nextCursor:null});},
   addRecord:function(p){window.__CALLS.push({op:'addRecord',db:p.databaseId,props:JSON.parse(JSON.stringify(p.properties))});return Promise.resolve({id:'new'+(window.__nextId++)});},
-  updateRecord:function(p){window.__CALLS.push({op:'updateRecord',db:p.databaseId,id:p.recordId,props:JSON.parse(JSON.stringify(p.properties))});return Promise.resolve({});},
+  updateRecord:function(p){
+    window.__CALLS.push({op:'updateRecord',db:p.databaseId,id:p.recordId,props:JSON.parse(JSON.stringify(p.properties))});
+    // 注入失败用：window.__FAIL_IDS 里的 id 一律返回 404，用于验证「多条失败要列出全部」
+    if(window.__FAIL_IDS && window.__FAIL_IDS.indexOf(p.recordId)>=0){
+      return Promise.reject(new Error('HTTP 404：record not found'));
+    }
+    return Promise.resolve({});
+  },
   deleteRecord:function(p){window.__CALLS.push({op:'deleteRecord',db:p.databaseId,id:p.recordId});return Promise.resolve({});}
 };
 """
@@ -64,6 +71,24 @@ TEST = r"""<script>
     return col?Array.prototype.slice.call(col.querySelectorAll('.card .c-title')).map(function(x){return x.textContent;}):null;
   }
   var R={};
+  // 跑一次批量导入预览，返回预览区全部文本（用于断言报错/警告是否出现）
+  async function impPreview(text){
+    // {M} → 当前第一台电脑名。套件前面的用例会改名/增删电脑，
+    // 写死名字会因执行顺序而失败（不是被测功能坏了）
+    // 从电脑列头取名字（页面里的 S 是局部变量，window.S 拿不到，实测是 no S）
+    var mEl=q('.ch-name');
+    var m0=mEl ? String(mEl.textContent||'').replace(/\s*\d+.*$/,'').trim() : '';
+    text = String(text).replace(/\{M\}/g, m0);
+    var c=$('impClose'); if(c){ c.click(); await wait(120); }
+    $('impBtn').click(); await wait(150);
+    var ta=$('impText'); ta.value=text;
+    ta.dispatchEvent(new Event('input',{bubbles:true}));
+    $('impParse').click(); await wait(250);
+    var v=(q('.imp-list')||{}).textContent||'';
+    var sums=qa('.imp-sum').map(function(n){return n.textContent;}).join(' ');
+    var e=qa('.imp-err').map(function(n){return n.textContent;}).join(' ');
+    return v+' '+sums+' '+e;
+  }
 
   (async function(){
     try {
@@ -194,6 +219,61 @@ TEST = r"""<script>
     // I. 同步记录「结果」字段是否仍然不提交（已知死字段）
     R.I_note = '见报告：结果列仍为死字段（第 3 批处理）';
 
+    // ---- 走查第三轮：并发链 + 探索会话发现的静默丢数据 / 造重名卡 ----
+    // 这几条都是「界面显示成功、实际数据不对」，必须断言挡住
+    R.W_imp_silent_loss = {
+      '同批同名新建被拦': (await impPreview(
+        '## 任务（新建）\n标题：重名卡\n电脑：{M}\n进度：甲\n\n'
+        + '## 任务（新建）\n标题：重名卡\n电脑：{M}\n进度：乙')).indexOf('本批第 1 行已经新建了同名任务')>=0,
+      '游离待办不再静默丢弃': (await impPreview(
+        '[ ] 游离待办A\n\n## 任务（新建）\n标题：测试卡\n电脑：{M}\n进度：x')).indexOf('不在任何块里')>=0,
+      '同批重复更新有覆盖警告': (await impPreview(
+        '## 任务（更新）\n编号：t1\n进度：甲\n\n## 任务（更新）\n编号：t1\n进度：乙')).indexOf('指向同一条记录')>=0,
+      // 用夹具里真实存在的版本（g1 = Simiely/ae-tools v1.0.0）：
+      // 写库里没有的版本会恒 false，断言就成了摆设
+      '同仓库同版本有重复提示': (await impPreview(
+        '## 同步（新建）\n仓库：Simiely/ae-tools\n电脑：{M}\n版本：v1.0.0\n内容：重复测试')).indexOf('已经有版本为')>=0
+    };
+    var c2=$('impClose'); if(c2){ c2.click(); await wait(120); }
+
+    try {
+    // ---- 走查第四轮：XSS 转义 + 规模边界 + 防连点 + 失败清单 ----
+    // 前三项本轮实测均通过（良好点），这里断言最容易被忽略的「多条失败要列全」
+    window.__FAIL_IDS = ['t1','t2'];
+    var rTxt = await impPreview(
+      '## 任务（更新）\n编号：t1\n进度：A\n\n## 任务（更新）\n编号：t2\n进度：B');
+    var ap2 = $('impApply'); if(ap2) { ap2.click(); await wait(1200); }
+    var resSums = qa('.imp-sum').map(function(n){return n.textContent;}).join(' ');
+    var resBad = qa('.imp-item.bad .imp-sub').map(function(n){return n.textContent;});
+    R.X_imp_fail_list = {
+      '失败后弹窗未关闭': (function(){ var dr=q('#impDrawer'); return dr ? dr.className.indexOf('on')>=0 : false; })(),
+      '结果里显示失败条数': /失败 \d+ 条/.test(resSums),
+      '列出全部失败条目': resBad.length >= 2,
+      '失败条目含原因': resBad.length ? /record not found/.test(resBad[0]) : false,
+      '有完成按钮': !!$('impDone'),
+      '失败条目内容': resBad.slice(0,2)
+    };
+    var dn=$('impDone'); if(dn){ dn.click(); await wait(200); }
+    window.__FAIL_IDS = [];
+    // 整段包 try：这段涉及写入时序，任一环出问题不该让整个套件静默崩掉
+    } catch(ev){ R.X_imp_fail_list={__异常:String(ev && ev.message)}; }
+
+    // ---- 走查第五轮：契约一致性（提示词声明的字段，解析器必须都认）----
+    // 用卡片规范声明的全部字段写一遍，应当零错误
+    try {
+      var mEl2=q('.ch-name'); var M=mEl2?String(mEl2.textContent||'').replace(/\s*\d+.*$/,'').trim():'';
+      var cov = '## 任务（新建）\n标题：契约全覆盖\n电脑：'+M+'\n状态：进行中\n优先级：P1\n目录：D:\\\\test\n进度：全覆盖\n交接：交接内容\n时间：2026-11-02 14:30\n待办：\n[x] 已完成\n[ ] 未完成\n\n'
+        + '## 同步（新建）\n仓库：Simiely/contract-test\n电脑：'+M+'\n账号：Simiely\n版本：v0.1.0\n内容：全覆盖\n状态：未同步\n归档：否\n置顶：是\n时间：2026-11-02 16:00';
+      var covTxt = await impPreview(cov);
+      R.Y_contract_coverage = {
+        '任务与同步各解析1条': /新增 2 条/.test(covTxt),
+        '无解析错误': !/有问题/.test(covTxt),
+        '时间已解析': /更新时间=/.test(covTxt) && /同步时间=/.test(covTxt),
+        '勾选类已解析': /仓库置顶=是/.test(covTxt)
+      };
+      var cc=$('impClose'); if(cc){ cc.click(); await wait(120); }
+    } catch(ev){ R.Y_contract_coverage={__异常:String(ev && ev.message)}; }
+
     document.title='RESULT::'+JSON.stringify(R);
     } catch(e) {
       document.title='RESULT::'+JSON.stringify({FATAL: String(e && e.message), STACK: String(e && e.stack).slice(0,400), DONE: R});
@@ -216,11 +296,43 @@ NOMACH = r"""<script>
     var toastEl=$('toast');
     var toastTxt=toastEl?toastEl.textContent:'';
     var add=window.__CALLS.filter(function(c){return c.op==='addRecord';});
+    // 空库 + 批量导入：本批先建电脑，后续块引用它。
+    // 曾经的 bug：电脑名校验只看「库里已有」，空库时全部被拦下，
+    // 只剩电脑块自己成功（用户看到「成功 1 条」，其余全废）。
+    $('impBtn').click(); await wait(150);
+    var ta=$('impText');
+    ta.value=['## 电脑（新建）','机器名：新机','位置：书房','',
+              '## 任务（新建）','标题：空库首个任务','电脑：新机','优先级：P1','',
+              '## 账号（新建）','账号名：新号','平台：WorkBuddy','电脑：新机','当前：是'].join('\n');
+    ta.dispatchEvent(new Event('input',{bubbles:true}));
+    $('impParse').click(); await wait(250);
+    var items=qa('.imp-item');
+    var bads=items.filter(function(n){return n.className.indexOf('bad')>=0;});
+    var badMsg=bads.map(function(n){return (n.querySelector('.imp-sub')||{}).textContent||'';}).join(' | ');
+    var applyBtn=$('impApply');
+
+    // 空库且不写电脑块：应给出「先写 ## 电脑（新建）」的引导，而不是「可用：」后面空着
+    $('impClose').click(); await wait(120);
+    $('impBtn').click(); await wait(150);
+    var ta2=$('impText');
+    ta2.value=['## 任务（新建）','标题：没登记电脑','优先级：P1'].join('\n');
+    ta2.dispatchEvent(new Event('input',{bubbles:true}));
+    $('impParse').click(); await wait(250);
+    var hintMsg=(q('.imp-item .imp-sub')||{}).textContent||'';
+
     document.title='RESULT::'+JSON.stringify({
       '无电脑时点击新任务-抽屉是否打开': drawerOpen,
       '提示文案': toastTxt,
       'addRecord调用次数': add.length,
-      '结论': (!drawerOpen && add.length===0) ? '已拦截' : '未拦截'
+      '结论': (!drawerOpen && add.length===0) ? '已拦截' : '未拦截',
+      '空库导入-预览条数': items.length,
+      '空库导入-被拦条数': bads.length,
+      '空库导入-坏块原因': badMsg,
+      '空库导入-有写入按钮': !!applyBtn,
+      '空库导入-按钮文案': applyBtn?applyBtn.textContent:'(无)',
+      '空库无电脑块-引导文案': hintMsg,
+      // 引导必须「可执行」：只说「写个电脑块」没用，得给出能照抄的键名
+      '空库引导含可照抄模板': hintMsg.indexOf('机器名：')>=0 && hintMsg.indexOf('电脑（新建）')>=0
     });
   })();
 })();

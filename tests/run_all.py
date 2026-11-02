@@ -74,7 +74,7 @@ def run_html(chrome, path):
     try:
         p = subprocess.run(
             [chrome, '--headless', '--disable-gpu', '--no-sandbox',
-             '--dump-dom', '--virtual-time-budget=8000',
+             '--dump-dom', '--virtual-time-budget=25000',
              'file:///' + path.replace('\\', '/')],
             capture_output=True, timeout=120)
     except subprocess.TimeoutExpired:

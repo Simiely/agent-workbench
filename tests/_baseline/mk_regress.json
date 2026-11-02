@@ -36,12 +36,33 @@
   "H_done_empty.无弹窗元素": true,
   "H_done_empty.看板空态": false,
   "H_done_empty.错误": "[]",
-  "I_note": "见报告：结果列仍为死字段（第 3 批处理）"
+  "I_note": "见报告：结果列仍为死字段（第 3 批处理）",
+  "W_imp_silent_loss.同仓库同版本有重复提示": true,
+  "W_imp_silent_loss.同批同名新建被拦": true,
+  "W_imp_silent_loss.同批重复更新有覆盖警告": true,
+  "W_imp_silent_loss.游离待办不再静默丢弃": true,
+  "X_imp_fail_list.列出全部失败条目": true,
+  "X_imp_fail_list.失败后弹窗未关闭": true,
+  "X_imp_fail_list.失败条目内容": "[\"任务一：HTTP 404：record not found\", \"任务二：HTTP 404：record not found\"]",
+  "X_imp_fail_list.失败条目含原因": true,
+  "X_imp_fail_list.有完成按钮": true,
+  "X_imp_fail_list.结果里显示失败条数": true,
+  "Y_contract_coverage.任务与同步各解析1条": true,
+  "Y_contract_coverage.勾选类已解析": true,
+  "Y_contract_coverage.无解析错误": true,
+  "Y_contract_coverage.时间已解析": true
  },
  "r_nomach": {
   "addRecord调用次数": 0,
   "提示文案": "先加一台电脑，任务才有地方放",
   "无电脑时点击新任务-抽屉是否打开": false,
+  "空库导入-坏块原因": "",
+  "空库导入-按钮文案": "确认写入 3 条",
+  "空库导入-有写入按钮": true,
+  "空库导入-被拦条数": 0,
+  "空库导入-预览条数": 3,
+  "空库引导含可照抄模板": true,
+  "空库无电脑块-引导文案": "缺「电脑」——库里还没有任何电脑，请先写「## 电脑（新建）」块：机器名：&lt;电脑名&gt;（位置：可留空）",
   "结论": "已拦截"
  }
 }
