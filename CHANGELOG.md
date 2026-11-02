@@ -52,6 +52,38 @@
   截图：`design/ui-v3-warm.png` / `ui-v3-warm-sheet.png` / `ui-v3-warm-light*.png` / `ui-v3-warm-mobile*.png`。
   **该原型已在 v1.4.1 落到 `public/index.html`**（差异：手机断点用 700，见 ARCHITECTURE）
 
+## [1.5.5] - 2026-11-02
+
+契约文档里表名参数写的是 `databaseId`，实际接口只认 `db`——照抄契约的 AI 会被 `400 unknown db` 拒收，且这个错看不出原因。
+
+### 背景：两个名字各管一段，别混
+
+- `databaseId` 是**页面适配器 `localDb()` 的入参名**（沿用平台 SDK 形状），只在前端代码里存在，不出现在网络报文里
+- `db` 是**实际 REST 的字段名**（`?db=tasks` 查询串、写库请求体的 `db`）
+
+页面侧这个分层是对的，问题只出在「给 AI 照抄的契约」用了前端的入参名。
+
+### 变更
+
+- **页面内 AI 指南（🤖 一键复制的产物）**：示例 payload `databaseId` → `db`；契约文本四张表的标题由
+  「（databaseId: tasks）」改为「（db: tasks）」；写入约定新增一条，明说表名参数叫 `db`、写 `databaseId` 会被拒收
+- **`contract.md`**：同上四处标题 + 示例 payload；顺带修掉 v1.4.0 漏网的一个旧库 id
+  （示例里还写着 `oHFF5fIATWOsVWJqkwX4qm`，现在改成 `"db": "tasks"`）；写入约定新增同名说明
+- **`README.md`**：数据层表格补上 POST/PATCH 的 body 形状，并加一段醒目的「两个名字别混」说明
+- **服务端容错**：`POST/PATCH /api/records` 入口新增 `normalizeDbKey()`——只认 `db`，
+  但历史契约 / 平台 SDK 形状传 `databaseId` 时自动归一。老文档散出去收不回来，与其让人吃一个看不懂的
+  400，不如在入口认下这个别名。契约与文档一律写 `db`，别名只作容错、不作推荐写法（`db` 优先）
+
+### 测试
+
+- 本地 5 套件回归 300 项断言全绿
+- `mk_guide` 新增断言「示例用db不是databaseId」，并把「含示例payload」的判据从笼统的
+  `body.indexOf('databaseId')` 收紧为 `"db": "tasks",\n  "properties"`
+  ——原判据是假绿：契约正文里光是说明文字就含 `databaseId`，示例字段改成什么它都过
+- 反向验证（mutation）：把示例改回 `databaseId` → 两条断言同时变 `False`，确认判据真能抓退化
+- 真实 server 实测：`databaseId` 别名 POST / PATCH 均成功；`db` 与 `databaseId` 同时给时以 `db` 为准；
+  非法枚举仍 400、未知库仍 `unknown db`
+
 ## [1.5.4] - 2026-11-02
 
 顶栏搜索此前只过滤任务看板，右侧 GitHub 看板纹丝不动；手机上栏顶钉住又吃掉半屏高度。

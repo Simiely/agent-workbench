@@ -3496,6 +3496,7 @@ var Repo = (function () {
       ]}
     ],
     rules: [
+      '写库时表名参数叫 `db`（不是 `databaseId`）：查询是 `?db=tasks`，写库的请求体是 `{ "db": "tasks", "properties": {...} }`；四张表的 key 是 tasks / machines / accounts / github',
       '写任务前先读机器表，「所在电脑」必须是已登记的机器名；没有就先登记电脑，否则任务会落进「未识别电脑」兜底列',
       '一台电脑可以登录多个账号：多号写在「登录账号」表，同一台机同一平台只允许一条「当前」',
       '账号是共享名单：同一平台按「账号名」去重，一个号可以被多台电脑各登记一条；改名要同步所有同名登记，解绑只删那一台电脑的登记',
@@ -3506,7 +3507,9 @@ var Repo = (function () {
       '一份记录 = 一件事：一个任务 = 一个可交付的活；一个同步记录 = 一个版本的一次同步'
     ],
     example: {
-      databaseId: DATABASE_ID,
+      // 示例是给 AI 直接打 REST 用的，字段名必须是服务端认的 `db`。
+      // 页面内部的 db.addRecord({databaseId}) 是适配器入参，不出现在网络报文里。
+      db: DATABASE_ID,
       properties: {
         '任务标题': { text: '合并 floorplan 低频工具' },
         '状态': { select: '进行中' },
@@ -3616,7 +3619,7 @@ var Repo = (function () {
     L.push('');
     for (var i = 0; i < AI_CONTRACT.dbs.length; i++) {
       var db = AI_CONTRACT.dbs[i];
-      L.push('## ' + db.name + '（databaseId: ' + db.id + '）');
+      L.push('## ' + db.name + '（db: ' + db.id + '）');
       L.push('| 字段 | 类型 | 必填 | 说明 |');
       L.push('| --- | --- | --- | --- |');
       for (var j = 0; j < db.fields.length; j++) {

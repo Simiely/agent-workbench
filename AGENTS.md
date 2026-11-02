@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**：2026-11-02，v1.5.2（无障碍第一批 + 去装饰阴影 + 场景走查修复）
+> 📌 **文档基线**：2026-11-02，v1.5.5（契约表名参数 databaseId → db 统一 + 服务端别名容错）
 > **更新文档/代码后，请更新此行**（日期 + 新 commit hash），并在 CHANGELOG 追加版本
 
 ## 技术栈
@@ -25,6 +25,11 @@
 - **详情就地编辑的委托顺序**：`[data-dt-set] → [data-dt-menu] → [data-dt-todo] → [data-dt-edit]` 必须排在 `[data-edit]` **之前**，否则被通用行内编辑抢走；单字段保存统一走 `saveTaskField()`（一个字段 + 更新时间），别在渲染函数里直接写库
 - **账号冲突要看 `curOthers` 而不是 `others`**：`others` 只代表「别的电脑登记过这个号」，`curOthers` 才是「别的电脑也在用」。胶囊标红只在「本机当前就是这个号」时触发
 - **顶栏电脑选择存 `localStorage('awb.aiMachine')`**：机器被删/改名要能退回第一台并纠正存储值，否则下拉会显示一个不存在的电脑
+- **表名参数有两个名字，别写混**：`databaseId` 只是页面适配器 `localDb()` 的入参名（沿用 SDK 形状），
+  实际 REST 一律用 `db`（`?db=tasks` / body `{ db, properties }`）。**给 AI 照抄的契约与示例必须写 `db`**——
+  传 `databaseId` 会被 `400 unknown db` 拒收。服务端 `normalizeDbKey()` 认这个别名只是容错，不是推荐写法
+- **`tests/mk_*.py` 里的断言块会被原样复制进生成的 HTML**：别在里面写 Python 的 `#` 注释，
+  `#` 进了 JS 会整段语法错误、页面静默不设 title（表现为「title 不含断言标记」）。注释写在块外或用 `//`
 
 ## 约定
 

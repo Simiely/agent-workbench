@@ -54,9 +54,13 @@ node tests/e2e_local.cjs 8159    # 只跑本地版 e2e
 |---|---|
 | `getSchema({databaseId})` | `GET /api/schema?db=` |
 | `query({databaseId})` | `GET /api/query?db=` |
-| `addRecord({databaseId, properties})` | `POST /api/records` |
-| `updateRecord({databaseId, recordId, properties})` | `PATCH /api/records/:id` |
+| `addRecord({databaseId, properties})` | `POST /api/records`，body `{ db, properties }` |
+| `updateRecord({databaseId, recordId, properties})` | `PATCH /api/records/:id`，body `{ db, properties }` |
 | `deleteRecord({databaseId, recordId})` | `DELETE /api/records/:id?db=` |
+
+> ⚠️ **两个名字别混**：左边 `databaseId` 是**页面适配器 `localDb()` 的入参名**（沿用平台 SDK 形状），
+> 它在适配器内部转成 `db` 才发到网络上。直接打 REST 时（AI 写入、脚本调用）一律用 **`db`**——
+> 四张表的 `?db=` 查询串、写库请求体的 `db` 字段都是它。传 `databaseId` 会被拒收（`400 unknown db`）。
 
 - 四张表用语义化 key：`tasks` / `machines` / `accounts` / `github`
 - **写入只走一层 `Repo`**：页面用 `Repo.<表>.update / create / remove`（如 `Repo.tasks.update(id, props)`），

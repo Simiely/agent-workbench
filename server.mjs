@@ -133,6 +133,13 @@ function applyDefaults(dbKey, rec, isNew) {
 // 返回中文错误文案；通过返回 null。
 // isNew 校验全部必填；PATCH 只校验「这次真正传了的字段」（fields），
 // 否则一条历史脏记录连改个位置都会被永久拒写。
+// 表名参数的别名归一化：对外只认 `db`，但历史契约 / 平台 SDK 形状写的是 `databaseId`。
+// 老文档散出去收不回来，与其让照抄的人吃一个看不懂的 400，不如在入口认下这个别名。
+// 契约与文档一律写 `db`——别名只是容错，不作为推荐写法。
+function normalizeDbKey(o) {
+  if (o && !o.db && o.databaseId) o.db = o.databaseId;
+}
+
 function checkRecord(d, dbKey, rec, opts) {
   const isNew = !!(opts && opts.isNew);
   const selfId = opts && opts.selfId;
@@ -658,6 +665,7 @@ const server = http.createServer(async (req, res) => {
 
     if (p === "/api/records" && req.method === "POST") {
       const body = await readJson(req);
+      normalizeDbKey(body);
       if (!SCHEMAS[body.db]) return json(res, { error: "unknown db" }, 400);
       const d = loadDb();
       const props = body.properties || {};
@@ -691,6 +699,7 @@ const server = http.createServer(async (req, res) => {
       let key = dbKey, patch = null;
       if (req.method === "PATCH") {
         patch = await readJson(req);
+        normalizeDbKey(patch);
         key = String(patch.db || "");
       }
       if (!SCHEMAS[key]) return json(res, { error: "unknown db" }, 400);
