@@ -168,18 +168,24 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await cdp.evalJson(`(function(){var b=document.querySelector('#closeDrawer');if(b)b.click();return 1})()`);
     await sleep(400);
 
-    // ---------- 4. 中间键 = AI 指南，且弹窗只留「选电脑 + 复制」 ----------
+    // ---------- 4. T-bar 只留浏览：看板 / 仓库 / 更多；AI 指南收进「更多」 ----------
+    // 中间的大圆键已移除——T-bar 定位是浏览，AI 指南属于写操作，不该占主位。
     const aiBtn = await cdp.evalJson(`(function(){
-      var b = document.querySelector('#tabAi');
-      if (!b) return null;
-      var items = [].map.call(document.querySelectorAll('#tabbar .tb-item'), function(x){ return x.textContent.trim(); });
-      return { text: b.textContent.trim(), items: items,
+      var items = [].map.call(document.querySelectorAll('#tabbar button'), function(x){ return x.textContent.trim().replace(/\\s+/g,' '); });
+      return { items: items, count: items.length,
+               hasCore: !!document.querySelector('#tabAi'),
                hasAdd: !!document.querySelector('#tabAdd'), hasManage: !!document.querySelector('#tabManage') };
     })()`);
-    check('中间键是 AI 指南', aiBtn && aiBtn.text.indexOf('AI') >= 0, JSON.stringify(aiBtn));
+    check('T-bar 只有 3 个键', aiBtn && aiBtn.count === 3, JSON.stringify(aiBtn));
+    check('T-bar 只留 看板/仓库/更多', aiBtn && JSON.stringify(aiBtn.items) === JSON.stringify(['看板', '仓库', '更多']),
+      JSON.stringify(aiBtn));
+    check('AI 指南不再占中央键', aiBtn && !aiBtn.hasCore, JSON.stringify(aiBtn));
     check('＋新增 / 管理 已移出底部栏', aiBtn && !aiBtn.hasAdd && !aiBtn.hasManage, JSON.stringify(aiBtn));
 
-    await cdp.evalJson(`(function(){document.querySelector('#tabAi').click();return 1})()`);
+    // AI 指南改从「更多」进入
+    await cdp.evalJson(`(function(){document.querySelector('#tabMore').click();return 1})()`);
+    await sleep(400);
+    await cdp.evalJson(`(function(){var b=document.querySelector('[data-tbact="ai"]');if(b)b.click();return 1})()`);
     await sleep(600);
     const ai = await cdp.evalJson(`(function(){
       var d = document.querySelector('#aiDrawer');
@@ -216,8 +222,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
         }),
         inView: r.left >= 0 && r.right <= window.innerWidth && r.top >= 0 && r.bottom <= window.innerHeight };
     })()`);
-    check('更多菜单含 新增×3 / 管理 / 主题',
-      more && JSON.stringify(more.items) === JSON.stringify(['task', 'gh', 'machine', 'manage', 'theme']),
+    // 注意：菜单项是「新增×4 / AI 指南 / 管理 / 主题」，批量导入（import）与
+    // AI 指南（ai）是后加的，改菜单时这里要同步，否则断言会静默失配。
+    check('更多菜单含 新增×4 / AI 指南 / 管理 / 主题',
+      more && JSON.stringify(more.items) === JSON.stringify(['task', 'import', 'gh', 'machine', 'ai', 'manage', 'theme']),
       JSON.stringify(more));
     check('更多菜单没有被裁到屏幕外', more && more.inView, JSON.stringify(more));
 

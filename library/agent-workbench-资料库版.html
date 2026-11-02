@@ -56,7 +56,7 @@
    内嵌空壳四表 + localStorage 冒充后端 REST。
    页面自身的 localDb() / Repo 读写链路走原有逻辑，未改动主项目任何代码。 */
 (function () {
-  var SNAP = {"schema":{"tasks":{"label":"Agent 任务台账","properties":[{"name":"任务标题","type":"text"},{"name":"状态","type":"select","config":{"options":[{"text":"进行中"},{"text":"已完成"}]}},{"name":"优先级","type":"select","config":{"options":[{"text":"P0"},{"text":"P1"},{"text":"P2"}]}},{"name":"目录","type":"text"},{"name":"进度","type":"text"},{"name":"待办","type":"text"},{"name":"交接内容","type":"text"},{"name":"更新时间","type":"date"},{"name":"所在电脑","type":"text"},{"name":"排序","type":"number"}]},"machines":{"label":"机器登录态","properties":[{"name":"机器名","type":"text"},{"name":"位置","type":"text"},{"name":"WorkBuddy账号","type":"text"},{"name":"TRAE账号","type":"text"},{"name":"最后确认","type":"date"},{"name":"排序","type":"number"}]},"accounts":{"label":"登录账号","properties":[{"name":"账号名","type":"text"},{"name":"平台","type":"select","config":{"options":[{"text":"WorkBuddy"},{"text":"TRAE"}]}},{"name":"所属电脑","type":"text"},{"name":"当前","type":"checkbox"},{"name":"备注","type":"text"},{"name":"最后确认","type":"date"},{"name":"排序","type":"number"}]},"github":{"label":"GitHub 同步记录","properties":[{"name":"同步时间","type":"date"},{"name":"电脑","type":"text"},{"name":"GitHub账号","type":"text"},{"name":"仓库","type":"text"},{"name":"内容","type":"text"},{"name":"同步版本","type":"text"},{"name":"是否同步","type":"select","config":{"options":[{"text":"已同步"},{"text":"未同步"}]}},{"name":"仓库归档","type":"checkbox"},{"name":"仓库置顶","type":"checkbox"}]}},"data":{"tasks":[],"machines":[],"accounts":[],"github":[]},"health":{"version":"1.10.1","storage":{"ok":true}}};
+  var SNAP = {"schema":{"tasks":{"label":"Agent 任务台账","properties":[{"name":"任务标题","type":"text"},{"name":"状态","type":"select","config":{"options":[{"text":"进行中"},{"text":"已完成"}]}},{"name":"优先级","type":"select","config":{"options":[{"text":"P0"},{"text":"P1"},{"text":"P2"}]}},{"name":"目录","type":"text"},{"name":"进度","type":"text"},{"name":"待办","type":"text"},{"name":"交接内容","type":"text"},{"name":"更新时间","type":"date"},{"name":"所在电脑","type":"text"},{"name":"排序","type":"number"}]},"machines":{"label":"机器登录态","properties":[{"name":"机器名","type":"text"},{"name":"位置","type":"text"},{"name":"WorkBuddy账号","type":"text"},{"name":"TRAE账号","type":"text"},{"name":"最后确认","type":"date"},{"name":"排序","type":"number"}]},"accounts":{"label":"登录账号","properties":[{"name":"账号名","type":"text"},{"name":"平台","type":"select","config":{"options":[{"text":"WorkBuddy"},{"text":"TRAE"}]}},{"name":"所属电脑","type":"text"},{"name":"当前","type":"checkbox"},{"name":"备注","type":"text"},{"name":"最后确认","type":"date"},{"name":"排序","type":"number"}]},"github":{"label":"GitHub 同步记录","properties":[{"name":"同步时间","type":"date"},{"name":"电脑","type":"text"},{"name":"GitHub账号","type":"text"},{"name":"仓库","type":"text"},{"name":"内容","type":"text"},{"name":"同步版本","type":"text"},{"name":"是否同步","type":"select","config":{"options":[{"text":"已同步"},{"text":"未同步"}]}},{"name":"仓库归档","type":"checkbox"},{"name":"仓库置顶","type":"checkbox"}]}},"data":{"tasks":[],"machines":[],"accounts":[],"github":[]},"health":{"version":"1.11.0","storage":{"ok":true}}};
   var KEY = 'awb.offline.db.empty';
   var PLATFORMS = ['WorkBuddy', 'TRAE'];
   var MACHINE_ACC_FIELD = { 'WorkBuddy': 'WorkBuddy账号', 'TRAE': 'TRAE账号' };
@@ -1272,10 +1272,18 @@
   #aiFull { display: none; }
   .tb-item, .tb-add { -webkit-tap-highlight-color: transparent; }
 
-  /* 手机形态（≤700px）：一次只看一页，导航下沉到底部 T-bar。
-     断点定在 700：能覆盖所有手机；同时测试器的默认视口是 748，保持宽屏形态，
-     避免「改断点顺手改坏一批几何断言」。平板竖屏（768）仍是左右分屏。 */
-  @media (max-width: 700px) {
+  /* 手机形态：一次只看一页，导航下沉到底部 T-bar。命中任一条件即生效：
+     ① 窄屏 ≤700px（宽度断点定在 700：能覆盖所有手机；同时测试器默认视口是 748，
+        保持宽屏形态，避免「改断点顺手改坏一批几何断言」。平板竖屏 768 仍是左右分屏）
+     ② 上下分屏 —— 屏幕被上下切成两块后高度只剩一半，纵向空间放不下两栏；
+        此时横向还很宽（1920×1080 上下分 → 视口约 1920×450，扁平比 4+），
+        纯宽度断点识别不出来，故按「矮 + 扁」双重判断。
+     ⚠️ 扁平比必须 ≥2/1，不能只留高度条件：普通小窗口 / 无头浏览器默认视口
+        （实测 780×493，扁平比仅 1.58）同样是矮的，只按高度判会误伤一大批，
+        实测会把测试环境误判成上下分屏、直接改坏 V5b_fit 的几何断言。
+     ⚠️ 两处断点必须同步：本行 CSS 与 bindMobilePages() 里的 matchMedia 字符串。
+        改一个忘另一个会导致「JS 切了页、CSS 没隐藏另一页」的半吊子状态。 */
+  @media (max-width: 700px), (max-height: 560px) and (min-aspect-ratio: 2/1) {
     .topbar { padding: 13px 14px 0; gap: 9px; flex-wrap: wrap; }
     .topbar #manageBtn, .topbar #aiGuideBtn, .topbar #addBtn, .topbar #themeBtn { display: none; }
     .ai-quick { display: none; } /* 手机上「指南」在底部 T-bar 中央键里 */
@@ -1329,16 +1337,11 @@
     }
     .tb-item .em { font-size: 16px; line-height: 1; }
     .tb-item.on { color: var(--accent); background: transparent; }
-    /* 中间键：AI 指南（＋新增 / 管理 / 主题 收进「更多」） */
-    .tb-core {
-      width: 56px; height: 56px; min-width: 56px; min-height: 56px;
-      border-radius: 50%; margin-top: -26px; flex: none;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-      background: var(--btn-bg); color: var(--btn-fg); font-size: 9.5px;
-      box-shadow: none;
-    }
-    .tb-core .ico { font-size: 17px; line-height: 1; }
-    .tb-core:active { transform: scale(.94); }
+    /* T-bar 只留浏览：看板 / 仓库 切页 + 更多。
+       「AI 指南」不再单独占中央键——它是写操作不是浏览，收进「更多」菜单。
+       只剩 3 个键后改居中靠拢：上下分屏时栏宽可达 1920，space-around 会把键甩到两端。 */
+    .tabbar { justify-content: center; gap: 6px; }
+    .tb-item { flex: 1 1 0; max-width: 110px; }
 
     /* 弹窗统一居中形态：手机上只把宽度和安全区收一下，不再改底部弹层 */
     .drawer, .modal { width: 94vw; max-height: 84vh; border-radius: 22px; }
@@ -1428,9 +1431,6 @@
   <button class="tb-item" data-page="gh" type="button">
     <svg aria-hidden="true" fill="none" height="19" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" width="19"><circle cx="7" cy="6" r="2.1"/><circle cx="7" cy="18" r="2.1"/><circle cx="17" cy="9" r="2.1"/><path d="M7 8.1v7.8M9.2 6h4.6a3 3 0 0 1 3 3"/></svg>
     <span>仓库</span>
-  </button>
-  <button class="tb-core" id="tabAi" type="button" title="AI 写入指南：选电脑 + 复制">
-    <span class="ico">🤖</span><span>AI 指南</span>
   </button>
   <button class="tb-item" id="tabMore" type="button">
     <svg aria-hidden="true" fill="none" height="19" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="19"><circle cx="6" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="18" cy="12" r="1.4" fill="currentColor"/></svg>
@@ -2450,6 +2450,21 @@ var Repo = (function () {
   }
   function giLevel(n) { return n === 0 ? 0 : n === 1 ? 1 : n === 2 ? 2 : n === 3 ? 3 : 4; }
 
+  // 格内小日期的标注规则：只在「能当定位锚点」的格子上写，其余留白，
+  // 避免每格都挤一个小数字（格子一窄就糊成一团，反而看不清周期位置）。
+  //   week  本周    = 恒 7 格且恒从周一起，所以按序位标：第 3 格写「3」、第 7 格写「天」
+  //   month 本月    = 每排只在「周一」写日期数字，一眼看出每排从哪天断开
+  //   q3    近3个月 = 同上，每排只在周一写日期数字
+  // 大数字（当天更新的仓库数）不受影响，照旧写。
+  function giDayMark(range, idxInRow, d) {
+    if (range === 'week') {
+      if (idxInRow === 2) return '3';    // 第 3 格 = 周三
+      if (idxInRow === 6) return '天';   // 第 7 格 = 周日
+      return '';
+    }
+    return d.getDay() === 1 ? String(d.getDate()) : ''; // 周一
+  }
+
   // 头部右侧的区间说明（替代原来那个「点开看全年日历」按钮）：
   //   本周   → 10月 第5周     （第几周按该月天数算，1~7 为第 1 周）
   //   本月   → 10月           （当前是第几个月）
@@ -2527,9 +2542,10 @@ var Repo = (function () {
         var n = en ? en.n : 0;
         var future = ts > todayTs;
         var lv = giLevel(n);
-        // 日期写进方块里（小字在下方）；有更新的格子再叠大数字
+        // 小日期只在锚点格写（见 giDayMark）；有更新的格子再叠大数字
         var dl = new Date(ts);
-        var inner = '<em>' + dl.getDate() + '</em>' + ((!future && n) ? '<i>' + n + '</i>' : '');
+        var mark = giDayMark(S.ui.ghIntensityRange, i, dl);
+        var inner = (mark ? '<em>' + mark + '</em>' : '') + ((!future && n) ? '<i>' + n + '</i>' : '');
         var tip = future ? key.slice(5) + ' · 还没到' : key.slice(5) + (n ? ' · 更新 ' + n + ' 个仓库' : ' · 无更新');
         cells += '<span class="gi-cell l' + lv + (future ? ' future' : '') + '" data-gi-day="' + key + '" data-gi-n="' + n + '"' +
           ' title="' + tip + '">' + inner + '<' + '/span>';
@@ -6364,9 +6380,11 @@ var Repo = (function () {
   }
 
   /* ── 窄屏分页：底部 T-bar 在 看板 / 仓库 之间切页，主操作一并下沉 ──
-     宽屏不插手：左右分屏照旧，顶部小标题仍是「放大本栏 / 还原」。 */
+     宽屏不插手：左右分屏照旧，顶部小标题仍是「放大本栏 / 还原」。
+     ⚠️ 这个断点字符串必须与 CSS 里「手机形态」的 @media 条件逐字一致
+        （含「上下分屏」的高度+扁平比分支），否则会出现 JS 与 CSS 判断不一致。 */
   (function bindMobilePages() {
-    var MQ = window.matchMedia('(max-width: 700px)');
+    var MQ = window.matchMedia('(max-width: 700px), (max-height: 560px) and (min-aspect-ratio: 2/1)');
     function isMobile() { return MQ.matches; }
     function setPage(p) {
       p = p || 'board';
@@ -6385,11 +6403,8 @@ var Repo = (function () {
         setPage(this.getAttribute('data-page'));
       });
     }
-    // 中间键：AI 指南（选电脑 → 复制，一步到位）
-    var ai = $('tabAi');
-    if (ai) ai.addEventListener('click', function (e) { e.stopPropagation(); closeMenus(); openAiGuide(); });
-
-    // 更多：＋新增三项（复用 data-add，走现有分发）/ 管理 / 主题
+    // 更多：＋新增四项（复用 data-add，走现有分发）/ AI 指南 / 管理 / 主题。
+    // AI 指南原本是中央大圆键，现收进这里——T-bar 定位是「浏览」，写操作不该占主位。
     var mo = $('tabMore');
     if (mo) mo.addEventListener('click', function (e) {
       e.stopPropagation(); closeMenus();
@@ -6401,6 +6416,7 @@ var Repo = (function () {
         '<button data-add="import">📥 批量导入<' + '/button>' +
         '<button data-add="gh">＋ 记录一次同步<' + '/button>' +
         '<button data-add="machine">＋ 添加电脑<' + '/button>' +
+        '<button data-tbact="ai">🤖 AI 指南<' + '/button>' +
         '<button data-tbact="manage">' + (S.ui.manage ? '✓ 退出管理' : '☰ 管理') + '<' + '/button>' +
         '<button data-tbact="theme">切换主题<' + '/button>';
       document.body.appendChild(menu);
@@ -6419,6 +6435,7 @@ var Repo = (function () {
         if (top) top.classList.toggle('on', S.ui.manage);
       }
       if (k === 'theme') { var t = $('themeBtn'); if (t) t.click(); }
+      if (k === 'ai') openAiGuide();
     });
     // 窄屏下点小标题就是切页（宽屏仍是放大/还原，见 bindPaneMax）
     var tbT = $('tBoard'), tgT = $('tGh');

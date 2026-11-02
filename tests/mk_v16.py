@@ -269,6 +269,22 @@ TEST = r"""<script>
       $('tBoard').click(); await wait(300);
     })();
 
+    // ---- V5c T-bar 结构：只留浏览（看板 / 仓库 / 更多），AI 指南收进「更多」 ----
+    // 这些是 DOM 层断言，与视口无关，所以宽屏下也能验（不用等真的切到手机形态）。
+    R.V5c_tbar={
+      'T-bar键数': qa('#tabbar button').length,
+      'T-bar键文案': qa('#tabbar button').map(function(b){return b.textContent.trim().replace(/\s+/g,' ');}),
+      '无中央AI键': !q('#tabAi'),
+      '更多键存在': !!q('#tabMore')
+    };
+    q('#tabMore').click(); await wait(250);
+    R.V5c_tbar['更多菜单项']=(function(){var m=q('[data-tbmenu]');
+      return m?[].map.call(m.querySelectorAll('button'),function(b){
+        return b.getAttribute('data-add')||b.getAttribute('data-tbact');}):null;})();
+    R.V5c_tbar['菜单含AI指南']=(function(){var m=q('[data-tbmenu]');
+      return m?!!m.querySelector('[data-tbact="ai"]'):null;})();
+    (function(){var m=q('[data-tbmenu]');if(m)m.remove();})();
+
     // ---- V6 GitHub：KPI / 未同步筛选 / 复制链接 / 归档标签 ----
     R.V6_gh={
       'KPI仓库': kpiNum('#ghKpis','仓库'),
@@ -278,7 +294,17 @@ TEST = r"""<script>
         if(!f||!k)return null;return k.getBoundingClientRect().left>=f.getBoundingClientRect().right-1;})(),
       '开发强度格数': qa('#ghIntensity .gi-cell').length === (function(){var t=new Date();return daysInMonth(t.getFullYear(),t.getMonth());})(),
       '开发强度默认本月': (q('#ghIntensity .gi-range.on')||{}).textContent,
-      '开发强度格内日期数': qa('#ghIntensity .gi-cell em').length === qa('#ghIntensity .gi-cell').length,
+      // 本月只在「周一」写格内小日期（其余留白，避免每格挤数字看不清周期位置）
+      '开发强度只在周一写日期': (function(){
+        var cells=qa('#ghIntensity .gi-cell');
+        var mons=cells.filter(function(c){
+          var d=new Date(c.getAttribute('data-gi-day')+'T00:00:00');return d.getDay()===1;});
+        var withEm=cells.filter(function(c){return c.querySelector('em');});
+        // 数量相等，且带 em 的格子确实都是周一
+        if(withEm.length!==mons.length||!mons.length)return false;
+        return withEm.every(function(c){
+          var d=new Date(c.getAttribute('data-gi-day')+'T00:00:00');return d.getDay()===1;});
+      })(),
       '开发强度末列是月末': (function(){var c=qa('#ghIntensity .gi-cell');if(!c.length)return false;
         var d=new Date(c[c.length-1].getAttribute('data-gi-day')+'T00:00:00');
         return d.getDate()===daysInMonth(d.getFullYear(),d.getMonth());})(),
@@ -309,6 +335,13 @@ TEST = r"""<script>
       '切本周排标签': qa('#ghIntensity .gi-rowlabel').map(function(s){return s.textContent.trim();}),
       '切本周首列周一': (function(){var c=qa('#ghIntensity .gi-cell')[0];if(!c)return false;
         var d=new Date(c.getAttribute('data-gi-day')+'T00:00:00');return d.getDay()===1;})(),
+      // 本周：只在第 3 格写「3」、第 7 格写「天」做锚点，其余格不写小日期
+      '切本周第3格写3': (function(){var c=qa('#ghIntensity .gi-cell')[2];
+        var e=c&&c.querySelector('em');return e?e.textContent:'（无）';})(),
+      '切本周第7格写天': (function(){var c=qa('#ghIntensity .gi-cell')[6];
+        var e=c&&c.querySelector('em');return e?e.textContent:'（无）';})(),
+      '切本周只有2格写日期': (function(){
+        return qa('#ghIntensity .gi-cell').filter(function(c){return c.querySelector('em');}).length;})(),
       '切本周按钮高亮': (q('[data-gi-range="week"]')||{}).className.indexOf('on')>=0
     };
     q('[data-gi-range="q3"]').click(); await wait(150);
@@ -316,6 +349,14 @@ TEST = r"""<script>
       for(var i=2;i>=0;i--){var d=new Date(t.getFullYear(),t.getMonth()-i,1);n+=daysInMonth(d.getFullYear(),d.getMonth());}
       return qa('#ghIntensity .gi-cell').length===n;})(); // = 近3个自然月天数之和
     R.V6b_intensity['切近3个月排数']=qa('#ghIntensity .gi-rowblock').length; // = 3 排
+    // 近3个月同样只在周一写格内小日期
+    R.V6b_intensity['近3个月只在周一写日期']=(function(){
+      var cells=qa('#ghIntensity .gi-cell');
+      var withEm=cells.filter(function(c){return c.querySelector('em');});
+      if(!withEm.length)return false;
+      return withEm.every(function(c){
+        var d=new Date(c.getAttribute('data-gi-day')+'T00:00:00');return d.getDay()===1;});
+    })(),
     R.V6b_intensity['切近3个月排标签']=(function(){
       var ls=qa('#ghIntensity .gi-rowlabel').map(function(s){return s.textContent.trim();});
       if(ls.length!==3)return false;
