@@ -2,6 +2,13 @@
 
 本项目遵循语义化版本。格式：`[版本] - 日期`，按版本分节。
 
+## 文档维护 · 2026-11-17
+
+- 接入 knowledge-base 的**单项目规范**（spec 2.1.3 / repo-kit 2.7.3，profile `link-only`）
+- 新增 `schema/taxonomy.json`、`tools/repo-kit/`、`tools/update-repo-kit.ps1`、`schema/kit.lock.json` 与 CI
+- 新增 `requirements.txt`：仅文档依赖
+- - 验收：`REPO CHECK: PASS`（ERROR=0）、`KIT LOCK: PASS (v2.7.3, spec=2.1.3)`
+
 ## 版本口径（先读这段）
 
 - **GitHub Release / tag** = 正式对外发布的版本，每个都有 tag、Release 和平台版 zip。
