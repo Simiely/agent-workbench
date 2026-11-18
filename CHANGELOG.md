@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-11-18 · 文档维护：升级 kit 2.9.0 / 规范 2.1.4，并归档
+
+- `tools/repo-kit/check_repo.py` 升级到 2.9.0（新增 `AGENTS_TOO_LONG` 门禁：>150 行即 ERROR）
+- `schema/kit.lock.json` 写入 `v2.9.0 / spec 2.1.4`；`schema/taxonomy.json` 的 `version` 同步为 2.9.0（否则盘点报 `skew`）
+- AGENTS 补「机器层」节（含归档说明）
+- 仓库随后**归档**：只读、Actions 停跑、9 个 Release 仍可下载但不可再发新版；解冻用 `unarchive` 恢复
+- 验收：`REPO CHECK: PASS`（ERROR=0、WARN=0）、`KIT LOCK: PASS (v2.9.0, spec=2.1.4)`
+
 本项目遵循语义化版本。格式：`[版本] - 日期`，按版本分节。
 
 ## 文档维护 · 2026-11-17

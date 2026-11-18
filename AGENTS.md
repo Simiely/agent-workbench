@@ -93,6 +93,14 @@
 - 颜色 5 档热力（`giLevel`/`hm`）头部与日历共用同一套配色规则，改一处要两处对齐
 - 断言基线快照（`tests/_baseline/`）是有意契约：值变化 = 行为变化，先确认再 `--bless`
 
+## 机器层（repo-kit · link-only）
+
+- `schema/taxonomy.json` + `schema/kit.lock.json`（kit `2.9.0` / 规范 `2.1.4` / `link-only`）+ `tools/repo-kit/check_repo.py`
+- 校验：`python tools/repo-kit/check_repo.py --root .`；锁哈希：`pwsh tools/update-repo-kit.ps1 -Check`
+- 只查**链接与锚点**：全仓 md 豁免 frontmatter（本仓没有 frontmatter 契约）
+- `schema/kit.lock.json` **不要手改**，升级只能跑 `tools/update-repo-kit.ps1`
+- ⚠️ 本仓已**归档**（2026-11-18）：Actions 停跑；解冻（unarchive）后再跑一次 `check_repo` 再动文件
+
 ## 常用命令
 
 ```bash
